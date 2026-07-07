@@ -1,0 +1,79 @@
+﻿using ComfyUICaptioningTool.ViewModels.Windows;
+using Wpf.Ui;
+using Wpf.Ui.Abstractions;
+using Wpf.Ui.Appearance;
+using Wpf.Ui.Controls;
+
+namespace ComfyUICaptioningTool.Views.Windows
+{
+    /// <summary>
+    /// アプリケーションのメインウィンドウ。
+    /// <see cref="INavigationWindow"/> を実装し、ナビゲーションの起点となる。
+    /// </summary>
+    public partial class MainWindow : INavigationWindow
+    {
+        /// <summary>このウィンドウに対応する ViewModel。</summary>
+        public MainWindowViewModel ViewModel { get; }
+
+        /// <summary>
+        /// DI コンテナから依存サービスを受け取って初期化する。
+        /// OS のテーマ変更を自動検知するために <see cref="SystemThemeWatcher"/> を登録する。
+        /// </summary>
+        public MainWindow(
+            MainWindowViewModel viewModel,
+            INavigationViewPageProvider navigationViewPageProvider,
+            INavigationService navigationService,
+            ISnackbarService snackbarService
+        )
+        {
+            ViewModel = viewModel;
+            DataContext = this;
+
+            // OS のテーマ変更（ライト/ダーク切り替え）を自動追従する
+            SystemThemeWatcher.Watch(this);
+
+            InitializeComponent();
+            SetPageService(navigationViewPageProvider);
+
+            navigationService.SetNavigationControl(RootNavigation);
+
+            // スナックバー通知サービスにスナックバープレゼンターを設定する
+            snackbarService.SetSnackbarPresenter(SnackbarPresenter);
+        }
+
+        #region INavigationWindow methods
+
+        public INavigationView GetNavigation() => RootNavigation;
+
+        public bool Navigate(Type pageType) => RootNavigation.Navigate(pageType);
+
+        public void SetPageService(INavigationViewPageProvider navigationViewPageProvider) => RootNavigation.SetPageProviderService(navigationViewPageProvider);
+
+        public void ShowWindow() => Show();
+
+        public void CloseWindow() => Close();
+
+        #endregion INavigationWindow methods
+
+        /// <summary>
+        /// ウィンドウが閉じた後に呼び出される。アプリケーション全体を終了する。
+        /// </summary>
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+
+            // このウィンドウが唯一のメインウィンドウのため、閉じたらアプリを終了する
+            Application.Current.Shutdown();
+        }
+
+        INavigationView INavigationWindow.GetNavigation()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetServiceProvider(IServiceProvider serviceProvider)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
