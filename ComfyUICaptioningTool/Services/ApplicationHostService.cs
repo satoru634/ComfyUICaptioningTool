@@ -18,8 +18,12 @@ namespace ComfyUICaptioningTool.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly Setting<AppConfig> _config;
 
+        /// <summary>アプリケーションのメインウィンドウ（<see cref="HandleActivationAsync"/> で生成される）。</summary>
         private INavigationWindow _navigationWindow;
 
+        /// <summary>
+        /// DI コンテナからサービスプロバイダーと設定を受け取って初期化する。
+        /// </summary>
         public ApplicationHostService(IServiceProvider serviceProvider, Setting<AppConfig> config)
         {
             _serviceProvider = serviceProvider;

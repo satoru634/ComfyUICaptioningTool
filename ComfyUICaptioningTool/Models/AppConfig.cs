@@ -46,7 +46,7 @@ namespace ComfyUICaptioningTool.Models
 
     /// <summary>
     /// アプリケーション全体の設定を保持するルートクラス。
-    /// <c>Setting&lt;AppConfig&gt;</c> 経由で <c>ComfyUIRunWorkflow_setting.json</c> に永続化される。
+    /// <c>Setting&lt;AppConfig&gt;</c> 経由で <c>ComfyUICaptioningTool_setting.json</c> に永続化される。
     /// </summary>
     public partial class AppConfig : ObservableObject
     {
