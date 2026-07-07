@@ -43,14 +43,19 @@ namespace ComfyUICaptioningTool.Views.Windows
 
         #region INavigationWindow methods
 
+        /// <summary>ナビゲーションビューコントロールを返す。</summary>
         public INavigationView GetNavigation() => RootNavigation;
 
+        /// <summary>指定したページ型へ遷移する。</summary>
         public bool Navigate(Type pageType) => RootNavigation.Navigate(pageType);
 
+        /// <summary>ページプロバイダーサービスをナビゲーションビューに設定する。</summary>
         public void SetPageService(INavigationViewPageProvider navigationViewPageProvider) => RootNavigation.SetPageProviderService(navigationViewPageProvider);
 
+        /// <summary>ウィンドウを表示する。</summary>
         public void ShowWindow() => Show();
 
+        /// <summary>ウィンドウを閉じる。</summary>
         public void CloseWindow() => Close();
 
         #endregion INavigationWindow methods
@@ -66,11 +71,19 @@ namespace ComfyUICaptioningTool.Views.Windows
             Application.Current.Shutdown();
         }
 
+        /// <summary>
+        /// <see cref="INavigationWindow"/> の明示的実装。<see cref="GetNavigation"/>（公開メンバー）と
+        /// シグネチャが重複するため、こちらは未使用のプレースホルダーとして未実装のままにしている。
+        /// </summary>
         INavigationView INavigationWindow.GetNavigation()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// <see cref="INavigationWindow"/> のインターフェースメンバーだが、本アプリでは
+        /// サービスプロバイダーをコンストラクター注入で受け取るため未使用・未実装。
+        /// </summary>
         public void SetServiceProvider(IServiceProvider serviceProvider)
         {
             throw new NotImplementedException();

@@ -4,6 +4,10 @@ using Wpf.Ui;
 
 namespace ComfyUICaptioningTool.ViewModels.Pages
 {
+    /// <summary>
+    /// MainPage の ViewModel。テンプレート由来のカウンターデモ。
+    /// キャプショニング実行 VM に置き換わるまでの暫定実装。
+    /// </summary>
     public partial class MainPageViewModel : ObservableObject
     {
         /// <summary>アプリケーション設定。</summary>
@@ -27,6 +31,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             //LocalizationManager.Instance.PropertyChanged += (_, _) => RefreshSizeLabels();
         }
 
+        /// <summary>ボタン押下時にカウンターを1つ増やす（テンプレート由来のデモ用コマンド）。</summary>
         [RelayCommand]
         private void OnCounterIncrement()
         {

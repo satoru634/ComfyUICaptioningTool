@@ -67,6 +67,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             return Task.CompletedTask;
         }
 
+        /// <summary>設定ファイルの値を各プロパティへ反映し、初期化済みフラグを立てる。</summary>
         private void InitializeViewModel()
         {
             AppVersion = $"ComfyUICaptioningTool - {GetAssemblyVersion()}";
@@ -75,6 +76,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             _isInitialized = true;
         }
 
+        /// <summary>実行アセンブリのバージョン文字列を取得する。</summary>
         private string GetAssemblyVersion()
         {
             return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString()
