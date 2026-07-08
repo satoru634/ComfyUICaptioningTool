@@ -1,7 +1,9 @@
 ﻿using ComfyUICaptioningTool.Helpers;
 using ComfyUICaptioningTool.Models;
 using ComfyUILibs.Common;
+using Microsoft.Win32;
 using System.Globalization;
+using System.IO;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 
@@ -95,6 +97,27 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         {
             Config.Data.Language = value;
             LocalizationManager.Instance.CurrentCulture = new CultureInfo(value);
+        }
+
+        /// <summary>workflow_config.json のファイル選択ダイアログを開く。</summary>
+        [RelayCommand]
+        private void BrowseConfigPath()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = LocalizationManager.Instance["Settings_ConfigFileDialogTitle"],
+                Filter = LocalizationManager.Instance["Settings_ConfigFileDialogFilter"],
+            };
+
+            if (!string.IsNullOrWhiteSpace(Config.Data.ConfigPath))
+            {
+                var dir = Path.GetDirectoryName(Config.Data.ConfigPath);
+                if (!string.IsNullOrEmpty(dir))
+                    dialog.InitialDirectory = dir;
+            }
+
+            if (dialog.ShowDialog() == true)
+                Config.Data.ConfigPath = dialog.FileName;
         }
     }
 }

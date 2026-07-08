@@ -65,9 +65,41 @@
   <data name="MainWindow_MenuSettings" xml:space="preserve"><value>設定</value></data>
   <data name="MainWindow_TrayHome" xml:space="preserve"><value>ホーム</value></data>
 
+  <!-- Common -->
+  <data name="Common_BrowseButtonTooltip" xml:space="preserve"><value>参照</value></data>
+  <data name="Common_ConfigPathNotSet" xml:space="preserve"><value>設定ページで workflow_config.json のパスを指定してください。</value></data>
+  <data name="Common_Completed" xml:space="preserve"><value>完了</value></data>
+  <data name="Common_Error" xml:space="preserve"><value>エラー</value></data>
+
   <!-- Settings -->
   <data name="Settings_Title" xml:space="preserve"><value>設定</value></data>
   <data name="Settings_DisplaySectionLabel" xml:space="preserve"><value>表示</value></data>
   <data name="Settings_ThemeLabel" xml:space="preserve"><value>テーマ</value></data>
   <data name="Settings_LanguageLabel" xml:space="preserve"><value>言語</value></data>
+  <data name="Settings_ComfyUISectionLabel" xml:space="preserve"><value>ComfyUI 接続</value></data>
+  <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>workflow_config.json パス</value></data>
+  <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>workflow_config.json を選択</value></data>
+  <data name="Settings_ConfigFileDialogFilter" xml:space="preserve"><value>JSON ファイル|*.json|すべてのファイル|*.*</value></data>
+
+  <!-- Main（ディレクトリ一括タグ付け実行ページ） -->
+  <data name="Main_Title" xml:space="preserve"><value>ディレクトリ一括タグ付け</value></data>
+  <data name="Main_DirectoryLabel" xml:space="preserve"><value>対象ディレクトリ</value></data>
+  <data name="Main_DirectoryPlaceholder" xml:space="preserve"><value>C:\...\images</value></data>
+  <data name="Main_DirectoryDialogTitle" xml:space="preserve"><value>対象ディレクトリを選択</value></data>
+  <data name="Main_OptionsSectionLabel" xml:space="preserve"><value>オプション</value></data>
+  <data name="Main_RecursiveLabel" xml:space="preserve"><value>サブディレクトリも処理する</value></data>
+  <data name="Main_OverwriteLabel" xml:space="preserve"><value>既存の .txt を上書きする</value></data>
+  <data name="Main_GenerateReportLabel" xml:space="preserve"><value>完了後にタグ集計レポートを生成する</value></data>
+  <data name="Main_TagsSectionLabel" xml:space="preserve"><value>タグフィルタ</value></data>
+  <data name="Main_PrependTagsLabel" xml:space="preserve"><value>先頭に追加するタグ</value></data>
+  <data name="Main_ExcludeTagsLabel" xml:space="preserve"><value>除外するタグ</value></data>
+  <data name="Main_TagsPlaceholder" xml:space="preserve"><value>tag1, tag2, ...</value></data>
+  <data name="Main_RunButton" xml:space="preserve"><value>実行</value></data>
+  <data name="Main_LogHeader" xml:space="preserve"><value>ログ</value></data>
+  <data name="Main_SummaryFormat" xml:space="preserve"><value>完了: 処理 {0}, スキップ {1}, エラー {2}</value></data>
+  <data name="Main_ReportSavedFormat" xml:space="preserve"><value>レポートを保存しました: {0}</value></data>
+  <data name="Main_ConfigLoadErrorFormat" xml:space="preserve"><value>WD14 Tagger 設定の読み込みエラー: {0}</value></data>
+  <data name="Main_StatusOk" xml:space="preserve"><value>OK</value></data>
+  <data name="Main_StatusSkip" xml:space="preserve"><value>SKIP</value></data>
+  <data name="Main_StatusError" xml:space="preserve"><value>ERROR</value></data>
 </root>

@@ -59,6 +59,14 @@ namespace ComfyUICaptioningTool.Models
         private string _language = "ja";
 
         /// <summary>
+        /// workflow_config.json のパス（comfyui_url・wd14_tagger 設定を含む）。未設定時は空文字。
+        /// GUI 内では値を直接編集せず、設定ページのファイル選択ダイアログでパスのみを指定する
+        /// （ComfyUIRunWorkflow と同じ方式）。
+        /// </summary>
+        [ObservableProperty]
+        private string _configPath = "";
+
+        /// <summary>
         /// 初回起動時のデフォルト値を設定する。
         /// 設定ファイルが存在する場合は JSON デシリアライズ後に上書きされる。
         /// </summary>

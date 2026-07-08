@@ -13,8 +13,8 @@ ComfyUICaptioningTool/                      <- ソリューションルート
     Assets/
       wpfui-icon-256.png / wpfui-icon-1024.png
     Models/
-      AppConfig.cs                          <- アプリ設定ルート（WindowSettingData を内包、Language フィールドあり）
-                                                ComfyUIUrl・ConfigPath 等のキャプショニング固有設定は未追加
+      AppConfig.cs                          <- アプリ設定ルート（WindowSettingData・Language に加え、
+                                                workflow_config.json のパスを保持する ConfigPath を追加済み）
       DataColor.cs                          <- テンプレート由来のサンプルモデル（DataPage のランダムカラー表示用。未使用に置換予定）
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
@@ -30,29 +30,51 @@ ComfyUICaptioningTool/                      <- ソリューションルート
     Services/
       ApplicationHostService.cs             <- 起動時ウィンドウ表示。起動時に Config.Data.Language から
                                                 LocalizationManager.Instance.CurrentCulture を適用する
+      ICaptioningService.cs                 <- ComfyUILibs.Services.CaptioningService の公開メソッドのうち
+                                                MainPageViewModel が使う部分だけを抜き出したインターフェース
+                                                （テスト時にネットワーク通信を伴う実装を差し替えるための境界）
+      CaptioningServiceAdapter.cs           <- ICaptioningService の既定実装（実 CaptioningService をラップ）
     ViewModels/Pages/
-      MainPageViewModel.cs                  <- テンプレート由来のカウンターデモ（→ キャプショニング実行 VM に置換予定）
+      MainPageViewModel.cs                  <- ディレクトリ一括タグ付け実行ページの VM。ConfigPath から
+                                                Wd14TaggerRunner を読み込み、ICaptioningService 経由で
+                                                ProcessDirectoryAsync/GenerateReportAsync を実行する
       DataViewModel.cs                      <- テンプレート由来のランダムカラー一覧デモ（→ 処理結果・タグ集計レポート表示 VM に置換予定）
-      SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え（LocalizationManager 連動、再起動不要）は実装済み。
-                                                ComfyUI URL・WD14 しきい値・prepend/exclude タグ等は未実装
+      SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替えに加え、workflow_config.json の
+                                                パス選択（BrowseConfigPathCommand）を実装済み。
+                                                デフォルトの prepend/exclude タグはフェーズ3で追加予定
     ViewModels/Windows/
       MainWindowViewModel.cs                <- ナビゲーション定義・ウィンドウ状態保存。メニュー項目は
                                                 BuildMenuItems() で LocalizationManager から都度構築し、
                                                 言語切替時（PropertyChanged）に再構築する
     Views/Pages/
-      MainPage.xaml(.cs)                    <- テンプレート由来のカウンターデモ画面
+      MainPage.xaml(.cs)                    <- ディレクトリ一括タグ付け実行画面（対象ディレクトリ選択・
+                                                再帰/上書き/レポート生成オプション・prepend/exclude タグ入力・
+                                                進捗バー/ログ・完了サマリ）
       DataPage.xaml(.cs)                    <- テンプレート由来のランダムカラー一覧画面
-      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替えのみ）。ラベルは LocalizationManager バインディング
+      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、workflow_config.json パス選択）。
+                                                ラベルは LocalizationManager バインディング
     Views/Windows/
       MainWindow.xaml(.cs)                  <- ナビゲーションホスト
     Usings.cs
   ComfyUICaptioningToolTests/                <- xUnit テストプロジェクト（ComfyUIRunWorkflowTests を参考に新設）
+    Fakes/
+      FakeSnackbarService.cs                <- ISnackbarService のテスト用スタブ（Show 呼び出し履歴を記録）
+      FakeCaptioningService.cs              <- ICaptioningService のテスト用スタブ（進捗・結果をあらかじめ設定可能）
     Helpers/
       LocalizationManagerTests.cs           <- LocalizationManager のカルチャ切替・フォールバック挙動のテスト
+    Models/
+      AppConfigTests.cs                     <- AppConfig/WindowSettingData のデフォルト値・PropertyChanged のテスト
+    ViewModels/Pages/
+      MainPageViewModelTests.cs             <- MainPageViewModel のテスト（ConfigPath 読み込み成否・
+                                                RunCommand の CanExecute/実行・進捗/ログ/サマリ・エラーハンドリング）。
+                                                SymbolIcon 生成を伴うテストは STA スレッドが必要なため RunOnSta でラップ
+      SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）
+    ViewModels/Windows/
+      MainWindowViewModelTests.cs           <- MainWindowViewModel のテスト（メニュー項目構築・ウィンドウクローズ時保存等）
 ```
 
 ## 現時点で存在しないもの（ComfyUIRunWorkflow との差分）
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図など）
-- `templates/` ディレクトリ（WD14 Tagger 用ワークフローテンプレートは `ComfyUILibs` 側の `template_wd14_tagger.json` を利用する想定だが、本プロジェクト側への配置は未着手）
-- キャプショニング機能固有の Model / ViewModel / View 一式
+- `templates/` ディレクトリ（WD14 Tagger 用ワークフローテンプレートは `ComfyUILibs` 側の `template_wd14_tagger.json` を利用する想定だが、本プロジェクト側への配置は未着手。実行時は `workflow_config.json` と同様、実行ファイルと同階層の `templates/` に配置する必要がある）
+- キャプショニング機能固有の Model / View 一式（`DataPage` 側、フェーズ4で対応）

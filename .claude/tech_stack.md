@@ -31,7 +31,11 @@
 | `ComfyUILibs`（submodule、別リポジトリ） | ComfyUI API 通信・ワークフロー制御・設定管理などのビジネスロジック全般。UI・プレゼンテーション層のコードは含まない |
 | `ComfyUICaptioningTool`（本プロジェクト） | GUI のみ。View・ViewModel・UI ヘルパーに限定し、ComfyUI API を直接呼び出さず `ComfyUILibs` の `Services/` を DI 経由で利用する |
 
-**ディレクトリ一括処理・タグフィルタ（prepend/exclude）・タグ集計レポートといったロジックは、UI に依存しないビジネスロジックのため `ComfyUILibs` 側に置くべきか、本プロジェクト固有の実装として置くべきか要検討。** 詳細は `.claude/implementation_status.md` を参照。
+ディレクトリ一括処理・タグフィルタ（prepend/exclude）・タグ集計レポートといったロジックは、UI に依存しないビジネスロジックのため `ComfyUILibs`（`Services/CaptioningService.cs`）側に配置した（フェーズ1で実装完了、詳細は `.claude/implementation_status.md` を参照）。`CaptioningService` は設定ファイルを自前で読み込まず、`Wd14TaggerRunner` と prepend/exclude タグを呼び出し側（GUI）から受け取る設計のため、`MainPageViewModel`（フェーズ2）が `AppConfig.ConfigPath` から `Wd14TaggerRunner` を構築し、`Services/ICaptioningService.cs`/`CaptioningServiceAdapter.cs`（本プロジェクト側の薄いラッパー、テスト容易性のための境界）経由で呼び出す配線を行った。
+
+### comfyui_url・WD14 設定の扱い（ComfyUIRunWorkflow と同方式）
+
+`ComfyUIRunWorkflow` と同じく、`comfyui_url`・`wd14_tagger`（model_name・threshold）は GUI 内で直接編集せず、外部 `workflow_config.json` ファイルへのパスのみを `AppConfig.ConfigPath` として保持する（`SettingsPage` のファイル選択ダイアログでパスを指定するのみで、JSON の中身は手動編集が前提）。`Wd14TaggerRunner`/`ComfyUILibs.Services.ConfigLoader` がそのままファイルを読み込む。`prepend_tags`/`exclude_tags` は `WorkflowConfig`（`ComfyUILibs.Models`）に存在しないため、config ファイル側のデフォルト値には含まれない（`MainPage` 実行時の入力のみ。デフォルト値の永続化はフェーズ3で `AppConfig` 側に追加予定）。
 
 ### 起動・DI 構成（`App.xaml.cs`）
 
@@ -52,9 +56,13 @@
   - 起動時は `ApplicationHostService.StartAsync` が `Config.Data.Language`（既定 `"ja"`）を `LocalizationManager.Instance.CurrentCulture` に適用する。OS ロケールに関わらず既定値に固定するための明示的な処理。
   - `SettingsViewModel.OnSelectedLanguageChanged` で言語切替時に `Config.Data.Language` への保存と `LocalizationManager.Instance.CurrentCulture` の即時反映（再起動不要）を行う。
   - `Resources/Translations.cs` はテンプレート由来の未使用スタブ（`ComfyUIRunWorkflow` 側にも同名の未使用ファイルが残っている）。
+- `MainPageViewModel` は `INavigationAware.OnNavigatedToAsync` のたびに `AppConfig.ConfigPath` から `Wd14TaggerRunner` を再読み込みする（`ComfyUIRunWorkflow` の `TaggerViewModel.TryLoadRunner` と同じパターン）。読み込み失敗時は `ISnackbarService` で Danger 表示し、実行コマンドの `CanExecute` を false にする。
+- ネットワーク通信を伴うサービス（`CaptioningService` 等）をテストから差し替えたい場合は、本プロジェクト側に薄いインターフェース＋アダプター（例: `Services/ICaptioningService.cs` / `CaptioningServiceAdapter.cs`）を新設し、ViewModel のコンストラクターにファクトリー（`Func<...>`、既定値あり）として注入する。`ComfyUILibs` 側の内部コンストラクター（`InternalsVisibleTo` は `ComfyUILibsTests` のみ）は本プロジェクトのテストから使えないため、この境界が必要になる（`MainPageViewModel` が実装例）。
+- `IProgress<T>` を ViewModel 内で使う場合、`System.Progress<T>` は `SynchronizationContext.Post` 経由でコールバックを非同期配送するためテストが不安定になりやすい。`await` がすべて UI スレッドのコンテキストを捕捉して再開する前提が成り立つなら、同期的に呼び出す自前の `IProgress<T>` 実装（`MainPageViewModel.SynchronousProgress<T>` が実装例）を使うとテストが決定的になる。
 
 ## テスト
 
-- `ComfyUICaptioningToolTests`（xUnit、`ComfyUIRunWorkflowTests` を参考に新設、`ComfyUICaptioningTool.sln` に追加済み）が存在する。
-- 現状のテストは `LocalizationManager` のカルチャ切替・キー解決・フォールバック挙動を検証する `Helpers/LocalizationManagerTests.cs` のみ。
+- `ComfyUICaptioningToolTests`（xUnit、`ComfyUIRunWorkflowTests` を参考に新設、`ComfyUICaptioningTool.sln` に追加済み）。
+- `Models/AppConfigTests.cs`・`ViewModels/Pages/MainPageViewModelTests.cs`・`ViewModels/Pages/SettingsViewModelTests.cs`・`ViewModels/Windows/MainWindowViewModelTests.cs`・`Helpers/LocalizationManagerTests.cs` が存在する（`Fakes/` に `FakeSnackbarService`・`FakeCaptioningService` を用意）。
+- WPF の `FrameworkElement`（`SymbolIcon` 等）を生成するコード経路（スナックバー表示を伴う処理）のテストは STA スレッドが必要。`MainWindowViewModelTests.RunOnSta`（同期版）・`MainPageViewModelTests.RunOnSta`（非同期版、`Func<Task>` を STA スレッドで実行して待機する）を参照。
 - 実行環境では `dotnet test` が xunit.v3 のテストを検出できない場合がある（`ComfyUILibsTests` でも同様の事象が発生する既知の環境依存事象）。その場合はテストプロジェクトの `bin/**/net8.0-windows7.0/*.exe` を直接実行する（xunit.v3 の in-process ランナー）ことで代替確認できる。
