@@ -2,7 +2,7 @@
 
 ## 現在の状態（2026-07-08 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加）が実装完了。`DataPage` はまだテンプレート由来のサンプル実装（ランダムカラー一覧）のまま。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -17,7 +17,7 @@
 - `ViewModels/Pages/SettingsViewModel.cs` の言語切替（`OnSelectedLanguageChanged`）を有効化（コメントアウト解除）し、再起動不要で即時反映。
 - `ViewModels/Windows/MainWindowViewModel.cs` のナビゲーションメニュー項目（`MenuItems`/`FooterMenuItems`/`TrayMenuItems`）を `BuildMenuItems()` で `LocalizationManager` から構築し、言語切替時に再構築するよう変更。
 - `Views/Pages/SettingsPage.xaml` のラベルを `LocalizationManager` へのインデクサーバインディングに置き換え。
-- 翻訳キーは `MainWindow_*`・`Settings_*`・`Common_*`・`Main_*`（フェーズ2で追加したディレクトリ一括タグ付けページの文言）を用意済み。`DataPage` はテンプレート由来のプレースホルダーのため未翻訳（フェーズ4の置き換え時に追加する）。
+- 翻訳キーは `MainWindow_*`・`Settings_*`・`Common_*`・`Main_*`（フェーズ2で追加したディレクトリ一括タグ付けページの文言）・`Data_*`（フェーズ4で追加した実行結果・タグ集計レポートページの文言）を用意済み。
 - `ComfyUICaptioningToolTests`（xUnit）プロジェクトを新設し、`ComfyUICaptioningTool.sln` に追加。`Helpers/LocalizationManagerTests.cs` でカルチャ切替・キー解決・フォールバックを検証済み（全件パス）。
 
 ## 移植元（Python版 captioning_tool）
@@ -32,9 +32,9 @@
 - タグ集計レポート生成（`--report` → `tags_report.txt`）
 - `config.json`（`comfyui_url` / `wd14_tagger.model_name` / `general_threshold` / `character_threshold` / `prepend_tags` / `exclude_tags`）
 
-## 実装ロードマップ（案）
+## 実装ロードマップ
 
-まだ着手前のため、以下は暫定的なロードマップ。実装開始前に方針を確認すること。
+フェーズ1〜4は実装完了・マージ済み。以降のフェーズに着手する場合も、方針が固まっていない点があれば実装開始前に確認すること。
 
 ### フェーズ1: ロジック配置の検討・ComfyUILibs の拡張（実装完了・マージ済み）
 
@@ -66,10 +66,17 @@
 - `ComfyUICaptioningToolTests`: `Models/AppConfigTests.cs` に `DefaultPrependTags`/`DefaultExcludeTags` のデフォルト値・`PropertyChanged` テストを追加、`ViewModels/Pages/MainPageViewModelTests.cs` に union の順序・重複排除を検証するテストを追加。計92件、全件パス確認済み
 - 実アプリで `MainPage` の表示を再確認済み（進捗バー等に回帰なし）。`SettingsPage` は座標指定でのクリック操作が別ウィンドウを誤操作してしまう問題が2度発生したため実画面確認は行わず、既に動作確認済みの `ConfigPath` カードと同一の XAML 構造であることのコードレビューで代替した
 
-### フェーズ4: 処理結果・タグ集計レポート表示（`DataPage` を置換）
+### フェーズ4: 処理結果・タグ集計レポート表示（`DataPage` を置換、実装完了）
 
-- バッチ実行結果の一覧表示
-- タグ集計レポート（`tags_report.txt` 相当）の表示・再生成
+方針検討の結果、「バッチ実行結果の一覧表示」は直近の実行結果のみを対象とし（過去実行の永続化・履歴一覧は対象外）、タグ集計レポートは `DataPage` で対象ディレクトリを選択して生成・表示する方式とした。
+
+- **結果共有の仕組み**: `Models/CaptioningRunResult.cs`（実行結果スナップショットの positional record）と `Services/CaptioningRunResultStore.cs`（`LastResult` を保持する `ObservableObject` の DI シングルトン、`App.xaml.cs` に登録）を新設。`MainPageViewModel.RunAsync` は実行成功時（例外発生時は更新しない）に `_resultStore.LastResult` を更新する。`DataViewModel` はコンストラクターで `ResultStore.PropertyChanged` を購読し、`OnPropertyChanged(string.Empty)` で `HasLastResult`/`LastResultDirectory`/`LastResultTimestampText`/`LastResultSummary`/`LastResultLogEntries` などの導出プロパティを一括再通知する（MainPage で実行するたびに DataPage 側の表示も自動的に最新化される）
+- **タグ集計レポート**: `DataPage` に対象ディレクトリ選択（`OpenFolderDialog`）・再帰オプション・「生成 / 更新」ボタンを配置。`DataViewModel` は `MainPageViewModel` と同じパターンで `Config.Data.ConfigPath` から `Wd14TaggerRunner` を読み込み（`ICaptioningService` ファクトリー経由、prepend/exclude タグは常に空リスト）、`GenerateReportAsync` 実行後に `tags_report.txt` を読み込んで `Models/TagCountEntry.cs`（`Tag`/`Count` の positional record）のリストへ変換し `ListView` で表示する。行の解析には正規表出現 `^(.*): (\d+)$` を使用し、`rating:general` のようにタグ名自体にコロンを含むケースでも末尾の出現回数だけを安全に切り出せるようにした
+- `CaptioningService` の `GenerateReportAsync` は `Wd14TaggerRunner` を必要としない（ファイル I/O のみ）が、コンストラクター引数として必須なため、`DataPage` 単体でのレポート生成にも `ConfigPath` の設定が前提となる（`ComfyUILibs` 側の API 制約であり、本フェーズでは変更しない）
+- テンプレート由来の `Models/DataColor.cs` は不要になったため削除
+- `ComfyUICaptioningToolTests`: `ViewModels/Pages/DataViewModelTests.cs` を全面書き換え、`Services/CaptioningRunResultStoreTests.cs` を新設、`Fakes/FakeCaptioningService.cs` に `ThrowOnGenerateReport` を追加、`MainPageViewModelTests.cs` に `ResultStore` 更新の検証を追加。計111件、全件パス確認済み
+- **テストインフラの修正**: `DataViewModel.GenerateReportAsync` は `File.ReadAllLinesAsync` という実際に非同期完了する I/O を含むため、`SynchronizationContext` を持たない素の STA スレッドで実行すると `await` の継続がスレッドプール（MTA）へ流れてしまい、その後の `SymbolIcon` 生成が失敗する不具合がテストで発生した（実際の WPF アプリの UI スレッドには `DispatcherSynchronizationContext` が存在するため本番コードには影響しない、テスト環境特有の問題）。`ComfyUICaptioningToolTests/TestSupport/StaTestRunner.cs` を新設し、`DispatcherSynchronizationContext` + `Dispatcher.PushFrame` によるメッセージポンプで継続を STA スレッドへ戻すよう修正。`MainPageViewModelTests`/`DataViewModelTests` の `RunOnSta` はこれに委譲する形に統一した。あわせて `TestSupport/StaThreadGate.cs`（テストクラス間で共有する lock）も導入
+- 実アプリで `MainPage` の表示を再確認済み（回帰なし）。`DataPage` は座標指定でのクリック操作によるページ遷移の自動確認が3回連続で失敗（他ウィンドウを誤操作）したため実画面確認を断念し、ユニットテストとコードレビュー（`MainPage`/`SettingsPage` と同一の XAML パターン）で代替した
 
 ### フェーズ5: 多言語化（実装ロードマップに先行して完了済み）
 

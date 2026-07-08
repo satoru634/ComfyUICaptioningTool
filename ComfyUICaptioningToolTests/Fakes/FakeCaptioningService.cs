@@ -13,6 +13,7 @@ namespace ComfyUICaptioningToolTests.Fakes
         public (int Processed, int Skipped, int Errors) Result { get; set; } = (0, 0, 0);
         public List<CaptioningProgress> ProgressToReport { get; set; } = new();
         public bool ThrowOnProcessDirectory { get; set; }
+        public bool ThrowOnGenerateReport { get; set; }
         public string ThrowMessage { get; set; } = "エラー";
 
         public string? ProcessDirectoryArgDirectory { get; private set; }
@@ -44,6 +45,10 @@ namespace ComfyUICaptioningToolTests.Fakes
             GenerateReportCalled = true;
             GenerateReportArgDirectory = directory;
             GenerateReportArgRecursive = recursive;
+
+            if (ThrowOnGenerateReport)
+                throw new ComfyUIException(ThrowMessage);
+
             return Task.CompletedTask;
         }
     }

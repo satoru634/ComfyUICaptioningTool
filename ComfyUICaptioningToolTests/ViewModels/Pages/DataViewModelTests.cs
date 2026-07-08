@@ -1,44 +1,315 @@
+using System.IO;
+using ComfyUICaptioningTool.Models;
+using ComfyUICaptioningTool.Services;
 using ComfyUICaptioningTool.ViewModels.Pages;
+using ComfyUICaptioningToolTests.Fakes;
+using ComfyUILibs.Common;
+using ComfyUILibs.Services;
+using Wpf.Ui.Controls;
 
 namespace ComfyUICaptioningToolTests.ViewModels.Pages
 {
-    public class DataViewModelTests
+    public class DataViewModelTests : IDisposable
     {
-        // ── OnNavigatedToAsync ────────────────────────────────────────────────
+        private readonly string _tempDir;
+        private readonly FakeSnackbarService _fakeSnackbar;
+        private readonly CaptioningRunResultStore _resultStore;
+
+        public DataViewModelTests()
+        {
+            _tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Directory.CreateDirectory(_tempDir);
+            _fakeSnackbar = new FakeSnackbarService();
+            _resultStore = new CaptioningRunResultStore();
+            EnsureTemplateFile();
+        }
+
+        public void Dispose() => Directory.Delete(_tempDir, recursive: true);
+
+        /// <summary>
+        /// Wd14TaggerRunner は AppDomain.CurrentDomain.BaseDirectory/templates を参照するため、
+        /// テスト実行ディレクトリにテンプレートファイルを配置しておく（MainPageViewModelTests と同じ回避策）。
+        /// </summary>
+        private static void EnsureTemplateFile()
+        {
+            var basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates");
+            Directory.CreateDirectory(basePath);
+            var targetPath = Path.Combine(basePath, "template_wd14_tagger.json");
+            if (File.Exists(targetPath))
+                return;
+
+            var templateJson = """
+                {
+                  "1": {
+                    "class_type": "LoadImage",
+                    "inputs": {"image": ""},
+                    "_meta": {"title": "画像を読み込む"}
+                  },
+                  "2": {
+                    "class_type": "WDTimmTagger",
+                    "inputs": {
+                      "model_name": "",
+                      "general_threshold": 0.5,
+                      "character_threshold": 0.5
+                    },
+                    "_meta": {"title": "WD Timm Tagger"}
+                  },
+                  "3": {
+                    "class_type": "PreviewAny",
+                    "inputs": {},
+                    "_meta": {"title": "プレビュー任意"}
+                  }
+                }
+                """;
+            File.WriteAllText(targetPath, templateJson);
+        }
+
+        private Setting<AppConfig> CreateSetting()
+            => new Setting<AppConfig>(Path.Combine(_tempDir, "setting.json"), onLoad: false);
+
+        private string WriteValidConfigFile()
+        {
+            var path = Path.Combine(_tempDir, "workflow_config.json");
+            File.WriteAllText(path, """
+                {
+                  "comfyui_url": "http://127.0.0.1:8188",
+                  "wd14_tagger": {
+                    "model_name": "wd-eva02-large-tagger-v3",
+                    "general_threshold": 0.35,
+                    "character_threshold": 0.85
+                  }
+                }
+                """);
+            return path;
+        }
+
+        private string WriteInvalidConfigFile()
+        {
+            var path = Path.Combine(_tempDir, "invalid_config.json");
+            File.WriteAllText(path, """{ "comfyui_url": "http://127.0.0.1:8188" }""");
+            return path;
+        }
+
+        private DataViewModel CreateVm(
+            Setting<AppConfig>? setting = null,
+            Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? factory = null)
+            => new DataViewModel(setting ?? CreateSetting(), _resultStore, _fakeSnackbar, factory);
+
+        /// <summary>有効な ConfigPath を設定した Setting で ViewModel を作成し、OnNavigatedToAsync まで済ませる。</summary>
+        private async Task<DataViewModel> CreateReadyVmAsync(FakeCaptioningService fake, string? reportDirectory = null)
+        {
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            var vm = CreateVm(setting, (_, _, _) => fake);
+            await vm.OnNavigatedToAsync();
+            vm.ReportDirectory = reportDirectory ?? _tempDir;
+            return vm;
+        }
+
+        /// <summary>
+        /// WPF コントロール生成に必要な STA スレッドで非同期処理を実行するヘルパー
+        /// （MainPageViewModelTests.RunOnSta と同じ）。
+        /// </summary>
+        private static void RunOnSta(Func<Task> asyncAction)
+            => ComfyUICaptioningToolTests.TestSupport.StaTestRunner.Run(asyncAction);
+
+        // ── コンストラクター ───────────────────────────────────────────────────
 
         [Fact]
-        public async Task OnNavigatedToAsync_PopulatesColors_With8192Items()
+        public void Constructor_Config_IsSet()
         {
-            var vm = new DataViewModel();
+            var setting = CreateSetting();
 
-            await vm.OnNavigatedToAsync();
+            var vm = CreateVm(setting);
 
-            Assert.Equal(8192, vm.Colors.Count());
+            Assert.Same(setting, vm.Config);
         }
 
         [Fact]
-        public async Task OnNavigatedToAsync_CalledTwice_DoesNotRegenerateColors()
+        public void Constructor_ResultStore_IsSet()
         {
-            var vm = new DataViewModel();
-            await vm.OnNavigatedToAsync();
-            var first = vm.Colors;
+            var vm = CreateVm();
 
-            await vm.OnNavigatedToAsync();
-
-            Assert.Same(first, vm.Colors);
+            Assert.Same(_resultStore, vm.ResultStore);
         }
 
-        // ── OnNavigatedFromAsync ──────────────────────────────────────────────
+        // ── 直近の実行結果 ─────────────────────────────────────────────────────
+
+        [Fact]
+        public void HasLastResult_NoResult_IsFalse()
+        {
+            var vm = CreateVm();
+
+            Assert.False(vm.HasLastResult);
+        }
+
+        [Fact]
+        public void LastResultSummary_NoResult_ReturnsNoResultMessage()
+        {
+            var vm = CreateVm();
+
+            Assert.Equal(
+                ComfyUICaptioningTool.Helpers.LocalizationManager.Instance["Data_NoResultYet"],
+                vm.LastResultSummary);
+        }
+
+        [Fact]
+        public void HasLastResult_AfterResultStoreUpdated_IsTrue()
+        {
+            var vm = CreateVm();
+
+            _resultStore.LastResult = new CaptioningRunResult(
+                DateTime.Now, _tempDir, false, 3, 1, 0, new List<string> { "[1/4] a.jpg → OK" });
+
+            Assert.True(vm.HasLastResult);
+            Assert.Equal(_tempDir, vm.LastResultDirectory);
+            Assert.Single(vm.LastResultLogEntries);
+        }
+
+        // ── OnNavigatedToAsync / TryLoadRunner ────────────────────────────────
+
+        [Fact]
+        public void OnNavigatedToAsync_EmptyConfigPath_SetsIsConfigLoadedFalse()
+        {
+            var vm = CreateVm();
+
+            RunOnSta(async () => await vm.OnNavigatedToAsync());
+
+            Assert.False(vm.IsConfigLoaded);
+        }
+
+        [Fact]
+        public void OnNavigatedToAsync_InvalidConfig_SetsIsConfigLoadedFalse()
+        {
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteInvalidConfigFile();
+            var vm = CreateVm(setting);
+
+            RunOnSta(async () => await vm.OnNavigatedToAsync());
+
+            Assert.False(vm.IsConfigLoaded);
+        }
+
+        [Fact]
+        public async Task OnNavigatedToAsync_ValidConfig_SetsIsConfigLoadedTrue()
+        {
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            var vm = CreateVm(setting);
+
+            await vm.OnNavigatedToAsync();
+
+            Assert.True(vm.IsConfigLoaded);
+        }
 
         [Fact]
         public async Task OnNavigatedFromAsync_ReturnsCompletedTask()
         {
-            var vm = new DataViewModel();
+            var vm = CreateVm();
 
             var task = vm.OnNavigatedFromAsync();
             await task;
 
             Assert.True(task.IsCompletedSuccessfully);
+        }
+
+        // ── GenerateReportCommand CanExecute ──────────────────────────────────
+
+        [Fact]
+        public void GenerateReportCommand_CanExecute_FalseWhenConfigNotLoaded()
+        {
+            var vm = CreateVm();
+            vm.ReportDirectory = _tempDir;
+
+            Assert.False(vm.GenerateReportCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task GenerateReportCommand_CanExecute_FalseWhenDirectoryNotSet()
+        {
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            var vm = CreateVm(setting);
+
+            await vm.OnNavigatedToAsync();
+
+            Assert.False(vm.GenerateReportCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task GenerateReportCommand_CanExecute_TrueWhenReady()
+        {
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+
+            Assert.True(vm.GenerateReportCommand.CanExecute(null));
+        }
+
+        // ── GenerateReportCommand 実行 ────────────────────────────────────────
+
+        [Fact]
+        public async Task GenerateReportCommand_Execute_CallsServiceWithDirectoryAndRecursive()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, CaptioningService.ReportFileName), "1girl: 3\n");
+            var fake = new FakeCaptioningService();
+            var vm = await CreateReadyVmAsync(fake);
+            vm.ReportRecursive = true;
+
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            Assert.True(fake.GenerateReportCalled);
+            Assert.Equal(_tempDir, fake.GenerateReportArgDirectory);
+            Assert.True(fake.GenerateReportArgRecursive);
+        }
+
+        [Fact]
+        public async Task GenerateReportCommand_Execute_PopulatesReportEntriesFromFile()
+        {
+            var reportPath = Path.Combine(_tempDir, CaptioningService.ReportFileName);
+            File.WriteAllLines(reportPath, new[] { "1girl: 3", "solo: 2", "blue eyes: 1" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            Assert.Equal(3, vm.ReportEntries.Count);
+            Assert.Equal(new TagCountEntry("1girl", 3), vm.ReportEntries[0]);
+            Assert.Equal(new TagCountEntry("solo", 2), vm.ReportEntries[1]);
+            Assert.Equal(new TagCountEntry("blue eyes", 1), vm.ReportEntries[2]);
+        }
+
+        [Fact]
+        public async Task GenerateReportCommand_Execute_TagNameContainingColon_ParsedCorrectly()
+        {
+            var reportPath = Path.Combine(_tempDir, CaptioningService.ReportFileName);
+            File.WriteAllLines(reportPath, new[] { "rating:general: 5" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            Assert.Equal(new TagCountEntry("rating:general", 5), Assert.Single(vm.ReportEntries));
+        }
+
+        [Fact]
+        public async Task GenerateReportCommand_Execute_ServiceThrows_ShowsDangerSnackbar()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, CaptioningService.ReportFileName), "");
+            var fake = new FakeCaptioningService { ThrowOnGenerateReport = true, ThrowMessage = "書き込み失敗" };
+            var vm = await CreateReadyVmAsync(fake);
+
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            Assert.Contains(_fakeSnackbar.Calls,
+                c => c.Appearance == ControlAppearance.Danger && c.Message == "書き込み失敗");
+        }
+
+        [Fact]
+        public async Task GenerateReportCommand_Execute_ServiceThrows_ResetsIsGeneratingReport()
+        {
+            var fake = new FakeCaptioningService { ThrowOnGenerateReport = true };
+            var vm = await CreateReadyVmAsync(fake);
+
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            Assert.False(vm.IsGeneratingReport);
         }
     }
 }

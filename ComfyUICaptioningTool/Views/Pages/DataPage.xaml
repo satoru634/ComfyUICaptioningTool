@@ -1,43 +1,153 @@
 <Page
-    x:Class="ComfyUICaptioningTool.Views.Pages.DataPage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:ComfyUICaptioningTool.Views.Pages"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:models="clr-namespace:ComfyUICaptioningTool.Models"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="DataPage"
-    d:DataContext="{d:DesignInstance local:DataPage, IsDesignTimeCreatable=False}"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
-    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
-    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-    ScrollViewer.CanContentScroll="False"
-    mc:Ignorable="d">
+  x:Class="ComfyUICaptioningTool.Views.Pages.DataPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:helpers="clr-namespace:ComfyUICaptioningTool.Helpers"
+  xmlns:local="clr-namespace:ComfyUICaptioningTool.Views.Pages"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  Title="DataPage"
+  d:DataContext="{d:DesignInstance local:DataPage,
+                                     IsDesignTimeCreatable=False}"
+  d:DesignHeight="800"
+  d:DesignWidth="1000"
+  ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+  ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  mc:Ignorable="d"
+>
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="16,8,16,16">
 
-    <Grid>
-        <ui:VirtualizingItemsControl
+      <!-- タイトル -->
+      <TextBlock
+        Margin="0,0,0,12"
+        FontSize="20"
+        FontWeight="SemiBold"
+        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_Title]}" />
+
+      <!-- 直近の実行結果 -->
+      <TextBlock
+        Margin="0,0,0,4"
+        FontSize="14"
+        FontWeight="Medium"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_LastResultSectionLabel]}" />
+      <Border
+        Margin="0,0,0,12"
+        Padding="12"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="4">
+        <StackPanel>
+          <TextBlock
+            Margin="0,0,0,4"
+            FontSize="12"
             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-            ItemsSource="{Binding ViewModel.Colors, Mode=OneWay}"
-            VirtualizingPanel.CacheLengthUnit="Item">
+            Text="{Binding ViewModel.LastResultDirectory, Mode=OneWay}" />
+          <TextBlock
+            Margin="0,0,0,4"
+            FontSize="12"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding ViewModel.LastResultTimestampText, Mode=OneWay}" />
+          <TextBlock
+            Margin="0,0,0,8"
+            FontWeight="Medium"
+            Text="{Binding ViewModel.LastResultSummary, Mode=OneWay}" />
+          <Border
+            Padding="4"
+            Background="{DynamicResource ApplicationBackgroundBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <ListBox
+              Height="180"
+              BorderThickness="0"
+              ItemsSource="{Binding ViewModel.LastResultLogEntries, Mode=OneWay}"
+              ScrollViewer.VerticalScrollBarVisibility="Auto" />
+          </Border>
+        </StackPanel>
+      </Border>
 
-            <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type models:DataColor}">
-                    <ui:Button
-                        Width="80"
-                        Height="80"
-                        Margin="2"
-                        Padding="0"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Appearance="Secondary"
-                        Background="{Binding Color, Mode=OneWay}"
-                        FontSize="25"
-                        Icon="Fluent24" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ui:VirtualizingItemsControl>
-    </Grid>
+      <!-- タグ集計レポート -->
+      <TextBlock
+        Margin="0,0,0,4"
+        FontSize="14"
+        FontWeight="Medium"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_ReportSectionLabel]}" />
+      <Border
+        Margin="0,0,0,12"
+        Padding="12"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="4">
+        <StackPanel>
+          <TextBlock
+            Margin="0,0,0,4"
+            FontSize="12"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryLabel]}" />
+          <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+            <ui:TextBox
+              Width="700"
+              Height="36"
+              Margin="0,0,4,0"
+              IsReadOnly="True"
+              PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryPlaceholder]}"
+              Text="{Binding ViewModel.ReportDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <ui:Button
+              Width="36"
+              Height="36"
+              Margin="4,0,0,0"
+              Appearance="Secondary"
+              Command="{Binding ViewModel.BrowseReportDirectoryCommand}"
+              Icon="{ui:SymbolIcon FolderOpen16}"
+              ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}" />
+          </StackPanel>
+          <CheckBox
+            Margin="0,0,0,8"
+            Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
+            IsChecked="{Binding ViewModel.ReportRecursive, Mode=TwoWay}" />
+          <ui:Button
+            Margin="0,0,0,8"
+            Appearance="Primary"
+            Command="{Binding ViewModel.GenerateReportCommand}"
+            Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_GenerateReportButton]}"
+            Icon="{ui:SymbolIcon DataHistogram24}" />
+          <TextBlock
+            Margin="0,0,0,8"
+            FontSize="12"
+            Text="{Binding ViewModel.ReportStatusText, Mode=OneWay}" />
+          <Border
+            Padding="0"
+            Background="{DynamicResource ApplicationBackgroundBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <ListView
+              Height="320"
+              BorderThickness="0"
+              ItemsSource="{Binding ViewModel.ReportEntries, Mode=OneWay}">
+              <ListView.View>
+                <GridView>
+                  <GridViewColumn
+                    Width="700"
+                    DisplayMemberBinding="{Binding Tag}"
+                    Header="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_TagColumnHeader]}" />
+                  <GridViewColumn
+                    Width="120"
+                    DisplayMemberBinding="{Binding Count}"
+                    Header="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_CountColumnHeader]}" />
+                </GridView>
+              </ListView.View>
+            </ListView>
+          </Border>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
 </Page>

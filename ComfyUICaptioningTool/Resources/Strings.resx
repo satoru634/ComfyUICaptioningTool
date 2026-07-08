@@ -105,4 +105,15 @@
   <data name="Main_StatusOk" xml:space="preserve"><value>OK</value></data>
   <data name="Main_StatusSkip" xml:space="preserve"><value>SKIP</value></data>
   <data name="Main_StatusError" xml:space="preserve"><value>ERROR</value></data>
+
+  <!-- Data（実行結果・タグ集計レポート表示ページ） -->
+  <data name="Data_Title" xml:space="preserve"><value>実行結果・タグ集計レポート</value></data>
+  <data name="Data_LastResultSectionLabel" xml:space="preserve"><value>直近の実行結果</value></data>
+  <data name="Data_NoResultYet" xml:space="preserve"><value>まだバッチ実行が行われていません。</value></data>
+  <data name="Data_LastRunTimestampFormat" xml:space="preserve"><value>実行日時: {0}</value></data>
+  <data name="Data_ReportSectionLabel" xml:space="preserve"><value>タグ集計レポート</value></data>
+  <data name="Data_GenerateReportButton" xml:space="preserve"><value>生成 / 更新</value></data>
+  <data name="Data_ReportGeneratedFormat" xml:space="preserve"><value>{0} 件のタグを集計しました: {1}</value></data>
+  <data name="Data_TagColumnHeader" xml:space="preserve"><value>タグ</value></data>
+  <data name="Data_CountColumnHeader" xml:space="preserve"><value>出現回数</value></data>
 </root>
