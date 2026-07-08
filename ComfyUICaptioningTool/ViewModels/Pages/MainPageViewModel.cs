@@ -35,6 +35,9 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         /// <summary>Config.Data.ConfigPath から読み込んだ Wd14TaggerRunner。読み込み失敗時は null。</summary>
         private Wd14TaggerRunner? _taggerRunner;
 
+        /// <summary>実行結果を DataPage と共有するためのストア。</summary>
+        private readonly CaptioningRunResultStore _resultStore;
+
         /// <summary>ConfigPath の読み込みに成功し、実行可能な状態かどうか。</summary>
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(RunCommand))]
@@ -98,16 +101,18 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         public ObservableCollection<string> LogEntries { get; } = new();
 
         /// <summary>
-        /// DI コンテナから設定・スナックバーサービスを受け取って初期化する。
+        /// DI コンテナから設定・スナックバーサービス・結果共有ストアを受け取って初期化する。
         /// <paramref name="captioningServiceFactory"/> はテスト用の差し替え口（省略時は実ネットワーク通信を行う既定実装）。
         /// </summary>
         public MainPageViewModel(
             Setting<AppConfig> config,
             ISnackbarService snackbarService,
+            CaptioningRunResultStore resultStore,
             Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? captioningServiceFactory = null)
         {
             Config = config;
             _snackbarService = snackbarService;
+            _resultStore = resultStore;
             _captioningServiceFactory = captioningServiceFactory
                 ?? ((runner, prepend, exclude) => new CaptioningServiceAdapter(runner, prepend, exclude));
         }
@@ -223,6 +228,15 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                         LocalizationManager.Instance["Main_ReportSavedFormat"],
                         Path.Combine(directory, ComfyUILibs.Services.CaptioningService.ReportFileName)));
                 }
+
+                _resultStore.LastResult = new CaptioningRunResult(
+                    Timestamp: DateTime.Now,
+                    Directory: directory,
+                    Recursive: Recursive,
+                    Processed: processed,
+                    Skipped: skipped,
+                    Errors: errors,
+                    LogEntries: LogEntries.ToList());
 
                 _snackbarService.Show(
                     LocalizationManager.Instance["Common_Completed"],

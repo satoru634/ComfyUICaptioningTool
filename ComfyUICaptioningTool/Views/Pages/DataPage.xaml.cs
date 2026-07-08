@@ -3,7 +3,7 @@ using Wpf.Ui.Abstractions.Controls;
 
 namespace ComfyUICaptioningTool.Views.Pages
 {
-    /// <summary>実行結果・タグ集計レポート表示ページ（現状はテンプレート由来のランダムカラー一覧デモ）。</summary>
+    /// <summary>実行結果・タグ集計レポート表示ページ。</summary>
     public partial class DataPage : INavigableView<DataViewModel>
     {
         /// <summary>このページに対応する ViewModel。</summary>

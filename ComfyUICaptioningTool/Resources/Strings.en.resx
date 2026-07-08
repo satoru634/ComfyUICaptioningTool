@@ -105,4 +105,15 @@
   <data name="Main_StatusOk" xml:space="preserve"><value>OK</value></data>
   <data name="Main_StatusSkip" xml:space="preserve"><value>SKIP</value></data>
   <data name="Main_StatusError" xml:space="preserve"><value>ERROR</value></data>
+
+  <!-- Data (results / tag frequency report page) -->
+  <data name="Data_Title" xml:space="preserve"><value>Results &amp; Tag Frequency Report</value></data>
+  <data name="Data_LastResultSectionLabel" xml:space="preserve"><value>Last Run Result</value></data>
+  <data name="Data_NoResultYet" xml:space="preserve"><value>No batch run has been executed yet.</value></data>
+  <data name="Data_LastRunTimestampFormat" xml:space="preserve"><value>Run at: {0}</value></data>
+  <data name="Data_ReportSectionLabel" xml:space="preserve"><value>Tag Frequency Report</value></data>
+  <data name="Data_GenerateReportButton" xml:space="preserve"><value>Generate / Refresh</value></data>
+  <data name="Data_ReportGeneratedFormat" xml:space="preserve"><value>Aggregated {0} tags: {1}</value></data>
+  <data name="Data_TagColumnHeader" xml:space="preserve"><value>Tag</value></data>
+  <data name="Data_CountColumnHeader" xml:space="preserve"><value>Count</value></data>
 </root>

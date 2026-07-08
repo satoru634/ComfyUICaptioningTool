@@ -36,17 +36,20 @@ namespace ComfyUICaptioningToolTests.ViewModels.Windows
         /// </summary>
         private static void RunOnSta(Action action)
         {
-            Exception? caught = null;
-            var thread = new Thread(() =>
+            lock (ComfyUICaptioningToolTests.TestSupport.StaThreadGate.Lock)
             {
-                try { action(); }
-                catch (Exception ex) { caught = ex; }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            thread.Join();
-            if (caught is not null)
-                ExceptionDispatchInfo.Capture(caught).Throw();
+                Exception? caught = null;
+                var thread = new Thread(() =>
+                {
+                    try { action(); }
+                    catch (Exception ex) { caught = ex; }
+                });
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.Start();
+                thread.Join();
+                if (caught is not null)
+                    ExceptionDispatchInfo.Capture(caught).Throw();
+            }
         }
 
         // ── コンストラクター ───────────────────────────────────────────────────
