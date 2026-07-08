@@ -201,8 +201,8 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
             try
             {
-                var prependTags = SplitTags(PrependTagsText);
-                var excludeTags = SplitTags(ExcludeTagsText);
+                var prependTags = MergeTags(Config.Data.DefaultPrependTags, PrependTagsText);
+                var excludeTags = MergeTags(Config.Data.DefaultExcludeTags, ExcludeTagsText);
                 var service = _captioningServiceFactory(_taggerRunner!, prependTags, excludeTags);
 
                 // System.Progress<T> はコールバックを SynchronizationContext.Post 経由で非同期に配送するため、
@@ -274,6 +274,22 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                 .Select(t => t.Trim())
                 .Where(t => t.Length > 0)
                 .ToList();
+
+        /// <summary>
+        /// 設定ページの既定タグと MainPage 入力タグを union する（既定値を先頭、大文字小文字無視で重複排除）。
+        /// 同じタグが両方に指定された場合に、タグフィルタ適用後の出力へ二重に挿入されるのを防ぐ。
+        /// </summary>
+        private static List<string> MergeTags(string defaultsText, string extraText)
+        {
+            var merged = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var tag in SplitTags(defaultsText).Concat(SplitTags(extraText)))
+            {
+                if (seen.Add(tag))
+                    merged.Add(tag);
+            }
+            return merged;
+        }
 
         /// <summary>
         /// <see cref="System.Progress{T}"/> と異なり、Report を呼び出したスレッドで同期的にコールバックを実行する。

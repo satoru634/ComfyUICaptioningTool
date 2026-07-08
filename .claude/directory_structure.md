@@ -14,7 +14,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       wpfui-icon-256.png / wpfui-icon-1024.png
     Models/
       AppConfig.cs                          <- アプリ設定ルート（WindowSettingData・Language に加え、
-                                                workflow_config.json のパスを保持する ConfigPath を追加済み）
+                                                workflow_config.json のパスを保持する ConfigPath、
+                                                既定の prepend/exclude タグ（カンマ区切り文字列）を保持する
+                                                DefaultPrependTags/DefaultExcludeTags を追加済み）
       DataColor.cs                          <- テンプレート由来のサンプルモデル（DataPage のランダムカラー表示用。未使用に置換予定）
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
@@ -39,9 +41,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 Wd14TaggerRunner を読み込み、ICaptioningService 経由で
                                                 ProcessDirectoryAsync/GenerateReportAsync を実行する
       DataViewModel.cs                      <- テンプレート由来のランダムカラー一覧デモ（→ 処理結果・タグ集計レポート表示 VM に置換予定）
-      SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替えに加え、workflow_config.json の
-                                                パス選択（BrowseConfigPathCommand）を実装済み。
-                                                デフォルトの prepend/exclude タグはフェーズ3で追加予定
+      SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、workflow_config.json の
+                                                パス選択（BrowseConfigPathCommand）に加え、既定の
+                                                prepend/exclude タグ（Config.Data への直接バインディングのみ、
+                                                専用プロパティ・OnChanged なし）を実装済み
     ViewModels/Windows/
       MainWindowViewModel.cs                <- ナビゲーション定義・ウィンドウ状態保存。メニュー項目は
                                                 BuildMenuItems() で LocalizationManager から都度構築し、
@@ -51,8 +54,8 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 再帰/上書き/レポート生成オプション・prepend/exclude タグ入力・
                                                 進捗バー/ログ・完了サマリ）
       DataPage.xaml(.cs)                    <- テンプレート由来のランダムカラー一覧画面
-      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、workflow_config.json パス選択）。
-                                                ラベルは LocalizationManager バインディング
+      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、workflow_config.json パス選択、
+                                                既定 prepend/exclude タグ入力）。ラベルは LocalizationManager バインディング
     Views/Windows/
       MainWindow.xaml(.cs)                  <- ナビゲーションホスト
     Usings.cs
@@ -66,8 +69,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       AppConfigTests.cs                     <- AppConfig/WindowSettingData のデフォルト値・PropertyChanged のテスト
     ViewModels/Pages/
       MainPageViewModelTests.cs             <- MainPageViewModel のテスト（ConfigPath 読み込み成否・
-                                                RunCommand の CanExecute/実行・進捗/ログ/サマリ・エラーハンドリング）。
-                                                SymbolIcon 生成を伴うテストは STA スレッドが必要なため RunOnSta でラップ
+                                                RunCommand の CanExecute/実行・進捗/ログ/サマリ・エラーハンドリング・
+                                                既定/入力タグの union と重複排除）。SymbolIcon 生成を伴うテストは
+                                                STA スレッドが必要なため RunOnSta でラップ
       SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）
     ViewModels/Windows/
       MainWindowViewModelTests.cs           <- MainWindowViewModel のテスト（メニュー項目構築・ウィンドウクローズ時保存等）
