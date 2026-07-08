@@ -67,6 +67,20 @@ namespace ComfyUICaptioningTool.Models
         private string _configPath = "";
 
         /// <summary>
+        /// 全画像に共通で先頭追加するタグの既定値（カンマ区切り）。未設定時は空文字。
+        /// MainPage 実行時の入力値と union（重複排除・config 側を先頭）して CaptioningService に渡す。
+        /// </summary>
+        [ObservableProperty]
+        private string _defaultPrependTags = "";
+
+        /// <summary>
+        /// 全画像に共通で除外するタグの既定値（カンマ区切り）。未設定時は空文字。
+        /// MainPage 実行時の入力値と union して CaptioningService に渡す。
+        /// </summary>
+        [ObservableProperty]
+        private string _defaultExcludeTags = "";
+
+        /// <summary>
         /// 初回起動時のデフォルト値を設定する。
         /// 設定ファイルが存在する場合は JSON デシリアライズ後に上書きされる。
         /// </summary>

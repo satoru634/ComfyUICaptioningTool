@@ -382,6 +382,57 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         }
 
         [Fact]
+        public async Task RunCommand_Execute_MergesDefaultTagsBeforeInputTags()
+        {
+            var fake = new FakeCaptioningService();
+            IReadOnlyList<string>? capturedPrepend = null;
+            IReadOnlyList<string>? capturedExclude = null;
+
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            setting.Data.DefaultPrependTags = "my_chara";
+            setting.Data.DefaultExcludeTags = "rating:general";
+            var vm = CreateVm(setting, (_, prepend, exclude) =>
+            {
+                capturedPrepend = prepend;
+                capturedExclude = exclude;
+                return fake;
+            });
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+            vm.PrependTagsText = "1girl";
+            vm.ExcludeTagsText = "solo";
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            Assert.Equal(new[] { "my_chara", "1girl" }, capturedPrepend);
+            Assert.Equal(new[] { "rating:general", "solo" }, capturedExclude);
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_MergesDefaultAndInputTags_DeduplicatesCaseInsensitive()
+        {
+            var fake = new FakeCaptioningService();
+            IReadOnlyList<string>? capturedPrepend = null;
+
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            setting.Data.DefaultPrependTags = "my_chara";
+            var vm = CreateVm(setting, (_, prepend, _) =>
+            {
+                capturedPrepend = prepend;
+                return fake;
+            });
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+            vm.PrependTagsText = "MY_CHARA, 1girl";
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            Assert.Equal(new[] { "my_chara", "1girl" }, capturedPrepend);
+        }
+
+        [Fact]
         public async Task RunCommand_Execute_GenerateReportTrue_CallsGenerateReportAsync()
         {
             var fake = new FakeCaptioningService();

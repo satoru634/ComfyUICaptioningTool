@@ -223,5 +223,47 @@ namespace ComfyUICaptioningToolTests.Models
 
             Assert.Contains("ConfigPath", changed);
         }
+
+        // ── AppConfig DefaultPrependTags / DefaultExcludeTags ───────────────────────
+
+        [Fact]
+        public void AppConfig_DefaultPrependTags_DefaultValue_IsEmpty()
+        {
+            var config = new AppConfig();
+
+            Assert.Equal("", config.DefaultPrependTags);
+        }
+
+        [Fact]
+        public void AppConfig_DefaultPrependTags_Set_RaisesPropertyChanged()
+        {
+            var config = new AppConfig();
+            var changed = new List<string?>();
+            ((INotifyPropertyChanged)config).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+            config.DefaultPrependTags = "my_chara";
+
+            Assert.Contains("DefaultPrependTags", changed);
+        }
+
+        [Fact]
+        public void AppConfig_DefaultExcludeTags_DefaultValue_IsEmpty()
+        {
+            var config = new AppConfig();
+
+            Assert.Equal("", config.DefaultExcludeTags);
+        }
+
+        [Fact]
+        public void AppConfig_DefaultExcludeTags_Set_RaisesPropertyChanged()
+        {
+            var config = new AppConfig();
+            var changed = new List<string?>();
+            ((INotifyPropertyChanged)config).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+            config.DefaultExcludeTags = "rating:general";
+
+            Assert.Contains("DefaultExcludeTags", changed);
+        }
     }
 }
