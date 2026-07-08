@@ -201,5 +201,27 @@ namespace ComfyUICaptioningToolTests.Models
 
             Assert.Contains("Language", changed);
         }
+
+        // ── AppConfig ConfigPath ──────────────────────────────────────────────────
+
+        [Fact]
+        public void AppConfig_ConfigPath_DefaultValue_IsEmpty()
+        {
+            var config = new AppConfig();
+
+            Assert.Equal("", config.ConfigPath);
+        }
+
+        [Fact]
+        public void AppConfig_ConfigPath_Set_RaisesPropertyChanged()
+        {
+            var config = new AppConfig();
+            var changed = new List<string?>();
+            ((INotifyPropertyChanged)config).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+            config.ConfigPath = @"C:\workflow_config.json";
+
+            Assert.Contains("ConfigPath", changed);
+        }
     }
 }

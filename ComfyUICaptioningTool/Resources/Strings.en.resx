@@ -65,9 +65,41 @@
   <data name="MainWindow_MenuSettings" xml:space="preserve"><value>Settings</value></data>
   <data name="MainWindow_TrayHome" xml:space="preserve"><value>Home</value></data>
 
+  <!-- Common -->
+  <data name="Common_BrowseButtonTooltip" xml:space="preserve"><value>Browse</value></data>
+  <data name="Common_ConfigPathNotSet" xml:space="preserve"><value>Please specify the workflow_config.json path on the Settings page.</value></data>
+  <data name="Common_Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="Common_Error" xml:space="preserve"><value>Error</value></data>
+
   <!-- Settings -->
   <data name="Settings_Title" xml:space="preserve"><value>Settings</value></data>
   <data name="Settings_DisplaySectionLabel" xml:space="preserve"><value>Display</value></data>
   <data name="Settings_ThemeLabel" xml:space="preserve"><value>Theme</value></data>
   <data name="Settings_LanguageLabel" xml:space="preserve"><value>Language</value></data>
+  <data name="Settings_ComfyUISectionLabel" xml:space="preserve"><value>ComfyUI Connection</value></data>
+  <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>workflow_config.json Path</value></data>
+  <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>Select workflow_config.json</value></data>
+  <data name="Settings_ConfigFileDialogFilter" xml:space="preserve"><value>JSON files|*.json|All files|*.*</value></data>
+
+  <!-- Main (directory batch tagging execution page) -->
+  <data name="Main_Title" xml:space="preserve"><value>Batch Directory Tagging</value></data>
+  <data name="Main_DirectoryLabel" xml:space="preserve"><value>Target Directory</value></data>
+  <data name="Main_DirectoryPlaceholder" xml:space="preserve"><value>C:\...\images</value></data>
+  <data name="Main_DirectoryDialogTitle" xml:space="preserve"><value>Select the target directory</value></data>
+  <data name="Main_OptionsSectionLabel" xml:space="preserve"><value>Options</value></data>
+  <data name="Main_RecursiveLabel" xml:space="preserve"><value>Process subdirectories too</value></data>
+  <data name="Main_OverwriteLabel" xml:space="preserve"><value>Overwrite existing .txt files</value></data>
+  <data name="Main_GenerateReportLabel" xml:space="preserve"><value>Generate a tag frequency report when finished</value></data>
+  <data name="Main_TagsSectionLabel" xml:space="preserve"><value>Tag Filters</value></data>
+  <data name="Main_PrependTagsLabel" xml:space="preserve"><value>Tags to prepend</value></data>
+  <data name="Main_ExcludeTagsLabel" xml:space="preserve"><value>Tags to exclude</value></data>
+  <data name="Main_TagsPlaceholder" xml:space="preserve"><value>tag1, tag2, ...</value></data>
+  <data name="Main_RunButton" xml:space="preserve"><value>Run</value></data>
+  <data name="Main_LogHeader" xml:space="preserve"><value>Log</value></data>
+  <data name="Main_SummaryFormat" xml:space="preserve"><value>Done: processed {0}, skipped {1}, errors {2}</value></data>
+  <data name="Main_ReportSavedFormat" xml:space="preserve"><value>Report saved: {0}</value></data>
+  <data name="Main_ConfigLoadErrorFormat" xml:space="preserve"><value>Failed to load WD14 Tagger settings: {0}</value></data>
+  <data name="Main_StatusOk" xml:space="preserve"><value>OK</value></data>
+  <data name="Main_StatusSkip" xml:space="preserve"><value>SKIP</value></data>
+  <data name="Main_StatusError" xml:space="preserve"><value>ERROR</value></data>
 </root>

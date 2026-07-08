@@ -1,10 +1,10 @@
 # 実装状況
 
-## 現在の状態（2026-07-07 時点）
+## 現在の状態（2026-07-08 時点）
 
-WPF-UI テンプレートから生成した直後の状態。`MainPage`/`DataPage` はテンプレート由来のサンプル実装（カウンターボタン、ランダムカラー一覧など）のままで、キャプショニング機能固有の実装はまだ入っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）が実装完了。`DataPage` はまだテンプレート由来のサンプル実装（ランダムカラー一覧）のまま。
 
-`ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
+`ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
 `ViewModels/Windows/MainWindowViewModel.cs` の `ApplicationTitle` がテンプレート由来の `"ComfyUIRunWorkflow"` になっていた不整合は修正済み。
 
@@ -17,7 +17,7 @@ WPF-UI テンプレートから生成した直後の状態。`MainPage`/`DataPag
 - `ViewModels/Pages/SettingsViewModel.cs` の言語切替（`OnSelectedLanguageChanged`）を有効化（コメントアウト解除）し、再起動不要で即時反映。
 - `ViewModels/Windows/MainWindowViewModel.cs` のナビゲーションメニュー項目（`MenuItems`/`FooterMenuItems`/`TrayMenuItems`）を `BuildMenuItems()` で `LocalizationManager` から構築し、言語切替時に再構築するよう変更。
 - `Views/Pages/SettingsPage.xaml` のラベルを `LocalizationManager` へのインデクサーバインディングに置き換え。
-- 現時点で翻訳キーを用意しているのは `MainWindow_*`（ホーム／データ／設定メニュー、トレイメニュー）と `Settings_*`（設定ページの見出し・ラベル）のみ。`MainPage`/`DataPage` はテンプレート由来のプレースホルダーのため未翻訳（フェーズ2以降の置き換え時に追加する）。
+- 翻訳キーは `MainWindow_*`・`Settings_*`・`Common_*`・`Main_*`（フェーズ2で追加したディレクトリ一括タグ付けページの文言）を用意済み。`DataPage` はテンプレート由来のプレースホルダーのため未翻訳（フェーズ4の置き換え時に追加する）。
 - `ComfyUICaptioningToolTests`（xUnit）プロジェクトを新設し、`ComfyUICaptioningTool.sln` に追加。`Helpers/LocalizationManagerTests.cs` でカルチャ切替・キー解決・フォールバックを検証済み（全件パス）。
 
 ## 移植元（Python版 captioning_tool）
@@ -36,20 +36,32 @@ WPF-UI テンプレートから生成した直後の状態。`MainPage`/`DataPag
 
 まだ着手前のため、以下は暫定的なロードマップ。実装開始前に方針を確認すること。
 
-### フェーズ1: ロジック配置の検討・ComfyUILibs の拡張
+### フェーズ1: ロジック配置の検討・ComfyUILibs の拡張（実装完了・マージ済み）
 
-`Wd14TaggerRunner`（単一画像のタグ取得）は実装済みだが、ディレクトリ走査・タグフィルタ（prepend/exclude）・タグ集計レポートに相当するロジックは `ComfyUILibs` にまだ存在しない。
-「UI・プレゼンテーション層を含まないビジネスロジックは `ComfyUILibs` に置く」という責務分離の原則に従うなら、Python版 `CaptioningTool` クラス相当のロジック（`_apply_tag_filters` / `_collect_all_tags` 等）を `ComfyUILibs` 側に新設する形が候補となる。
+方針検討の結果、ディレクトリ走査・タグフィルタ（prepend/exclude）・タグ集計レポートは UI 非依存のビジネスロジックであり、将来の Discord ボットからの再利用も見込めるため、`ComfyUILibs`（`../ComfyUIRunWorkflow/ComfyUILibs/` 側の実体）に `Services/CaptioningService.cs` として新設した（[PR #15](https://github.com/satoru634/ComfyUILibs/pull/15) にてマージ済み）。Python版 `CaptioningTool` クラス相当のロジック（`_apply_tag_filters` → `ApplyTagFilters`、`_collect_all_tags` → `CollectAllTags`、`process_directory` → `ProcessDirectoryAsync`、`generate_report` → `GenerateReportAsync`）を移植済み。詳細・設計判断は `ComfyUILibs/.claude/implementation_status.md`（フェーズ3）を参照。
 
-### フェーズ2: ディレクトリ一括タグ付け実行ページ（`MainPage` を置換）
+- `CaptioningService` はコンストラクターで `Wd14TaggerRunner` と prepend/exclude タグ（呼び出し側で config + 追加指定の union を解決済みのもの）を受け取る。自前で設定ファイルは読み込まない
+- ディレクトリ一括処理の進捗は `IProgress<CaptioningProgress>` で 1 ファイルごとに通知する方式（フェーズ2 の GUI 進捗表示 `[1/42] photo.jpg → OK` はこれを購読して実装した）
+- 画像 1 枚の処理中の例外はすべて捕捉して `CaptioningResult.Error` として継続する。`ProcessDirectoryAsync` 自体が例外を送出するのは指定ディレクトリが存在しない場合のみ
+- `ComfyUILibsTests/Services/CaptioningServiceTests.cs`（13件）を新規作成、全件パス確認済み（既存分含め合計175件）
+- 本プロジェクト（`ComfyUICaptioningTool` 側の `ComfyUILibs` submodule）のポインタ更新は未実施（ビルドには影響しない。詳細は `.claude/tech_stack.md` の「ComfyUILibs の参照経路に注意」を参照）
 
-- ディレクトリ選択・再帰処理オプション・上書きオプション・prepend/exclude タグ入力
-- バッチ実行の進捗表示（例: `[1/42] photo.jpg → OK`）・完了サマリ（処理数/スキップ数/エラー数）
+### フェーズ2: ディレクトリ一括タグ付け実行ページ（`MainPage` を置換、実装完了）
+
+`MainPage`/`MainPageViewModel` をテンプレート由来のカウンターデモから、ディレクトリ一括タグ付け実行画面に置き換えた。
+
+- 対象ディレクトリ選択（`Microsoft.Win32.OpenFolderDialog`）・再帰処理（Recursive）・上書き（Overwrite）・完了後のタグ集計レポート生成（GenerateReport）のオプション、先頭追加/除外タグ（カンマ区切りテキスト入力、config 側のデフォルト値との union は未実装＝フェーズ3で対応）
+- 実行時は `CaptioningService.ProcessDirectoryAsync` を呼び出し、`IProgress<CaptioningProgress>` 経由で 1 ファイルごとに `[現在/合計] ファイル名 → OK/SKIP/ERROR` 形式のログ行を `LogEntries`（`ObservableCollection<string>`）に追加。完了後は `完了: 処理 N, スキップ N, エラー N` 形式のサマリを表示し、`GenerateReport` チェック時は `GenerateReportAsync` も呼び出す
+- **ComfyUI 接続設定の配線**: `CaptioningService` は `Wd14TaggerRunner` を必要とするため、`ComfyUIRunWorkflow` と同じ方式（外部 `workflow_config.json` をパスで指定し、GUI 内では値を直接編集しない）を採用した。`AppConfig.ConfigPath` を新設し、`SettingsPage` にファイル選択ダイアログのカードを追加（`SettingsViewModel.BrowseConfigPathCommand`）。`MainPageViewModel` はページ遷移のたびに `Config.Data.ConfigPath` から `Wd14TaggerRunner` を再読み込みする（`TaggerViewModel`（ComfyUIRunWorkflow）と同じパターン）
+- **テスト容易性のための境界**: `Wd14TaggerRunner`/`CaptioningService` は内部コンストラクターがテストプロジェクトから不可視（`InternalsVisibleTo` は `ComfyUILibsTests` のみに付与）なので、ネットワーク通信を伴う `CaptioningService` をテストから差し替えられるよう、本プロジェクト側に `Services/ICaptioningService.cs`（`ProcessDirectoryAsync`/`GenerateReportAsync` のみを抜き出したインターフェース）と `Services/CaptioningServiceAdapter.cs`（実装ラッパー）を新設した。`MainPageViewModel` はこのファクトリーを DI コンストラクター引数（既定値あり）として受け取る
+- `System.Progress<T>` は `SynchronizationContext` 経由でコールバックを非同期配送するためテストが不安定になる。`MainPageViewModel` 内に同期的にコールバックを呼ぶ `SynchronousProgress<T>`（private nested class）を定義して使用している（本 ViewModel の `await` はすべて UI スレッドのコンテキストを捕捉して再開するため、同期呼び出しでも実害はない）
+- `ComfyUICaptioningToolTests`（`ViewModels/Pages/MainPageViewModelTests.cs` 全面書き換え、`Fakes/FakeCaptioningService.cs` 新設、`Models/AppConfigTests.cs` に `ConfigPath` のテスト追加）で計86件、全件パス確認済み。スナックバー表示（`SymbolIcon` 生成）を伴うテストは STA スレッドが必要なため `RunOnSta`（`MainWindowViewModelTests` の非同期版）でラップしている
+- 実アプリを起動してスクリーンショットで見た目を確認済み（`実行` ボタンは `ConfigPath` 未設定・ディレクトリ未選択の状態では無効化される。進捗バーは `ProgressTotal` が 0 のままだと `Maximum=0` により満杯表示になってしまうため、`HasProgress`（`ProgressTotal > 0`）で実行前は非表示にする対応を追加した）
 
 ### フェーズ3: SettingsPage の拡張
 
-- ComfyUI URL、WD14 モデル名・しきい値（general/character threshold）
-- デフォルトの prepend/exclude タグ
+- ComfyUI URL・WD14 モデル名・しきい値は、フェーズ2で採用した外部 `workflow_config.json` 方式（`AppConfig.ConfigPath` + ファイル選択ダイアログ）により GUI 内での直接編集は行わない方針とした。そのため本フェーズで残るのは以下のみ
+- デフォルトの prepend/exclude タグ（`AppConfig` に保持し、`MainPage` の入力値と union して `CaptioningService` に渡す。フェーズ2時点では union 処理は未実装）
 
 ### フェーズ4: 処理結果・タグ集計レポート表示（`DataPage` を置換）
 

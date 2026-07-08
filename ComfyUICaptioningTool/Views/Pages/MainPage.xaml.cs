@@ -3,7 +3,7 @@ using Wpf.Ui.Abstractions.Controls;
 
 namespace ComfyUICaptioningTool.Views.Pages
 {
-    /// <summary>キャプショニング実行ページ（現状はテンプレート由来のカウンターデモ）。</summary>
+    /// <summary>ディレクトリ一括タグ付け実行ページ。</summary>
     public partial class MainPage : INavigableView<MainPageViewModel>
     {
         /// <summary>このページに対応する ViewModel。</summary>
