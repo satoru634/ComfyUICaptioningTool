@@ -119,7 +119,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
         // ── INavigationAware ─────────────────────────────────────────────────
 
-        /// <summary>ページへ遷移するたびに workflow_config.json を再読み込みし、Runner を初期化する。</summary>
+        /// <summary>ページへ遷移するたびに captioning_config.json を再読み込みし、Runner を初期化する。</summary>
         public Task OnNavigatedToAsync()
         {
             TryLoadRunner();

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using ComfyUICaptioningTool.Models;
 using ComfyUILibs.Base;
@@ -205,11 +206,11 @@ namespace ComfyUICaptioningToolTests.Models
         // ── AppConfig ConfigPath ──────────────────────────────────────────────────
 
         [Fact]
-        public void AppConfig_ConfigPath_DefaultValue_IsEmpty()
+        public void AppConfig_ConfigPath_DefaultValue_IsCaptioningConfigJsonUnderBaseDirectory()
         {
             var config = new AppConfig();
 
-            Assert.Equal("", config.ConfigPath);
+            Assert.Equal(Path.Combine(AppContext.BaseDirectory, "captioning_config.json"), config.ConfigPath);
         }
 
         [Fact]
@@ -219,7 +220,7 @@ namespace ComfyUICaptioningToolTests.Models
             var changed = new List<string?>();
             ((INotifyPropertyChanged)config).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
-            config.ConfigPath = @"C:\workflow_config.json";
+            config.ConfigPath = @"C:\captioning_config.json";
 
             Assert.Contains("ConfigPath", changed);
         }

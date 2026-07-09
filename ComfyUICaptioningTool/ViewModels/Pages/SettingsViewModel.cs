@@ -99,7 +99,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             LocalizationManager.Instance.CurrentCulture = new CultureInfo(value);
         }
 
-        /// <summary>workflow_config.json のファイル選択ダイアログを開く。</summary>
+        /// <summary>captioning_config.json のファイル選択ダイアログを開く。</summary>
         [RelayCommand]
         private void BrowseConfigPath()
         {
@@ -107,6 +107,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             {
                 Title = LocalizationManager.Instance["Settings_ConfigFileDialogTitle"],
                 Filter = LocalizationManager.Instance["Settings_ConfigFileDialogFilter"],
+                DefaultDirectory = AppContext.BaseDirectory,
             };
 
             if (!string.IsNullOrWhiteSpace(Config.Data.ConfigPath))

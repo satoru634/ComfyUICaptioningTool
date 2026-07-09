@@ -15,7 +15,7 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       wpfui-icon-256.png / wpfui-icon-1024.png
     Models/
       AppConfig.cs                          <- アプリ設定ルート（WindowSettingData・Language に加え、
-                                                workflow_config.json のパスを保持する ConfigPath、
+                                                captioning_config.json のパスを保持する ConfigPath、
                                                 既定の prepend/exclude タグ（カンマ区切り文字列）を保持する
                                                 DefaultPrependTags/DefaultExcludeTags を追加済み）
       CaptioningRunResult.cs                <- MainPageViewModel の実行結果スナップショット（positional record）。
@@ -51,7 +51,7 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 CaptioningRunResultStore.LastResult を購読して直近の実行結果を
                                                 表示し、対象ディレクトリを選択してタグ集計レポート
                                                 （tags_report.txt）を生成・一覧表示する
-      SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、workflow_config.json の
+      SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
                                                 パス選択（BrowseConfigPathCommand）に加え、既定の
                                                 prepend/exclude タグ（Config.Data への直接バインディングのみ、
                                                 専用プロパティ・OnChanged なし）を実装済み
@@ -66,7 +66,7 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       DataPage.xaml(.cs)                    <- 実行結果・タグ集計レポート表示画面（直近の実行結果の
                                                 ディレクトリ/日時/サマリ/ログ表示、レポート対象ディレクトリ
                                                 選択・生成・タグ/出現回数の一覧表示）
-      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、workflow_config.json パス選択、
+      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択、
                                                 既定 prepend/exclude タグ入力）。ラベルは LocalizationManager バインディング
     Views/Windows/
       MainWindow.xaml(.cs)                  <- ナビゲーションホスト
@@ -106,4 +106,4 @@ ComfyUICaptioningTool/                      <- ソリューションルート
 ## 現時点で存在しないもの（ComfyUIRunWorkflow との差分）
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図など）
-- `templates/` ディレクトリ（WD14 Tagger 用ワークフローテンプレートは `ComfyUILibs` 側の `template_wd14_tagger.json` を利用する想定だが、本プロジェクト側への配置は未着手。実行時は `workflow_config.json` と同様、実行ファイルと同階層の `templates/` に配置する必要がある）
+- `templates/` ディレクトリ（WD14 Tagger 用ワークフローテンプレートは `ComfyUILibs` 側の `template_wd14_tagger.json` を利用する想定だが、本プロジェクト側への配置は未着手。実行時は `captioning_config.json` と同様、実行ファイルと同階層の `templates/` に配置する必要がある）

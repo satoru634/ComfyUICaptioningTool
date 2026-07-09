@@ -67,7 +67,7 @@
 
   <!-- Common -->
   <data name="Common_BrowseButtonTooltip" xml:space="preserve"><value>参照</value></data>
-  <data name="Common_ConfigPathNotSet" xml:space="preserve"><value>設定ページで workflow_config.json のパスを指定してください。</value></data>
+  <data name="Common_ConfigPathNotSet" xml:space="preserve"><value>設定ページで captioning_config.json のパスを指定してください。</value></data>
   <data name="Common_Completed" xml:space="preserve"><value>完了</value></data>
   <data name="Common_Error" xml:space="preserve"><value>エラー</value></data>
 
@@ -77,8 +77,8 @@
   <data name="Settings_ThemeLabel" xml:space="preserve"><value>テーマ</value></data>
   <data name="Settings_LanguageLabel" xml:space="preserve"><value>言語</value></data>
   <data name="Settings_ComfyUISectionLabel" xml:space="preserve"><value>ComfyUI 接続</value></data>
-  <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>workflow_config.json パス</value></data>
-  <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>workflow_config.json を選択</value></data>
+  <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>captioning_config.json パス</value></data>
+  <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>captioning_config.json を選択</value></data>
   <data name="Settings_ConfigFileDialogFilter" xml:space="preserve"><value>JSON ファイル|*.json|すべてのファイル|*.*</value></data>
   <data name="Settings_TagFilterSectionLabel" xml:space="preserve"><value>タグフィルタの既定値</value></data>
   <data name="Settings_DefaultPrependTagsLabel" xml:space="preserve"><value>先頭に追加するタグ（既定値）</value></data>

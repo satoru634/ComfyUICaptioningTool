@@ -71,7 +71,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
         private string WriteValidConfigFile()
         {
-            var path = Path.Combine(_tempDir, "workflow_config.json");
+            var path = Path.Combine(_tempDir, "captioning_config.json");
             File.WriteAllText(path, """
                 {
                   "comfyui_url": "http://127.0.0.1:8188",
@@ -158,7 +158,9 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         [Fact]
         public void OnNavigatedToAsync_EmptyConfigPath_SetsIsConfigLoadedFalse()
         {
-            var vm = CreateVm();
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = "";
+            var vm = CreateVm(setting);
 
             RunOnSta(async () => await vm.OnNavigatedToAsync());
 
@@ -168,7 +170,9 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         [Fact]
         public void OnNavigatedToAsync_EmptyConfigPath_ShowsDangerSnackbar()
         {
-            var vm = CreateVm();
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = "";
+            var vm = CreateVm(setting);
 
             RunOnSta(async () => await vm.OnNavigatedToAsync());
 

@@ -59,12 +59,13 @@ namespace ComfyUICaptioningTool.Models
         private string _language = "ja";
 
         /// <summary>
-        /// workflow_config.json のパス（comfyui_url・wd14_tagger 設定を含む）。未設定時は空文字。
+        /// captioning_config.json のパス（comfyui_url・wd14_tagger 設定を含む）。
+        /// 初回起動時は実行ファイルと同階層の captioning_config.json を既定値とする。
         /// GUI 内では値を直接編集せず、設定ページのファイル選択ダイアログでパスのみを指定する
         /// （ComfyUIRunWorkflow と同じ方式）。
         /// </summary>
         [ObservableProperty]
-        private string _configPath = "";
+        private string _configPath = Path.Combine(AppContext.BaseDirectory, "captioning_config.json");
 
         /// <summary>
         /// 全画像に共通で先頭追加するタグの既定値（カンマ区切り）。未設定時は空文字。
