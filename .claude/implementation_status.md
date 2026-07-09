@@ -52,7 +52,7 @@
 
 - 対象ディレクトリ選択（`Microsoft.Win32.OpenFolderDialog`）・再帰処理（Recursive）・上書き（Overwrite）・完了後のタグ集計レポート生成（GenerateReport）のオプション、先頭追加/除外タグ（カンマ区切りテキスト入力。フェーズ3で `AppConfig` 側のデフォルト値との union に対応済み）
 - 実行時は `CaptioningService.ProcessDirectoryAsync` を呼び出し、`IProgress<CaptioningProgress>` 経由で 1 ファイルごとに `[現在/合計] ファイル名 → OK/SKIP/ERROR` 形式のログ行を `LogEntries`（`ObservableCollection<string>`）に追加。完了後は `完了: 処理 N, スキップ N, エラー N` 形式のサマリを表示し、`GenerateReport` チェック時は `GenerateReportAsync` も呼び出す
-- **ComfyUI 接続設定の配線**: `CaptioningService` は `Wd14TaggerRunner` を必要とするため、`ComfyUIRunWorkflow` と同じ方式（外部 `workflow_config.json` をパスで指定し、GUI 内では値を直接編集しない）を採用した。`AppConfig.ConfigPath` を新設し、`SettingsPage` にファイル選択ダイアログのカードを追加（`SettingsViewModel.BrowseConfigPathCommand`）。`MainPageViewModel` はページ遷移のたびに `Config.Data.ConfigPath` から `Wd14TaggerRunner` を再読み込みする（`TaggerViewModel`（ComfyUIRunWorkflow）と同じパターン）
+- **ComfyUI 接続設定の配線**: `CaptioningService` は `Wd14TaggerRunner` を必要とするため、`ComfyUIRunWorkflow` と同じ方式（外部 `captioning_config.json` をパスで指定し、GUI 内では値を直接編集しない）を採用した。`AppConfig.ConfigPath` を新設し、`SettingsPage` にファイル選択ダイアログのカードを追加（`SettingsViewModel.BrowseConfigPathCommand`）。`MainPageViewModel` はページ遷移のたびに `Config.Data.ConfigPath` から `Wd14TaggerRunner` を再読み込みする（`TaggerViewModel`（ComfyUIRunWorkflow）と同じパターン）
 - **テスト容易性のための境界**: `Wd14TaggerRunner`/`CaptioningService` は内部コンストラクターがテストプロジェクトから不可視（`InternalsVisibleTo` は `ComfyUILibsTests` のみに付与）なので、ネットワーク通信を伴う `CaptioningService` をテストから差し替えられるよう、本プロジェクト側に `Services/ICaptioningService.cs`（`ProcessDirectoryAsync`/`GenerateReportAsync` のみを抜き出したインターフェース）と `Services/CaptioningServiceAdapter.cs`（実装ラッパー）を新設した。`MainPageViewModel` はこのファクトリーを DI コンストラクター引数（既定値あり）として受け取る
 - `System.Progress<T>` は `SynchronizationContext` 経由でコールバックを非同期配送するためテストが不安定になる。`MainPageViewModel` 内に同期的にコールバックを呼ぶ `SynchronousProgress<T>`（private nested class）を定義して使用している（本 ViewModel の `await` はすべて UI スレッドのコンテキストを捕捉して再開するため、同期呼び出しでも実害はない）
 - `ComfyUICaptioningToolTests`（`ViewModels/Pages/MainPageViewModelTests.cs` 全面書き換え、`Fakes/FakeCaptioningService.cs` 新設、`Models/AppConfigTests.cs` に `ConfigPath` のテスト追加）で計86件、全件パス確認済み。スナックバー表示（`SymbolIcon` 生成）を伴うテストは STA スレッドが必要なため `RunOnSta`（`MainWindowViewModelTests` の非同期版）でラップしている
@@ -60,7 +60,7 @@
 
 ### フェーズ3: SettingsPage の拡張（実装完了）
 
-- ComfyUI URL・WD14 モデル名・しきい値は、フェーズ2で採用した外部 `workflow_config.json` 方式（`AppConfig.ConfigPath` + ファイル選択ダイアログ）により GUI 内での直接編集は行わない方針としたため、本フェーズの対象外
+- ComfyUI URL・WD14 モデル名・しきい値は、フェーズ2で採用した外部 `captioning_config.json` 方式（`AppConfig.ConfigPath` + ファイル選択ダイアログ）により GUI 内での直接編集は行わない方針としたため、本フェーズの対象外
 - `AppConfig` に `DefaultPrependTags`/`DefaultExcludeTags`（カンマ区切り文字列、既定は空文字）を追加し、`SettingsPage` に「タグフィルタの既定値」カード（`MainPage` のタグ入力カードと同じ見た目の 2 つの `ui:TextBox`、`Config.Data.DefaultPrependTags`/`DefaultExcludeTags` へ直接 TwoWay バインド）を新設した。`ConfigPath` と同様、`SettingsViewModel` 側に専用プロパティ・`OnChanged` は設けず単純バインディングのみ
 - `MainPageViewModel.RunAsync` で `MergeTags(既定値, MainPage 入力値)` を呼び出し、既定値を先頭にした union（大文字小文字無視で重複排除）を `CaptioningService`（`ICaptioningService` ファクトリー経由）に渡すよう変更した。同じタグが既定値と入力値の両方にある場合でも、タグフィルタ適用後の出力に二重挿入されない
 - `ComfyUICaptioningToolTests`: `Models/AppConfigTests.cs` に `DefaultPrependTags`/`DefaultExcludeTags` のデフォルト値・`PropertyChanged` テストを追加、`ViewModels/Pages/MainPageViewModelTests.cs` に union の順序・重複排除を検証するテストを追加。計92件、全件パス確認済み

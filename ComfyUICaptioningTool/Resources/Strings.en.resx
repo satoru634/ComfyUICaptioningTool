@@ -67,7 +67,7 @@
 
   <!-- Common -->
   <data name="Common_BrowseButtonTooltip" xml:space="preserve"><value>Browse</value></data>
-  <data name="Common_ConfigPathNotSet" xml:space="preserve"><value>Please specify the workflow_config.json path on the Settings page.</value></data>
+  <data name="Common_ConfigPathNotSet" xml:space="preserve"><value>Please specify the captioning_config.json path on the Settings page.</value></data>
   <data name="Common_Completed" xml:space="preserve"><value>Completed</value></data>
   <data name="Common_Error" xml:space="preserve"><value>Error</value></data>
 
@@ -77,8 +77,8 @@
   <data name="Settings_ThemeLabel" xml:space="preserve"><value>Theme</value></data>
   <data name="Settings_LanguageLabel" xml:space="preserve"><value>Language</value></data>
   <data name="Settings_ComfyUISectionLabel" xml:space="preserve"><value>ComfyUI Connection</value></data>
-  <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>workflow_config.json Path</value></data>
-  <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>Select workflow_config.json</value></data>
+  <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>captioning_config.json Path</value></data>
+  <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>Select captioning_config.json</value></data>
   <data name="Settings_ConfigFileDialogFilter" xml:space="preserve"><value>JSON files|*.json|All files|*.*</value></data>
   <data name="Settings_TagFilterSectionLabel" xml:space="preserve"><value>Default Tag Filters</value></data>
   <data name="Settings_DefaultPrependTagsLabel" xml:space="preserve"><value>Tags to prepend (default)</value></data>
