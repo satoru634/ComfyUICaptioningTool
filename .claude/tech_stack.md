@@ -35,7 +35,7 @@
 
 ### comfyui_url・WD14 設定の扱い（ComfyUIRunWorkflow と同方式）
 
-`ComfyUIRunWorkflow` と同じく、`comfyui_url`・`wd14_tagger`（model_name・threshold）は GUI 内で直接編集せず、外部 `captioning_config.json` ファイルへのパスのみを `AppConfig.ConfigPath` として保持する（`SettingsPage` のファイル選択ダイアログでパスを指定するのみで、JSON の中身は手動編集が前提）。`Wd14TaggerRunner`/`ComfyUILibs.Services.ConfigLoader` がそのままファイルを読み込む。`prepend_tags`/`exclude_tags` は `WorkflowConfig`（`ComfyUILibs.Models`）に存在しないため config ファイル側では扱わず、代わりに `AppConfig.DefaultPrependTags`/`DefaultExcludeTags`（カンマ区切り文字列、フェーズ3で追加）に保持する。`MainPageViewModel` がこれらと `MainPage` 実行時の入力値を union（既定値を先頭、大文字小文字無視で重複排除）してから `CaptioningService` に渡す（`MainPageViewModel.MergeTags` を参照）。
+`ComfyUIRunWorkflow` と同じく、`comfyui_url`・`wd14_tagger`（model_name・threshold）は GUI 内で直接編集せず、外部 `captioning_config.json` ファイルへのパスのみを `AppConfig.ConfigPath` として保持する（`SettingsPage` のファイル選択ダイアログでパスを指定するのみで、JSON の中身は手動編集が前提）。`Wd14TaggerRunner`/`ComfyUILibs.Services.ConfigLoader` がそのままファイルを読み込む。`prepend_tags`/`exclude_tags`（既定 prepend/exclude タグ）も同じ方式を採用しており、`WorkflowConfig`（`ComfyUILibs.Models`）に追加されたプロパティとして config ファイル側で保持し、`Wd14TaggerRunner.PrependTags`/`ExcludeTags`（`IReadOnlyList<string>`、キー欠落時は空リスト）経由で参照する（`AppConfig` 側には持たない）。`MainPageViewModel` がこれらと `MainPage` 実行時の入力値を union（既定値を先頭、大文字小文字無視で重複排除）してから `CaptioningService` に渡す（`MainPageViewModel.MergeTags` を参照）。
 
 ### 起動・DI 構成（`App.xaml.cs`）
 

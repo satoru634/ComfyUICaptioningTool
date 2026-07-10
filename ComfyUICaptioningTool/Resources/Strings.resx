@@ -80,9 +80,6 @@
   <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>captioning_config.json パス</value></data>
   <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>captioning_config.json を選択</value></data>
   <data name="Settings_ConfigFileDialogFilter" xml:space="preserve"><value>JSON ファイル|*.json|すべてのファイル|*.*</value></data>
-  <data name="Settings_TagFilterSectionLabel" xml:space="preserve"><value>タグフィルタの既定値</value></data>
-  <data name="Settings_DefaultPrependTagsLabel" xml:space="preserve"><value>先頭に追加するタグ（既定値）</value></data>
-  <data name="Settings_DefaultExcludeTagsLabel" xml:space="preserve"><value>除外するタグ（既定値）</value></data>
 
   <!-- Main（ディレクトリ一括タグ付け実行ページ） -->
   <data name="Main_Title" xml:space="preserve"><value>ディレクトリ一括タグ付け</value></data>

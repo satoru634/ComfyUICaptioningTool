@@ -85,6 +85,26 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             return path;
         }
 
+        /// <summary>prepend_tags/exclude_tags を含む captioning_config.json を書き出す。</summary>
+        private string WriteConfigFileWithTags(IEnumerable<string> prependTags, IEnumerable<string> excludeTags)
+        {
+            var path = Path.Combine(_tempDir, "captioning_config.json");
+            var config = new
+            {
+                comfyui_url = "http://127.0.0.1:8188",
+                wd14_tagger = new
+                {
+                    model_name = "wd-eva02-large-tagger-v3",
+                    general_threshold = 0.35,
+                    character_threshold = 0.85
+                },
+                prepend_tags = prependTags,
+                exclude_tags = excludeTags,
+            };
+            File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(config));
+            return path;
+        }
+
         private string WriteInvalidConfigFile()
         {
             var path = Path.Combine(_tempDir, "invalid_config.json");
@@ -401,16 +421,15 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         }
 
         [Fact]
-        public async Task RunCommand_Execute_MergesDefaultTagsBeforeInputTags()
+        public async Task RunCommand_Execute_MergesConfigTagsBeforeInputTags()
         {
             var fake = new FakeCaptioningService();
             IReadOnlyList<string>? capturedPrepend = null;
             IReadOnlyList<string>? capturedExclude = null;
 
             var setting = CreateSetting();
-            setting.Data.ConfigPath = WriteValidConfigFile();
-            setting.Data.DefaultPrependTags = "my_chara";
-            setting.Data.DefaultExcludeTags = "rating:general";
+            setting.Data.ConfigPath = WriteConfigFileWithTags(
+                new[] { "my_chara" }, new[] { "rating:general" });
             var vm = CreateVm(setting, (_, prepend, exclude) =>
             {
                 capturedPrepend = prepend;
@@ -429,14 +448,14 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         }
 
         [Fact]
-        public async Task RunCommand_Execute_MergesDefaultAndInputTags_DeduplicatesCaseInsensitive()
+        public async Task RunCommand_Execute_MergesConfigAndInputTags_DeduplicatesCaseInsensitive()
         {
             var fake = new FakeCaptioningService();
             IReadOnlyList<string>? capturedPrepend = null;
 
             var setting = CreateSetting();
-            setting.Data.ConfigPath = WriteValidConfigFile();
-            setting.Data.DefaultPrependTags = "my_chara";
+            setting.Data.ConfigPath = WriteConfigFileWithTags(
+                new[] { "my_chara" }, Array.Empty<string>());
             var vm = CreateVm(setting, (_, prepend, _) =>
             {
                 capturedPrepend = prepend;
