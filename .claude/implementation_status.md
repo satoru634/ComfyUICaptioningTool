@@ -1,8 +1,8 @@
 # 実装状況
 
-## 現在の状態（2026-07-08 時点）
+## 現在の状態（2026-07-10 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -65,6 +65,7 @@
 - `MainPageViewModel.RunAsync` で `MergeTags(既定値, MainPage 入力値)` を呼び出し、既定値を先頭にした union（大文字小文字無視で重複排除）を `CaptioningService`（`ICaptioningService` ファクトリー経由）に渡すよう変更した。同じタグが既定値と入力値の両方にある場合でも、タグフィルタ適用後の出力に二重挿入されない
 - `ComfyUICaptioningToolTests`: `Models/AppConfigTests.cs` に `DefaultPrependTags`/`DefaultExcludeTags` のデフォルト値・`PropertyChanged` テストを追加、`ViewModels/Pages/MainPageViewModelTests.cs` に union の順序・重複排除を検証するテストを追加。計92件、全件パス確認済み
 - 実アプリで `MainPage` の表示を再確認済み（進捗バー等に回帰なし）。`SettingsPage` は座標指定でのクリック操作が別ウィンドウを誤操作してしまう問題が2度発生したため実画面確認は行わず、既に動作確認済みの `ConfigPath` カードと同一の XAML 構造であることのコードレビューで代替した
+- **本節の `AppConfig.DefaultPrependTags`/`DefaultExcludeTags` はフェーズ6で廃止済み。** 既定 prepend/exclude タグの保持先は `captioning_config.json`（`ComfyUILibs.Models.WorkflowConfig.PrependTags`/`ExcludeTags`）に一本化された。詳細は下記フェーズ6を参照
 
 ### フェーズ4: 処理結果・タグ集計レポート表示（`DataPage` を置換、実装完了）
 
@@ -82,6 +83,23 @@
 
 - `.resx` + `LocalizationManager` の仕組みは移植・接続済み（詳細は上記「多言語化」節を参照）。
 - フェーズ2〜4 で新設する画面・ViewModel の文言は、実装のたびに `Strings.resx`/`Strings.en.resx` へキーを追加していくこと。
+
+### フェーズ6: 既定 prepend/exclude タグの保持先を captioning_config.json に一本化（`feature/prepend-exclude-tags-from-config` ブランチ、実装完了）
+
+フェーズ3で `AppConfig.DefaultPrependTags`/`DefaultExcludeTags`（本プロジェクト側、カンマ区切り文字列）として持たせていた既定 prepend/exclude タグを廃止し、`comfyui_url`・`wd14_tagger` と同様に外部 `captioning_config.json`（`ConfigPath` が指すファイル）側の `prepend_tags`/`exclude_tags` キーで保持する方式に統一した。同ファイルには元々このキーが存在していたが、`ComfyUILibs.Models.WorkflowConfig` に対応するプロパティが無く読み込まれていなかった。
+
+- **`ComfyUILibs`（別リポジトリ、`../ComfyUIRunWorkflow/ComfyUILibs/` 側の実体、`feature/prepend-exclude-tags-in-config` ブランチ）**:
+  - `Models/WorkflowConfig.cs` に `PrependTags`/`ExcludeTags`（`List<string>?`、JSON プロパティ名 `prepend_tags`/`exclude_tags`）を追加。バリデーション対象外
+  - `Services/Wd14TaggerRunner.cs` に `PrependTags`/`ExcludeTags`（`IReadOnlyList<string>`）を公開プロパティとして追加。キー欠落時は空リストを返す
+  - `ComfyUILibsTests/Services/Wd14TaggerRunnerTests.cs` に4件追加（値あり/キー欠落 × PrependTags/ExcludeTags）、全件パス確認済み（合計179件）
+  - `README.md`/`doc/README_english.md`/`doc/class_diagram.md`/`.claude/implementation_status.md` を更新（フェーズ4として記録）
+- **`ComfyUICaptioningTool`（本プロジェクト）**:
+  - `Models/AppConfig.cs` から `DefaultPrependTags`/`DefaultExcludeTags` を削除
+  - `MainPageViewModel.RunAsync` の `MergeTags` 呼び出し元を `Config.Data.Default*Tags`（文字列）から `_taggerRunner.PrependTags`/`ExcludeTags`（`IReadOnlyList<string>`）に変更。`MergeTags` のシグネチャも `(string defaultsText, string extraText)` から `(IReadOnlyList<string> defaults, string extraText)` に変更した。MainPage 実行時の入力欄（`PrependTagsText`/`ExcludeTagsText`）は維持し、union（既定値を先頭、大文字小文字無視で重複排除）する挙動は変えていない
+  - `SettingsPage.xaml` の「タグフィルタの既定値」カードを削除し、対応する `Strings.resx`/`Strings.en.resx` のキー（`Settings_TagFilterSectionLabel`/`Settings_DefaultPrependTagsLabel`/`Settings_DefaultExcludeTagsLabel`）も削除した
+  - `DataPage`（タグ集計レポート生成）は今回の変更対象外。従来通り prepend/exclude タグは常に空リストでフィルタ無しの集計のまま
+  - `ComfyUICaptioningToolTests`: `Models/AppConfigTests.cs` から `DefaultPrependTags`/`DefaultExcludeTags` 関連のテストを削除。`ViewModels/Pages/MainPageViewModelTests.cs` に `WriteConfigFileWithTags`（prepend_tags/exclude_tags を含む captioning_config.json を書き出すヘルパー）を追加し、union・重複排除を検証する2件のテストを config ファイル経由の検証に書き換えた。計107件、全件パス確認済み
+- 本プロジェクト側の `ComfyUILibs` submodule のポインタ更新は、`ComfyUILibs` 側のブランチが実際にマージ・push されてから行う想定（ビルドには影響しない。詳細は `.claude/tech_stack.md` の「ComfyUILibs の参照経路に注意」を参照）
 
 ### 将来的な拡張
 

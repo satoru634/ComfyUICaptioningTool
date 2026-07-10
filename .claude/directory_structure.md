@@ -15,9 +15,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       wpfui-icon-256.png / wpfui-icon-1024.png
     Models/
       AppConfig.cs                          <- アプリ設定ルート（WindowSettingData・Language に加え、
-                                                captioning_config.json のパスを保持する ConfigPath、
-                                                既定の prepend/exclude タグ（カンマ区切り文字列）を保持する
-                                                DefaultPrependTags/DefaultExcludeTags を追加済み）
+                                                captioning_config.json のパスを保持する ConfigPath を追加済み。
+                                                既定 prepend/exclude タグは captioning_config.json 側の
+                                                prepend_tags/exclude_tags で保持する方式に一本化したため、
+                                                本クラスには持たない）
       CaptioningRunResult.cs                <- MainPageViewModel の実行結果スナップショット（positional record）。
                                                 CaptioningRunResultStore 経由で DataPage と共有する
       TagCountEntry.cs                      <- tags_report.txt の 1 行（Tag/Count）を表す positional record
@@ -52,9 +53,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 表示し、対象ディレクトリを選択してタグ集計レポート
                                                 （tags_report.txt）を生成・一覧表示する
       SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
-                                                パス選択（BrowseConfigPathCommand）に加え、既定の
-                                                prepend/exclude タグ（Config.Data への直接バインディングのみ、
-                                                専用プロパティ・OnChanged なし）を実装済み
+                                                パス選択（BrowseConfigPathCommand）を実装済み。既定
+                                                prepend/exclude タグは captioning_config.json 側で
+                                                直接編集する方式のため、本 VM では扱わない
     ViewModels/Windows/
       MainWindowViewModel.cs                <- ナビゲーション定義・ウィンドウ状態保存。メニュー項目は
                                                 BuildMenuItems() で LocalizationManager から都度構築し、
@@ -66,8 +67,8 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       DataPage.xaml(.cs)                    <- 実行結果・タグ集計レポート表示画面（直近の実行結果の
                                                 ディレクトリ/日時/サマリ/ログ表示、レポート対象ディレクトリ
                                                 選択・生成・タグ/出現回数の一覧表示）
-      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択、
-                                                既定 prepend/exclude タグ入力）。ラベルは LocalizationManager バインディング
+      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択）。
+                                                ラベルは LocalizationManager バインディング
     Views/Windows/
       MainWindow.xaml(.cs)                  <- ナビゲーションホスト
     Usings.cs
