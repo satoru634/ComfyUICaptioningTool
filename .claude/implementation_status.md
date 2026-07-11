@@ -101,6 +101,15 @@
   - `ComfyUICaptioningToolTests`: `Models/AppConfigTests.cs` から `DefaultPrependTags`/`DefaultExcludeTags` 関連のテストを削除。`ViewModels/Pages/MainPageViewModelTests.cs` に `WriteConfigFileWithTags`（prepend_tags/exclude_tags を含む captioning_config.json を書き出すヘルパー）を追加し、union・重複排除を検証する2件のテストを config ファイル経由の検証に書き換えた。計107件、全件パス確認済み
 - 本プロジェクト側の `ComfyUILibs` submodule のポインタ更新は、`ComfyUILibs` 側のブランチが実際にマージ・push されてから行う想定（ビルドには影響しない。詳細は `.claude/tech_stack.md` の「ComfyUILibs の参照経路に注意」を参照）
 
+### フェーズ7: ComfyUILibs 参照パスの修正・Wd14TaggerRunner タグ取得リトライ（`fix/comfyuilibs-reference-path` ブランチ、実装完了）
+
+`ComfyUICaptioningTool.csproj`/`ComfyUICaptioningTool.sln` の `ProjectReference` が、本プロジェクトが Git submodule として持つ `ComfyUICaptioningTool/ComfyUILibs/` ではなく、隣接する別リポジトリ `../ComfyUIRunWorkflow/ComfyUILibs/` を参照していた誤りを修正した（`.claude/tech_stack.md` の「ComfyUILibs の参照経路に注意」節も実態に合わせて更新済み）。あわせて、ディレクトリ一括タグ付け実行時に数枚に1枚程度の頻度で `Wd14TaggerRunner_OutputNotFound` エラーが発生する不具合（`ComfyUIClient.MonitorAsync` の完了検知直後は ComfyUI 側の history 反映が間に合わないことがある競合状態）を `ComfyUILibs` 側で修正し（[PR #17](https://github.com/satoru634/ComfyUILibs/pull/17) にてマージ済み）、本プロジェクトの submodule ポインタを更新した。
+
+- [x] `ComfyUICaptioningTool.csproj` の `ProjectReference` を `..\..\ComfyUIRunWorkflow\ComfyUILibs\ComfyUILibs\ComfyUILibs.csproj` から `..\ComfyUILibs\ComfyUILibs\ComfyUILibs.csproj` に修正
+- [x] `ComfyUILibs`（本プロジェクトの submodule）を `ffc9a86` → `f3e9a8c`（`Wd14TaggerRunner.ExtractTagsAsync` にリトライ処理を追加したコミット）に更新。詳細は `ComfyUILibs/.claude/implementation_status.md` のフェーズ5を参照
+- [x] `dotnet build ComfyUICaptioningTool.sln` 成功（修正後の参照パス経由でビルドできることを確認済み）
+- 上記の参照パス誤りにより、これまで本プロジェクトのビルドは `../ComfyUIRunWorkflow/ComfyUILibs/`（隣接する別リポジトリ内の実体）を参照していた。フェーズ1・4・6 の `ComfyUILibs` 側の変更（`CaptioningService` 新設・`WorkflowConfig.PrependTags`/`ExcludeTags` 追加等）自体は本プロジェクトの submodule（`ComfyUICaptioningTool/ComfyUILibs/`、`ffc9a86` まで）にも同内容が反映されていたため機能面の実害はなかったが、実際のビルドに使われていたのは常に隣接リポジトリ側の実体だった。今回のフェーズ7の不具合修正（Wd14TaggerRunner のタグ取得リトライ）は先に隣接リポジトリ側にのみ実装してしまっていたため、本プロジェクトの submodule 側にも同内容を反映した上でマージした（詳細は上記 PR #17 参照）
+
 ### 将来的な拡張
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図）の整備

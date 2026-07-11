@@ -8,9 +8,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComfyUICaptioningTool", "Co
 		{0699E8FA-9F10-4F6D-9A51-3EA415930208} = {0699E8FA-9F10-4F6D-9A51-3EA415930208}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComfyUILibs", "..\ComfyUIRunWorkflow\ComfyUILibs\ComfyUILibs\ComfyUILibs.csproj", "{0699E8FA-9F10-4F6D-9A51-3EA415930208}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComfyUILibs", "ComfyUILibs\ComfyUILibs\ComfyUILibs.csproj", "{0699E8FA-9F10-4F6D-9A51-3EA415930208}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComfyUILibsTests", "..\ComfyUIRunWorkflow\ComfyUILibs\ComfyUILibsTests\ComfyUILibsTests.csproj", "{4991AFDD-944E-BFAD-B561-7C9778029AE4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComfyUILibsTests", "ComfyUILibs\ComfyUILibsTests\ComfyUILibsTests.csproj", "{4991AFDD-944E-BFAD-B561-7C9778029AE4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComfyUICaptioningToolTests", "ComfyUICaptioningToolTests\ComfyUICaptioningToolTests.csproj", "{F3CFBFFA-FE1E-49AA-9ADF-10C467B0C00C}"
 EndProject
