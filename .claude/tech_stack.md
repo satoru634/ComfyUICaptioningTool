@@ -3,7 +3,7 @@
 ## ComfyUILibs
 
 別リポジトリ（サブモジュール）のため、技術スタックは `ComfyUILibs/.claude/tech_stack.md` を参照。
-ただし本プロジェクトのビルドで実際に参照されるのは `../ComfyUIRunWorkflow/ComfyUILibs/` 側（詳細は CLAUDE.md の「ComfyUILibs の参照経路に注意」を参照）。
+ただし本プロジェクトのビルドで実際に参照されるのは `ComfyUICaptioningTool/ComfyUILibs/` 側（詳細は CLAUDE.md の「ComfyUILibs の参照経路に注意」を参照）。
 
 ## ComfyUICaptioningTool
 
@@ -20,8 +20,6 @@
 ### ComfyUILibs の参照経路に注意
 
 - 本リポジトリは `ComfyUILibs` を Git submodule として `ComfyUICaptioningTool/ComfyUILibs/` 配下に持つ（`.gitmodules` 参照）。
-- しかし実際にビルドで使われているのは **こちらではなく**、`ComfyUICaptioningTool.sln` / `ComfyUICaptioningTool.csproj` の `ProjectReference` が指す `../../ComfyUIRunWorkflow/ComfyUILibs/ComfyUILibs/ComfyUILibs.csproj`（＝隣接する `ComfyUIRunWorkflow` リポジトリ内にある submodule のコピー）。
-- そのため `ComfyUILibs` のコードを変更・確認する際は、どちらの実体を編集しているか（`ComfyUICaptioningTool/ComfyUILibs/` か `../ComfyUIRunWorkflow/ComfyUILibs/`）を必ず確認すること。ビルド結果に反映されるのは後者。
 - `ComfyUILibs` 自体の開発ルール・技術スタック・クラス図は本 CLAUDE.md ではなく `ComfyUILibs/CLAUDE.md` および `ComfyUILibs/.claude/` 配下（`comfyuilibs_common.md` / `directory_structure.md` / `implementation_status.md` / `tech_stack.md`）に従う。
 
 ### 責務の分離

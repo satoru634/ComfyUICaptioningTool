@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ComfyUIRunWorkflow\ComfyUILibs\ComfyUILibs\ComfyUILibs.csproj" />
+    <ProjectReference Include="..\ComfyUILibs\ComfyUILibs\ComfyUILibs.csproj" />
   </ItemGroup>
 
   <ItemGroup>
