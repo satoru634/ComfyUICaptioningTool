@@ -65,6 +65,8 @@ namespace ComfyUICaptioningTool
                 services.AddSingleton<MainPageViewModel>();
                 services.AddSingleton<DataPage>();
                 services.AddSingleton<DataViewModel>();
+                services.AddSingleton<ConfigPage>();
+                services.AddSingleton<ConfigViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
             }).Build();

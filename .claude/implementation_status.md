@@ -1,8 +1,8 @@
 # 実装状況
 
-## 現在の状態（2026-07-10 時点）
+## 現在の状態（2026-07-11 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -60,7 +60,7 @@
 
 ### フェーズ3: SettingsPage の拡張（実装完了）
 
-- ComfyUI URL・WD14 モデル名・しきい値は、フェーズ2で採用した外部 `captioning_config.json` 方式（`AppConfig.ConfigPath` + ファイル選択ダイアログ）により GUI 内での直接編集は行わない方針としたため、本フェーズの対象外
+- ComfyUI URL・WD14 モデル名・しきい値は、フェーズ2で採用した外部 `captioning_config.json` 方式（`AppConfig.ConfigPath` + ファイル選択ダイアログ）により GUI 内での直接編集は行わない方針としたため、本フェーズの対象外（**この方針はフェーズ8で転換し、`ConfigPage` から直接編集できるようにした。詳細は下記フェーズ8を参照**）
 - `AppConfig` に `DefaultPrependTags`/`DefaultExcludeTags`（カンマ区切り文字列、既定は空文字）を追加し、`SettingsPage` に「タグフィルタの既定値」カード（`MainPage` のタグ入力カードと同じ見た目の 2 つの `ui:TextBox`、`Config.Data.DefaultPrependTags`/`DefaultExcludeTags` へ直接 TwoWay バインド）を新設した。`ConfigPath` と同様、`SettingsViewModel` 側に専用プロパティ・`OnChanged` は設けず単純バインディングのみ
 - `MainPageViewModel.RunAsync` で `MergeTags(既定値, MainPage 入力値)` を呼び出し、既定値を先頭にした union（大文字小文字無視で重複排除）を `CaptioningService`（`ICaptioningService` ファクトリー経由）に渡すよう変更した。同じタグが既定値と入力値の両方にある場合でも、タグフィルタ適用後の出力に二重挿入されない
 - `ComfyUICaptioningToolTests`: `Models/AppConfigTests.cs` に `DefaultPrependTags`/`DefaultExcludeTags` のデフォルト値・`PropertyChanged` テストを追加、`ViewModels/Pages/MainPageViewModelTests.cs` に union の順序・重複排除を検証するテストを追加。計92件、全件パス確認済み
@@ -109,6 +109,22 @@
 - [x] `ComfyUILibs`（本プロジェクトの submodule）を `ffc9a86` → `f3e9a8c`（`Wd14TaggerRunner.ExtractTagsAsync` にリトライ処理を追加したコミット）に更新。詳細は `ComfyUILibs/.claude/implementation_status.md` のフェーズ5を参照
 - [x] `dotnet build ComfyUICaptioningTool.sln` 成功（修正後の参照パス経由でビルドできることを確認済み）
 - 上記の参照パス誤りにより、これまで本プロジェクトのビルドは `../ComfyUIRunWorkflow/ComfyUILibs/`（隣接する別リポジトリ内の実体）を参照していた。フェーズ1・4・6 の `ComfyUILibs` 側の変更（`CaptioningService` 新設・`WorkflowConfig.PrependTags`/`ExcludeTags` 追加等）自体は本プロジェクトの submodule（`ComfyUICaptioningTool/ComfyUILibs/`、`ffc9a86` まで）にも同内容が反映されていたため機能面の実害はなかったが、実際のビルドに使われていたのは常に隣接リポジトリ側の実体だった。今回のフェーズ7の不具合修正（Wd14TaggerRunner のタグ取得リトライ）は先に隣接リポジトリ側にのみ実装してしまっていたため、本プロジェクトの submodule 側にも同内容を反映した上でマージした（詳細は上記 PR #17 参照）
+
+### フェーズ8: captioning_config.json 編集ページの新設（`feature/config-edit-page` ブランチ、実装完了）
+
+フェーズ2/3で「comfyui_url・WD14 モデル名・しきい値・既定 prepend/exclude タグは GUI 内で直接編集せず、外部ファイルへのパス指定のみ行う」とした方針を転換し、`captioning_config.json` の内容を GUI から直接編集できる新規ページ `ConfigPage` を追加した。ナビゲーションメニューには「データ」と「設定」の間に独立ページとして追加した（`SettingsPage` への統合はしない）。
+
+- `ViewModels/Pages/ConfigViewModel.cs` を新設。`Config.Data.ConfigPath` から `System.Text.Json` で直接 `ComfyUILibs.Models.WorkflowConfig` を読み書きする
+  - **設計判断**: `ConfigViewModel` は ComfyUI との通信を一切行わないファイル I/O のみの処理のため、`MainPageViewModel`/`DataViewModel` が採用している `ICaptioningService` ファクトリー（ネットワーク通信テスト差し替え用の境界）は不要と判断し、導入していない
+  - 読み込み: `Config.Data.ConfigPath` が空なら `Common_ConfigPathNotSet` でエラー表示。ファイルが存在しない場合はエラーにせず `new WorkflowConfig()`（空の新規設定）としてフォームへ反映し、`Config_NewFileNotice`（保存時に新規作成される旨）を表示する。JSON 不正時のみ `IsConfigLoaded=false` として保存を無効化する（`PropertyNameCaseInsensitive = true` で読み込み、`ComfyUILibs.Services.ConfigLoader` と同じ大文字小文字無視の挙動に合わせた）
+  - 保存: `ComfyUiUrl` 空文字チェック後、`ComfyUILibs.Services.ConfigLoader.ValidateWd14TaggerConfig` でモデル名・しきい値（0.0〜1.0）を検証してから書き込む。シリアライズは `JsonIgnoreCondition.WhenWritingNull` を指定し、本ページで扱わない `default_workflow`/`workflows`（`WorkflowConfig` の他プロパティ、常に null）が出力に含まれないようにして、既存の `captioning_config.json` のフォーマット（`comfyui_url`/`wd14_tagger`/`prepend_tags`/`exclude_tags` のみ）を維持している
+  - prepend/exclude タグは `MainPage` と同じカンマ区切りテキスト入力・分割ロジック（trim・空要素除去）で編集する。`MainPageViewModel.MergeTags` のような union 処理は不要（本ページが唯一の既定値の書き込み元のため）
+- `Views/Pages/ConfigPage.xaml(.cs)` を新設。`SettingsPage`/`MainPage` と同じ Border カード + `ui:TextBox` の見た目、しきい値は `ui:NumberBox`（`Minimum="0"`/`Maximum="1"`、DashboardPage.xaml [ComfyUIRunWorkflow] で実績のあるプロパティのみ使用）
+- `ViewModels/Windows/MainWindowViewModel.cs` の `BuildMenuItems()` に `MainWindow_MenuConfig` ナビゲーション項目（`DocumentSettings20` アイコン）を追加。`MenuItems`（データの次）に配置
+- `App.xaml.cs` に `ConfigPage`/`ConfigViewModel` をシングルトン登録
+- `Resources/Strings.resx`/`Strings.en.resx` に `MainWindow_MenuConfig`・`Config_*` キーを追加（`Main_TagsSectionLabel`/`Main_PrependTagsLabel`/`Main_ExcludeTagsLabel`/`Main_TagsPlaceholder`/`Settings_ComfyUISectionLabel`/`Common_ConfigPathNotSet` はページ間で再利用）
+- `ComfyUICaptioningToolTests`: `ViewModels/Pages/ConfigViewModelTests.cs`（18件、ConfigPath 空/ファイル未存在/JSON不正時の挙動・SaveCommand の CanExecute・保存時バリデーション・null プロパティが出力されないことの検証）を新規作成。`ViewModels/Windows/MainWindowViewModelTests.cs` に Config ナビゲーション項目のテストを2件追加。計127件、全件パス確認済み
+- 実アプリ起動を試みたが、この環境ではウィンドウハンドル取得後のスクリーンショットが無関係な別ウィンドウを捉えてしまう事象が発生した（`SettingsPage`/`DataPage` のフェーズ3/4で記録済みの「座標指定でのクリック操作が別ウィンドウを誤操作する」問題と同種の環境依存の制約）。そのため実画面での目視確認は断念し、`SettingsPage`/`MainPage` と同一の XAML カード構造であることのコードレビューとユニットテストで代替した
 
 ### 将来的な拡張
 

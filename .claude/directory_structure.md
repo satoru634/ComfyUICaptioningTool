@@ -53,9 +53,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 表示し、対象ディレクトリを選択してタグ集計レポート
                                                 （tags_report.txt）を生成・一覧表示する
       SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
-                                                パス選択（BrowseConfigPathCommand）を実装済み。既定
-                                                prepend/exclude タグは captioning_config.json 側で
-                                                直接編集する方式のため、本 VM では扱わない
+                                                パス選択（BrowseConfigPathCommand）を実装済み
+      ConfigViewModel.cs                    <- captioning_config.json 編集ページの VM。ConfigPath が指す
+                                                ファイルを System.Text.Json で直接読み書きする（ComfyUI との
+                                                通信は行わないため ICaptioningService 経由のファクトリー境界は
+                                                不要。ConfigLoader.ValidateWd14TaggerConfig で保存前検証のみ行う）
     ViewModels/Windows/
       MainWindowViewModel.cs                <- ナビゲーション定義・ウィンドウ状態保存。メニュー項目は
                                                 BuildMenuItems() で LocalizationManager から都度構築し、
@@ -67,6 +69,8 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       DataPage.xaml(.cs)                    <- 実行結果・タグ集計レポート表示画面（直近の実行結果の
                                                 ディレクトリ/日時/サマリ/ログ表示、レポート対象ディレクトリ
                                                 選択・生成・タグ/出現回数の一覧表示）
+      ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
+                                                しきい値・prepend/exclude タグ既定値の編集、保存ボタン）
       SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択）。
                                                 ラベルは LocalizationManager バインディング
     Views/Windows/
@@ -100,6 +104,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 （コロンを含むタグ名を含む）・ResultStore 購読による
                                                 導出プロパティ更新・エラーハンドリング）
       SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）
+      ConfigViewModelTests.cs               <- ConfigViewModel のテスト（ConfigPath 読み込み成否・
+                                                ファイル未存在時の新規作成扱い・SaveCommand の CanExecute/実行・
+                                                保存前バリデーション・タグ既定値の union なしの単純反映）
     ViewModels/Windows/
       MainWindowViewModelTests.cs           <- MainWindowViewModel のテスト（メニュー項目構築・ウィンドウクローズ時保存等）
 ```
