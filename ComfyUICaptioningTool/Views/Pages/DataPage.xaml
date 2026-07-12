@@ -7,6 +7,7 @@
     xmlns:local="clr-namespace:ComfyUICaptioningTool.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:helper="clr-namespace:ComfyUICaptioningTool.Helpers"
     Title="DataPage"
     d:DataContext="{d:DesignInstance local:DataPage, IsDesignTimeCreatable=False}"
     d:DesignHeight="800"
@@ -14,13 +15,25 @@
     ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
     ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    ScrollViewer.CanContentScroll="False"
     mc:Ignorable="d">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="16,8,16,16">
+    <Page.Resources>
+        <helper:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+    </Page.Resources>
+
+    <Grid Margin="16,8,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
             <!-- タイトル -->
             <TextBlock
+                Grid.Row="0"
                 Margin="0,0,0,12"
                 FontSize="20"
                 FontWeight="SemiBold"
@@ -28,12 +41,14 @@
 
             <!-- 直近の実行結果 -->
             <TextBlock
+                Grid.Row="1"
                 Margin="0,0,0,4"
                 FontSize="14"
                 FontWeight="Medium"
                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_LastResultSectionLabel]}" />
             <Border
+                Grid.Row="2"
                 Margin="0,0,0,12"
                 Padding="12"
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
@@ -45,16 +60,19 @@
                         Margin="0,0,0,4"
                         FontSize="12"
                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                        Text="{Binding ViewModel.LastResultDirectory, Mode=OneWay}" />
+                        Text="{Binding ViewModel.LastResultDirectory, Mode=OneWay}"
+                        Visibility="{Binding ViewModel.LastResultDirectory, Converter={StaticResource StringToVisibilityConverter}}" />
                     <TextBlock
                         Margin="0,0,0,4"
                         FontSize="12"
                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                        Text="{Binding ViewModel.LastResultTimestampText, Mode=OneWay}" />
+                        Text="{Binding ViewModel.LastResultTimestampText, Mode=OneWay}"
+                        Visibility="{Binding ViewModel.LastResultTimestampText, Converter={StaticResource StringToVisibilityConverter}}" />
                     <TextBlock
                         Margin="0,0,0,8"
                         FontWeight="Medium"
-                        Text="{Binding ViewModel.LastResultSummary, Mode=OneWay}" />
+                        Text="{Binding ViewModel.LastResultSummary, Mode=OneWay}"
+                        Visibility="{Binding ViewModel.LastResultSummary, Converter={StaticResource StringToVisibilityConverter}}" />
                     <Border
                         Padding="4"
                         Background="{DynamicResource ApplicationBackgroundBrush}"
@@ -65,88 +83,155 @@
                             Height="180"
                             BorderThickness="0"
                             ItemsSource="{Binding ViewModel.LastResultLogEntries, Mode=OneWay}"
-                            ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                            ScrollViewer.CanContentScroll="True"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </Border>
                 </StackPanel>
             </Border>
 
             <!-- タグ集計レポート -->
             <TextBlock
+                Grid.Row="3"
                 Margin="0,0,0,4"
                 FontSize="14"
                 FontWeight="Medium"
                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_ReportSectionLabel]}" />
             <Border
-                Margin="0,0,0,12"
+                Grid.Row="4"
                 Padding="12"
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="4">
-                <StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
                     <TextBlock
+                        Grid.Row="0"
                         Margin="0,0,0,4"
                         FontSize="12"
                         Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryLabel]}" />
-                    <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                    <Grid
+                        Grid.Row="1"
+                        Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
                         <ui:TextBox
-                            Width="700"
+                            Grid.Column="0"
                             Height="36"
-                            Margin="0,0,4,0"
                             IsReadOnly="True"
                             PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryPlaceholder]}"
                             Text="{Binding ViewModel.ReportDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <ui:Button
+                            Grid.Column="1"
                             Width="36"
                             Height="36"
-                            Margin="4,0,0,0"
+                            Margin="12,0,0,0"
                             Appearance="Secondary"
                             Command="{Binding ViewModel.BrowseReportDirectoryCommand}"
                             Icon="{ui:SymbolIcon FolderOpen16}"
                             ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}" />
-                    </StackPanel>
+                    </Grid>
                     <CheckBox
+                        Grid.Row="2"
                         Margin="0,0,0,8"
                         Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
                         IsChecked="{Binding ViewModel.ReportRecursive, Mode=TwoWay}" />
                     <ui:Button
+                        Grid.Row="3"
                         Margin="0,0,0,8"
                         Appearance="Primary"
                         Command="{Binding ViewModel.GenerateReportCommand}"
                         Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_GenerateReportButton]}"
                         Icon="{ui:SymbolIcon DataHistogram24}" />
                     <TextBlock
+                        Grid.Row="4"
                         Margin="0,0,0,8"
                         FontSize="12"
-                        Text="{Binding ViewModel.ReportStatusText, Mode=OneWay}" />
+                        Text="{Binding ViewModel.ReportStatusText, Mode=OneWay}"
+                        Visibility="{Binding ViewModel.ReportStatusText, Converter={StaticResource StringToVisibilityConverter}}"/>
+                    <Grid Grid.Row="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0"
+                            Margin="8,8,0,8"
+                            HorizontalAlignment="Left"
+                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_TagColumnHeader]}"
+                            VerticalAlignment="Center"
+                            FontWeight="Bold" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Margin="0,8,8,8"
+                            HorizontalAlignment="Left"
+                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_CountColumnHeader]}"
+                            VerticalAlignment="Center"
+                            FontWeight="Bold" />
+                    </Grid>
                     <Border
+                        Grid.Row="6"
                         Padding="0"
                         Background="{DynamicResource ApplicationBackgroundBrush}"
                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
                         CornerRadius="4">
-                        <ListView
-                            Height="320"
+                        <ui:ListView
                             BorderThickness="0"
-                            ItemsSource="{Binding ViewModel.ReportEntries, Mode=OneWay}">
-                            <ListView.View>
-                                <GridView>
-                                    <GridViewColumn
-                                        Width="700"
-                                        DisplayMemberBinding="{Binding Tag}"
-                                        Header="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_TagColumnHeader]}" />
-                                    <GridViewColumn
-                                        Width="120"
-                                        DisplayMemberBinding="{Binding Count}"
-                                        Header="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_CountColumnHeader]}" />
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-                    </Border>
-                </StackPanel>
-            </Border>
+                            ItemsSource="{Binding ViewModel.ReportEntries, Mode=OneWay}"
+                            SelectionMode="Single"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ui:ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
 
-        </StackPanel>
-    </ScrollViewer>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            Margin="4,4,0,4"
+                                            HorizontalAlignment="Left"
+                                            Text="{Binding Tag}" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Margin="0,4,4,4"
+                                            HorizontalAlignment="Left"
+                                            Text="{Binding Count}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ui:ListView.ItemTemplate>
+                        </ui:ListView>
+                    </Border>
+                </Grid>
+            </Border>
+    </Grid>
 </Page>
