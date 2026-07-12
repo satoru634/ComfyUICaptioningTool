@@ -62,6 +62,7 @@
   <!-- MainWindow -->
   <data name="MainWindow_MenuHome" xml:space="preserve"><value>ホーム</value></data>
   <data name="MainWindow_MenuData" xml:space="preserve"><value>データ</value></data>
+  <data name="MainWindow_MenuConfig" xml:space="preserve"><value>設定ファイル</value></data>
   <data name="MainWindow_MenuSettings" xml:space="preserve"><value>設定</value></data>
   <data name="MainWindow_TrayHome" xml:space="preserve"><value>ホーム</value></data>
 
@@ -113,4 +114,19 @@
   <data name="Data_ReportGeneratedFormat" xml:space="preserve"><value>{0} 件のタグを集計しました: {1}</value></data>
   <data name="Data_TagColumnHeader" xml:space="preserve"><value>タグ</value></data>
   <data name="Data_CountColumnHeader" xml:space="preserve"><value>出現回数</value></data>
+
+  <!-- Config（captioning_config.json 編集ページ） -->
+  <data name="Config_Title" xml:space="preserve"><value>captioning_config.json 編集</value></data>
+  <data name="Config_ComfyUiUrlLabel" xml:space="preserve"><value>ComfyUI URL</value></data>
+  <data name="Config_ComfyUiUrlPlaceholder" xml:space="preserve"><value>http://127.0.0.1:8188</value></data>
+  <data name="Config_ModelConfigLabel" xml:space="preserve"><value>WD14 モデル設定</value></data>
+  <data name="Config_ModelNameLabel" xml:space="preserve"><value>モデル名</value></data>
+  <data name="Config_ModelNamePlaceholder" xml:space="preserve"><value>wd-eva02-large-tagger-v3</value></data>
+  <data name="Config_GeneralThresholdLabel" xml:space="preserve"><value>一般タグしきい値</value></data>
+  <data name="Config_CharacterThresholdLabel" xml:space="preserve"><value>キャラクタータグしきい値</value></data>
+  <data name="Config_SaveButton" xml:space="preserve"><value>保存</value></data>
+  <data name="Config_SaveSuccessFormat" xml:space="preserve"><value>captioning_config.json を保存しました: {0}</value></data>
+  <data name="Config_LoadErrorFormat" xml:space="preserve"><value>captioning_config.json の読み込みエラー: {0}</value></data>
+  <data name="Config_NewFileNotice" xml:space="preserve"><value>captioning_config.json が見つからないため、保存時に新規作成されます。</value></data>
+  <data name="Config_ComfyUiUrlEmptyError" xml:space="preserve"><value>ComfyUI URL を入力してください。</value></data>
 </root>

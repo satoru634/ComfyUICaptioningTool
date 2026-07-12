@@ -120,6 +120,32 @@ namespace ComfyUICaptioningToolTests.ViewModels.Windows
         }
 
         [Fact]
+        public void MenuItems_Contains_ConfigItem()
+        {
+            RunOnSta(() =>
+            {
+                var vm = new MainWindowViewModel(CreateSetting());
+
+                var items = vm.MenuItems.OfType<NavigationViewItem>().ToList();
+                Assert.Contains(items, item => item.Content?.ToString() == LocalizationManager.Instance["MainWindow_MenuConfig"]);
+            });
+        }
+
+        [Fact]
+        public void MenuItems_ConfigItem_TargetPage_IsConfigPage()
+        {
+            RunOnSta(() =>
+            {
+                var vm = new MainWindowViewModel(CreateSetting());
+
+                var config = vm.MenuItems.OfType<NavigationViewItem>()
+                    .FirstOrDefault(item => item.Content?.ToString() == LocalizationManager.Instance["MainWindow_MenuConfig"]);
+
+                Assert.Equal(typeof(ConfigPage), config?.TargetPageType);
+            });
+        }
+
+        [Fact]
         public void MenuItems_HomeItem_TargetPage_IsMainPage()
         {
             RunOnSta(() =>

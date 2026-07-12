@@ -1,0 +1,188 @@
+<Page
+    x:Class="ComfyUICaptioningTool.Views.Pages.ConfigPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:helpers="clr-namespace:ComfyUICaptioningTool.Helpers"
+    xmlns:local="clr-namespace:ComfyUICaptioningTool.Views.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="ConfigPage"
+    d:DataContext="{d:DesignInstance local:ConfigPage, IsDesignTimeCreatable=False}"
+    d:DesignHeight="800"
+    d:DesignWidth="1000"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16,8,16,16">
+
+            <!-- タイトル -->
+            <TextBlock
+                Margin="0,0,0,12"
+                FontSize="20"
+                FontWeight="SemiBold"
+                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_Title]}" />
+
+            <!-- ComfyUI 接続設定 -->
+            <TextBlock
+                Margin="0,0,0,4"
+                FontSize="14"
+                FontWeight="Medium"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ComfyUISectionLabel]}" />
+            <Border
+                Margin="0,0,0,4"
+                Padding="12"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_ComfyUiUrlLabel]}" />
+                    <ui:TextBox
+                        Height="36"
+                        Grid.Column="1"
+                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_ComfyUiUrlPlaceholder]}"
+                        Text="{Binding ViewModel.ComfyUiUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+            </Border>
+
+            <!-- WD14 モデル設定 -->
+            <TextBlock
+                Margin="0,0,0,4"
+                FontSize="14"
+                FontWeight="Medium"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_ModelConfigLabel]}" />
+            <Border
+                Margin="0,0,0,4"
+                Padding="12"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_ModelNameLabel]}" />
+                        <ui:TextBox
+                            Height="36"
+                            Grid.Column="1"
+                            PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_ModelNamePlaceholder]}"
+                            Text="{Binding ViewModel.ModelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_GeneralThresholdLabel]}" />
+                        <ui:NumberBox
+                            Grid.Column="1"
+                            Width="200"
+                            Maximum="1"
+                            Minimum="0"
+                            HorizontalAlignment="Left"
+                            SpinButtonPlacementMode="Compact"
+                            Value="{Binding ViewModel.GeneralThreshold, Mode=TwoWay}" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_CharacterThresholdLabel]}" />
+                        <ui:NumberBox
+                            Grid.Column="1"
+                            Width="200"
+                            Maximum="1"
+                            Minimum="0"
+                            HorizontalAlignment="Left"
+                            SpinButtonPlacementMode="Compact"
+                            Value="{Binding ViewModel.CharacterThreshold, Mode=TwoWay}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- タグフィルタの既定値 -->
+            <TextBlock
+                Margin="0,0,0,4"
+                FontSize="14"
+                FontWeight="Medium"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsSectionLabel]}" />
+            <Border
+                Margin="0,0,0,12"
+                Padding="12"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel>
+                    <TextBlock
+                        Margin="0,0,0,4"
+                        FontSize="12"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_PrependTagsLabel]}" />
+                    <ui:TextBox
+                        Height="80"
+                        Margin="0,0,0,12"
+                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
+                        Text="{Binding ViewModel.PrependTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock
+                        Margin="0,0,0,4"
+                        FontSize="12"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ExcludeTagsLabel]}" />
+                    <ui:TextBox
+                        Height="74"
+                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
+                        Text="{Binding ViewModel.ExcludeTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+            </Border>
+
+            <!-- 保存 -->
+            <ui:Button
+                Margin="0,0,0,8"
+                Appearance="Primary"
+                Command="{Binding ViewModel.SaveCommand}"
+                Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_SaveButton]}"
+                Icon="{ui:SymbolIcon Save24}" />
+            <TextBlock
+                FontSize="12"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding ViewModel.StatusText, Mode=OneWay}" />
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
