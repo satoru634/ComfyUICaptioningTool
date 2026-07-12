@@ -34,152 +34,24 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-            <!-- タイトル -->
-            <TextBlock
-                Grid.Row="0"
-                Margin="0,0,0,12"
-                FontSize="20"
-                FontWeight="SemiBold"
-                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_Title]}" />
+        <!-- タイトル -->
+        <TextBlock
+            Grid.Row="0"
+            Margin="0,0,0,12"
+            FontSize="20"
+            FontWeight="SemiBold"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_Title]}" />
 
-            <!-- 対象ディレクトリ -->
-            <Border
-                Grid.Row="1"
-                Margin="0,0,0,12"
-                Padding="12"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <ui:SymbolIcon
-                        Grid.Row="0"
-                        Grid.Column="0"
-                        Margin="0,0,8,0"
-                        VerticalAlignment="Center"
-                        Symbol="Folder24" />
-                    <TextBlock
-                        Grid.Row="0"
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        FontSize="14"
-                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryLabel]}" />
-                    <Grid
-                        Grid.Row="1"
-                        Grid.Column="0"
-                        Grid.ColumnSpan="2"
-                        Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <ui:TextBox
-                            Grid.Column="0"
-                            Height="36"
-                            IsReadOnly="True"
-                            PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryPlaceholder]}"
-                            Text="{Binding ViewModel.TargetDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <ui:Button
-                            Grid.Column="1"
-                            Width="36"
-                            Height="36"
-                            Margin="12,0,0,0"
-                            Appearance="Secondary"
-                            Command="{Binding ViewModel.BrowseDirectoryCommand}"
-                            Icon="{ui:SymbolIcon FolderOpen16}"
-                            ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}" />
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <!-- オプション -->
-            <TextBlock
-                Grid.Row="2"
-                Margin="0,0,0,4"
-                FontSize="14"
-                FontWeight="Medium"
-                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OptionsSectionLabel]}" />
-            <Border
-                Grid.Row="3"
-                Margin="0,0,0,12"
-                Padding="12"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <CheckBox
-                        Grid.Column="0"
-                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
-                        IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}" FontSize="13" />
-                    <CheckBox
-                        Grid.Column="1"
-                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OverwriteLabel]}"
-                        IsChecked="{Binding ViewModel.Overwrite, Mode=TwoWay}" FontSize="13" />
-                    <CheckBox
-                        Grid.Column="2"
-                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_GenerateReportLabel]}"
-                        IsChecked="{Binding ViewModel.GenerateReport, Mode=TwoWay}" FontSize="13" />
-                </Grid>
-            </Border>
-
-            <!-- タグフィルタ -->
-            <TextBlock
-                Grid.Row="4"
-                Margin="0,0,0,4"
-                FontSize="14"
-                FontWeight="Medium"
-                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsSectionLabel]}" />
-            <Border
-                Grid.Row="5"
-                Margin="0,0,0,12"
-                Padding="12"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <StackPanel>
-                    <TextBlock
-                        Margin="0,0,0,4"
-                        FontSize="12"
-                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_PrependTagsLabel]}" />
-                    <ui:TextBox
-                        Height="80"
-                        Margin="0,0,0,12"
-                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
-                        Text="{Binding ViewModel.PrependTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock
-                        Margin="0,0,0,4"
-                        FontSize="12"
-                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ExcludeTagsLabel]}" />
-                    <ui:TextBox
-                        Height="80"
-                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
-                        Text="{Binding ViewModel.ExcludeTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
-            </Border>
-
-            <!-- 実行 -->
-            <Grid
-                Grid.Row="6"
-                Margin="0,0,0,12">
+        <!-- 対象ディレクトリ -->
+        <Border
+            Grid.Row="1"
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -187,75 +59,202 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-
-                <ui:Button
+                <ui:SymbolIcon
+                    Grid.Row="0"
                     Grid.Column="0"
-                    Grid.Row="0"
-                    Appearance="Primary"
-                    Command="{Binding ViewModel.RunCommand}"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RunButton]}"
-                    Icon="{ui:SymbolIcon PlayCircle24}" />
-                <TextBlock
-                    Grid.Column="1"
-                    Grid.Row="0"
-                    Margin="8,0,0,0"
+                    Margin="0,0,8,0"
                     VerticalAlignment="Center"
-                    FontWeight="Medium"
-                    Text="{Binding ViewModel.SummaryText, Mode=OneWay}" />
-                <ProgressBar
-                    Grid.Column="0"
-                    Grid.ColumnSpan="2"
-                    Grid.Row="1"
-                    Height="4"
-                    Margin="0,4,0,4"
-                    Maximum="{Binding ViewModel.ProgressTotal, Mode=OneWay}"
-                    Value="{Binding ViewModel.ProgressCurrent, Mode=OneWay}"
-                    Visibility="{Binding ViewModel.HasProgress, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                    Symbol="Folder24" />
                 <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryLabel]}" />
+                <Grid
+                    Grid.Row="1"
                     Grid.Column="0"
                     Grid.ColumnSpan="2"
-                    Grid.Row="2"
+                    Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ui:TextBox
+                        Grid.Column="0"
+                        Height="36"
+                        IsReadOnly="True"
+                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryPlaceholder]}"
+                        Text="{Binding ViewModel.TargetDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <ui:Button
+                        Grid.Column="1"
+                        Width="36"
+                        Height="36"
+                        Margin="12,0,0,0"
+                        Appearance="Secondary"
+                        Command="{Binding ViewModel.BrowseDirectoryCommand}"
+                        Icon="{ui:SymbolIcon FolderOpen16}"
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- オプション -->
+        <TextBlock
+            Grid.Row="2"
+            Margin="0,0,0,4"
+            FontSize="14"
+            FontWeight="Medium"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OptionsSectionLabel]}" />
+        <Border
+            Grid.Row="3"
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <CheckBox
+                    Grid.Column="0"
+                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
+                    IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}" FontSize="13" />
+                <CheckBox
+                    Grid.Column="1"
+                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OverwriteLabel]}"
+                    IsChecked="{Binding ViewModel.Overwrite, Mode=TwoWay}" FontSize="13" />
+                <CheckBox
+                    Grid.Column="2"
+                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_GenerateReportLabel]}"
+                    IsChecked="{Binding ViewModel.GenerateReport, Mode=TwoWay}" FontSize="13" />
+            </Grid>
+        </Border>
+
+        <!-- タグフィルタ -->
+        <TextBlock
+            Grid.Row="4"
+            Margin="0,0,0,4"
+            FontSize="14"
+            FontWeight="Medium"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsSectionLabel]}" />
+        <Border
+            Grid.Row="5"
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <StackPanel>
+                <TextBlock
                     Margin="0,0,0,4"
                     FontSize="12"
-                    Text="{Binding ViewModel.ProgressText, Mode=OneWay}"
-                    Visibility="{Binding ViewModel.HasProgress, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
-            </Grid>
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_PrependTagsLabel]}" />
+                <ui:TextBox
+                    Height="80"
+                    Margin="0,0,0,12"
+                    PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
+                    Text="{Binding ViewModel.PrependTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock
+                    Margin="0,0,0,4"
+                    FontSize="12"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ExcludeTagsLabel]}" />
+                <ui:TextBox
+                    Height="80"
+                    PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
+                    Text="{Binding ViewModel.ExcludeTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+        </Border>
 
-            <!-- ログ -->
+        <!-- 実行 -->
+        <Grid
+            Grid.Row="6"
+            Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <ui:Button
+                Grid.Column="0"
+                Grid.Row="0"
+                Appearance="Primary"
+                Command="{Binding ViewModel.RunCommand}"
+                Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RunButton]}"
+                Icon="{ui:SymbolIcon PlayCircle24}" />
             <TextBlock
-                Grid.Row="7"
-                Margin="0,0,0,4"
-                FontSize="14"
+                Grid.Column="1"
+                Grid.Row="0"
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
                 FontWeight="Medium"
-                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_LogHeader]}" />
-            <Border
-                Grid.Row="8"
-                Padding="4"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <ListBox
-                    BorderThickness="0"
-                    ItemsSource="{Binding ViewModel.LogEntries, Mode=OneWay}"
-                    ScrollViewer.CanContentScroll="True"
-                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                    ScrollViewer.VerticalScrollBarVisibility="Auto">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Border>
+                Text="{Binding ViewModel.SummaryText, Mode=OneWay}" />
+            <ProgressBar
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                Grid.Row="1"
+                Height="4"
+                Margin="0,4,0,4"
+                Maximum="{Binding ViewModel.ProgressTotal, Mode=OneWay}"
+                Value="{Binding ViewModel.ProgressCurrent, Mode=OneWay}"
+                Visibility="{Binding ViewModel.HasProgress, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+            <TextBlock
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                Grid.Row="2"
+                Margin="0,0,0,4"
+                FontSize="12"
+                Text="{Binding ViewModel.ProgressText, Mode=OneWay}"
+                Visibility="{Binding ViewModel.HasProgress, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+        </Grid>
 
+        <!-- ログ -->
+        <TextBlock
+            Grid.Row="7"
+            Margin="0,0,0,4"
+            FontSize="14"
+            FontWeight="Medium"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_LogHeader]}" />
+        <Border
+            Grid.Row="8"
+            Padding="4"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <ListBox
+                BorderThickness="0"
+                ItemsSource="{Binding ViewModel.LogEntries, Mode=OneWay}"
+                ScrollViewer.CanContentScroll="True"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
     </Grid>
 </Page>
