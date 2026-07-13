@@ -99,6 +99,7 @@
   <data name="Main_LogHeader" xml:space="preserve"><value>ログ</value></data>
   <data name="Main_SummaryFormat" xml:space="preserve"><value>完了: 処理 {0}, スキップ {1}, エラー {2}</value></data>
   <data name="Main_ReportSavedFormat" xml:space="preserve"><value>レポートを保存しました: {0}</value></data>
+  <data name="Main_ConfigResultSavedFormat" xml:space="preserve"><value>使用した設定を保存しました: {0}</value></data>
   <data name="Main_ConfigLoadErrorFormat" xml:space="preserve"><value>WD14 Tagger 設定の読み込みエラー: {0}</value></data>
   <data name="Main_StatusOk" xml:space="preserve"><value>OK</value></data>
   <data name="Main_StatusSkip" xml:space="preserve"><value>SKIP</value></data>

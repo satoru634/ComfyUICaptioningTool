@@ -99,6 +99,7 @@
   <data name="Main_LogHeader" xml:space="preserve"><value>Log</value></data>
   <data name="Main_SummaryFormat" xml:space="preserve"><value>Done: processed {0}, skipped {1}, errors {2}</value></data>
   <data name="Main_ReportSavedFormat" xml:space="preserve"><value>Report saved: {0}</value></data>
+  <data name="Main_ConfigResultSavedFormat" xml:space="preserve"><value>Saved the settings used: {0}</value></data>
   <data name="Main_ConfigLoadErrorFormat" xml:space="preserve"><value>Failed to load WD14 Tagger settings: {0}</value></data>
   <data name="Main_StatusOk" xml:space="preserve"><value>OK</value></data>
   <data name="Main_StatusSkip" xml:space="preserve"><value>SKIP</value></data>

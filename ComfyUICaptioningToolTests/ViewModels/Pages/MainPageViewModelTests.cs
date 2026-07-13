@@ -303,7 +303,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
 
-            Assert.Equal(2, vm.LogEntries.Count);
+            // 進捗ログ2件に加え、実行結果設定 JSON 保存のログが1件追加される
+            Assert.Equal(3, vm.LogEntries.Count);
             Assert.Contains("a.jpg", vm.LogEntries[0]);
             Assert.Contains("b.jpg", vm.LogEntries[1]);
             Assert.Equal(2, vm.ProgressCurrent);
@@ -468,6 +469,59 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
 
             Assert.Equal(new[] { "my_chara", "1girl" }, capturedPrepend);
+        }
+
+        // ── 実行結果設定 JSON（captioning_config_result.json）出力 ──────────────
+
+        [Fact]
+        public async Task RunCommand_Execute_Success_WritesConfigResultJsonToTargetDirectory()
+        {
+            var fake = new FakeCaptioningService();
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteConfigFileWithTags(
+                new[] { "my_chara" }, new[] { "rating:general" });
+            var vm = CreateVm(setting, (_, _, _) => fake);
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+            vm.PrependTagsText = "1girl";
+            vm.ExcludeTagsText = "solo";
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            var resultPath = Path.Combine(_tempDir, "captioning_config_result.json");
+            Assert.True(File.Exists(resultPath));
+
+            var written = System.Text.Json.JsonSerializer.Deserialize<WorkflowConfig>(
+                File.ReadAllText(resultPath),
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+
+            Assert.Equal("http://127.0.0.1:8188", written.ComfyuiUrl);
+            Assert.Equal("wd-eva02-large-tagger-v3", written.Wd14Tagger!.ModelName);
+            Assert.Equal(new[] { "my_chara", "1girl" }, written.PrependTags);
+            Assert.Equal(new[] { "rating:general", "solo" }, written.ExcludeTags);
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_Success_LogsConfigResultSavedMessage()
+        {
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            var resultPath = Path.Combine(_tempDir, "captioning_config_result.json");
+            Assert.Contains(vm.LogEntries, e => e.Contains(resultPath));
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_ServiceThrows_DoesNotWriteConfigResultJson()
+        {
+            var fake = new FakeCaptioningService { ThrowOnProcessDirectory = true };
+            var vm = await CreateReadyVmAsync(fake);
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            var resultPath = Path.Combine(_tempDir, "captioning_config_result.json");
+            Assert.False(File.Exists(resultPath));
         }
 
         [Fact]

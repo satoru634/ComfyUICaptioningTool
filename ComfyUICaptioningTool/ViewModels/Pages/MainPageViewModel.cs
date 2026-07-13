@@ -1,5 +1,10 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Unicode;
 using ComfyUICaptioningTool.Helpers;
 using ComfyUICaptioningTool.Models;
 using ComfyUICaptioningTool.Services;
@@ -20,6 +25,28 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
     /// </summary>
     public partial class MainPageViewModel : ObservableObject, INavigationAware
     {
+        /// <summary>
+        /// captioning_config.json をベースにした実行結果設定 JSON の出力ファイル名（対象ディレクトリ直下）。
+        /// </summary>
+        private const string ConfigResultFileName = "captioning_config_result.json";
+
+        /// <summary>captioning_config.json 読み込み時のオプション。プロパティ名の大文字/小文字を区別しない。</summary>
+        private static readonly JsonSerializerOptions ConfigReadOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+        };
+
+        /// <summary>
+        /// 実行結果設定 JSON の書き込みオプション。null のプロパティ（default_workflow/workflows 等）を
+        /// 出力しないことで、captioning_config.json と同じフォーマットを維持する（ConfigViewModel と同様）。
+        /// </summary>
+        private static readonly JsonSerializerOptions ConfigWriteOptions = new()
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
+
         /// <summary>アプリケーション設定。</summary>
         public Setting<AppConfig> Config { get; }
 
@@ -221,6 +248,8 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                 SummaryText = string.Format(
                     LocalizationManager.Instance["Main_SummaryFormat"], processed, skipped, errors);
 
+                await SaveExecutedConfigAsync(directory, prependTags, excludeTags);
+
                 if (GenerateReport)
                 {
                     await service.GenerateReportAsync(directory, Recursive);
@@ -280,6 +309,27 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
             ProgressText = line;
             LogEntries.Add(line);
+        }
+
+        /// <summary>
+        /// captioning_config.json をベースに、prepend_tags/exclude_tags を今回の実行で実際に使用した
+        /// マージ結果（既定値 + MainPage 入力値の union）に差し替えた JSON を、対象ディレクトリ直下へ
+        /// <see cref="ConfigResultFileName"/> として出力する（今回の実行に使用した設定の記録）。
+        /// </summary>
+        private async Task SaveExecutedConfigAsync(
+            string directory, IReadOnlyList<string> prependTags, IReadOnlyList<string> excludeTags)
+        {
+            var json = await File.ReadAllTextAsync(Config.Data.ConfigPath, Encoding.UTF8);
+            var config = JsonSerializer.Deserialize<WorkflowConfig>(json, ConfigReadOptions) ?? new WorkflowConfig();
+            config.PrependTags = prependTags.ToList();
+            config.ExcludeTags = excludeTags.ToList();
+
+            var outputPath = Path.Combine(directory, ConfigResultFileName);
+            var outputJson = JsonSerializer.Serialize(config, ConfigWriteOptions);
+            await File.WriteAllTextAsync(outputPath, outputJson, Encoding.UTF8);
+
+            LogEntries.Add(string.Format(
+                LocalizationManager.Instance["Main_ConfigResultSavedFormat"], outputPath));
         }
 
         /// <summary>カンマ区切りタグ文字列を trim・空要素除去したリストに分割する。</summary>
