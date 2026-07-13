@@ -52,32 +52,42 @@
             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
             BorderThickness="1"
             CornerRadius="4">
-            <StackPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
                 <TextBlock
+                    Grid.Row="0"
                     Margin="0,0,0,4"
                     FontSize="12"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                     Text="{Binding ViewModel.LastResultDirectory, Mode=OneWay}"
                     Visibility="{Binding ViewModel.LastResultDirectory, Converter={StaticResource StringToVisibilityConverter}}" />
                 <TextBlock
+                    Grid.Row="1"
                     Margin="0,0,0,4"
                     FontSize="12"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                     Text="{Binding ViewModel.LastResultTimestampText, Mode=OneWay}"
                     Visibility="{Binding ViewModel.LastResultTimestampText, Converter={StaticResource StringToVisibilityConverter}}" />
                 <TextBlock
+                    Grid.Row="2"
                     Margin="0,0,0,8"
                     FontWeight="Medium"
                     Text="{Binding ViewModel.LastResultSummary, Mode=OneWay}"
                     Visibility="{Binding ViewModel.LastResultSummary, Converter={StaticResource StringToVisibilityConverter}}" />
                 <Border
+                    Grid.Row="3"
                     Padding="4"
                     Background="{DynamicResource ApplicationBackgroundBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="4">
                     <ListBox
-                        Height="180"
                         BorderThickness="0"
                         ItemsSource="{Binding ViewModel.LastResultLogEntries, Mode=OneWay}"
                         ScrollViewer.CanContentScroll="True"
@@ -95,7 +105,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Border>
-            </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Page>
