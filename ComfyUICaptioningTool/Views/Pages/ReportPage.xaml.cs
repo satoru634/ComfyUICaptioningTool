@@ -1,16 +1,16 @@
-﻿using ComfyUICaptioningTool.ViewModels.Pages;
+using ComfyUICaptioningTool.ViewModels.Pages;
 using Wpf.Ui.Abstractions.Controls;
 
 namespace ComfyUICaptioningTool.Views.Pages
 {
-    /// <summary>実行結果表示ページ。</summary>
-    public partial class DataPage : INavigableView<DataViewModel>
+    /// <summary>タグ集計レポート表示ページ。</summary>
+    public partial class ReportPage : INavigableView<ReportViewModel>
     {
         /// <summary>このページに対応する ViewModel。</summary>
-        public DataViewModel ViewModel { get; }
+        public ReportViewModel ViewModel { get; }
 
         /// <summary>DI コンテナから ViewModel を受け取って初期化する。</summary>
-        public DataPage(DataViewModel viewModel)
+        public ReportPage(ReportViewModel viewModel)
         {
             ViewModel = viewModel;
             DataContext = this;

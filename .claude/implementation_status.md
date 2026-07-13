@@ -2,7 +2,7 @@
 
 ## 現在の状態（2026-07-11 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -135,6 +135,19 @@
   - 書き込み完了後、`LogEntries` に `Main_ConfigResultSavedFormat`（保存先パスを含む）のログ行を追加する（`tags_report.txt` 保存時の `Main_ReportSavedFormat` と同じパターン）
   - `Resources/Strings.resx`/`Strings.en.resx` に `Main_ConfigResultSavedFormat` を追加
 - `ComfyUICaptioningToolTests`: `ViewModels/Pages/MainPageViewModelTests.cs` に、captioning_config.json の他フィールド（comfyui_url・wd14_tagger）がそのままコピーされ prepend_tags/exclude_tags のみマージ結果に差し替わることの検証・ログ行追加の検証・処理失敗時は出力されないことの検証を追加（3件）。既存の `RunCommand_Execute_ReportsProgressToLogEntries`（ログ件数の厳密一致を検証していたテスト）は新しいログ行が1件増える影響を受けるため件数期待値を修正した。計135件、全件パス確認済み
+
+### フェーズ10: DataPage/ReportPage の分離（`feature/split-data-report-pages` ブランチ、実装完了）
+
+`DataPage` が「直近の実行結果」と「タグ集計レポート」の 2 機能を1ページに同居させていたのを分割した。`DataPage` は実行結果表示専用、新設 `ReportPage` がタグ集計レポートの生成・表示を担当する。
+
+- `ViewModels/Pages/DataViewModel.cs` を大幅に簡素化。`ResultStore`（`CaptioningRunResultStore`）から導出する `HasLastResult`/`LastResultDirectory`/`LastResultTimestampText`/`LastResultSummary`/`LastResultLogEntries` のみを保持する。レポート生成に必要だった `Config`・`ISnackbarService`・`ICaptioningService` ファクトリー・`Wd14TaggerRunner` の読み込み・`INavigationAware`（`OnNavigatedToAsync`/`OnNavigatedFromAsync`）はすべて `ReportViewModel` 側に移管したため削除した（ページ遷移時に行う処理がなくなったため `INavigationAware` は非実装）
+- `ViewModels/Pages/ReportViewModel.cs` を新設。旧 `DataViewModel` のレポート関連ロジック（`TryLoadRunner`・`BrowseReportDirectoryCommand`・`GenerateReportCommand`/`GenerateReportAsync`・`ReportDirectory`/`ReportRecursive`/`IsGeneratingReport`/`ReportStatusText`/`ReportEntries`）をそのまま移設した
+- `Views/Pages/DataPage.xaml` からタグ集計レポートのカードを削除し、直近の実行結果カードのみを残した
+- `Views/Pages/ReportPage.xaml(.cs)` を新設。旧 `DataPage.xaml` のタグ集計レポートカードをそのまま移設し、`Report_Title` をページタイトルとして追加した
+- `ViewModels/Windows/MainWindowViewModel.cs` の `BuildMenuItems()` に `MainWindow_MenuReport` ナビゲーション項目（`DataHistogram24` アイコン）を追加。`MenuItems` の「データ」の次に配置。「データ」項目のアイコンは実行結果専用になった意味合いに合わせて `History24` に変更した
+- `App.xaml.cs` に `ReportPage`/`ReportViewModel` をシングルトン登録
+- `Resources/Strings.resx`/`Strings.en.resx`: `MainWindow_MenuReport` を追加。`Data_Title` の文言を「実行結果・タグ集計レポート」→「実行結果」に変更。`Data_ReportSectionLabel`/`Data_GenerateReportButton`/`Data_ReportGeneratedFormat`/`Data_TagColumnHeader`/`Data_CountColumnHeader` は `Report_Title`/`Report_GenerateReportButton`/`Report_ReportGeneratedFormat`/`Report_TagColumnHeader`/`Report_CountColumnHeader` にリネームして `Report_*` セクションへ移設した（`Main_DirectoryLabel` 等の共有キーは変更なし）
+- `ComfyUICaptioningToolTests`: `ViewModels/Pages/DataViewModelTests.cs` を実行結果関連のテストのみに全面書き換え（4件）。旧 `DataViewModelTests.cs` のレポート関連テストを `ViewModels/Pages/ReportViewModelTests.cs`（新設）へ移設。`ViewModels/Windows/MainWindowViewModelTests.cs` に Report ナビゲーション項目のテストを2件追加。計137件、全件パス確認済み
 
 ### 将来的な拡張
 
