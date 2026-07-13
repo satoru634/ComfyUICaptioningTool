@@ -2,7 +2,7 @@
 
 ## 現在の状態（2026-07-11 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -125,6 +125,16 @@
 - `Resources/Strings.resx`/`Strings.en.resx` に `MainWindow_MenuConfig`・`Config_*` キーを追加（`Main_TagsSectionLabel`/`Main_PrependTagsLabel`/`Main_ExcludeTagsLabel`/`Main_TagsPlaceholder`/`Settings_ComfyUISectionLabel`/`Common_ConfigPathNotSet` はページ間で再利用）
 - `ComfyUICaptioningToolTests`: `ViewModels/Pages/ConfigViewModelTests.cs`（18件、ConfigPath 空/ファイル未存在/JSON不正時の挙動・SaveCommand の CanExecute・保存時バリデーション・null プロパティが出力されないことの検証）を新規作成。`ViewModels/Windows/MainWindowViewModelTests.cs` に Config ナビゲーション項目のテストを2件追加。計127件、全件パス確認済み
 - 実アプリ起動を試みたが、この環境ではウィンドウハンドル取得後のスクリーンショットが無関係な別ウィンドウを捉えてしまう事象が発生した（`SettingsPage`/`DataPage` のフェーズ3/4で記録済みの「座標指定でのクリック操作が別ウィンドウを誤操作する」問題と同種の環境依存の制約）。そのため実画面での目視確認は断念し、`SettingsPage`/`MainPage` と同一の XAML カード構造であることのコードレビューとユニットテストで代替した
+
+### フェーズ9: 実行結果設定 JSON（captioning_config_result.json）の出力（`feature/output-used-config-json` ブランチ、実装完了）
+
+`MainPage` でのディレクトリ一括タグ付けが成功した際に、そのとき実際に使用した設定（`captioning_config.json` の内容 + `MainPage` 入力欄とのマージ後の prepend/exclude タグ）を対象ディレクトリ直下に記録として出力する機能を追加した。
+
+- `ViewModels/Pages/MainPageViewModel.cs` に `SaveExecutedConfigAsync` を追加。`ProcessDirectoryAsync` 成功後（`GenerateReport` のチェック状態に関わらず常に）、`Config.Data.ConfigPath` の `captioning_config.json` を `System.Text.Json` で読み込み、`prepend_tags`/`exclude_tags` のみ `RunAsync` で計算済みの union 結果（`MergeTags` の戻り値）に差し替えて、対象ディレクトリ直下に固定ファイル名 `captioning_config_result.json` として書き出す
+  - **設計判断**: `ConfigViewModel` と同じ理由（ComfyUI との通信を伴わないファイル I/O のみ）で `ICaptioningService` ファクトリー境界は使わず、`MainPageViewModel` 内で直接 `System.Text.Json` を扱う。読み込み/書き込みオプション（`PropertyNameCaseInsensitive`・`DefaultIgnoreCondition = WhenWritingNull`）も `ConfigViewModel` と同一にし、`default_workflow`/`workflows` 等の未使用フィールドを出力しない
+  - 書き込み完了後、`LogEntries` に `Main_ConfigResultSavedFormat`（保存先パスを含む）のログ行を追加する（`tags_report.txt` 保存時の `Main_ReportSavedFormat` と同じパターン）
+  - `Resources/Strings.resx`/`Strings.en.resx` に `Main_ConfigResultSavedFormat` を追加
+- `ComfyUICaptioningToolTests`: `ViewModels/Pages/MainPageViewModelTests.cs` に、captioning_config.json の他フィールド（comfyui_url・wd14_tagger）がそのままコピーされ prepend_tags/exclude_tags のみマージ結果に差し替わることの検証・ログ行追加の検証・処理失敗時は出力されないことの検証を追加（3件）。既存の `RunCommand_Execute_ReportsProgressToLogEntries`（ログ件数の厳密一致を検証していたテスト）は新しいログ行が1件増える影響を受けるため件数期待値を修正した。計135件、全件パス確認済み
 
 ### 将来的な拡張
 

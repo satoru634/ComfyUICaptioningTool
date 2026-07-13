@@ -47,7 +47,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       MainPageViewModel.cs                  <- ディレクトリ一括タグ付け実行ページの VM。ConfigPath から
                                                 Wd14TaggerRunner を読み込み、ICaptioningService 経由で
                                                 ProcessDirectoryAsync/GenerateReportAsync を実行する。
-                                                実行成功時に CaptioningRunResultStore.LastResult を更新する
+                                                実行成功時に CaptioningRunResultStore.LastResult を更新し、
+                                                captioning_config.json をベースに prepend_tags/exclude_tags を
+                                                マージ結果へ差し替えた captioning_config_result.json を
+                                                対象ディレクトリ直下へ出力する（SaveExecutedConfigAsync）
       DataViewModel.cs                      <- 実行結果・タグ集計レポート表示ページの VM。
                                                 CaptioningRunResultStore.LastResult を購読して直近の実行結果を
                                                 表示し、対象ディレクトリを選択してタグ集計レポート
