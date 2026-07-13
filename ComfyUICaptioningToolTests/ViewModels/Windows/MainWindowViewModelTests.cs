@@ -173,6 +173,32 @@ namespace ComfyUICaptioningToolTests.ViewModels.Windows
             });
         }
 
+        [Fact]
+        public void MenuItems_Contains_ReportItem()
+        {
+            RunOnSta(() =>
+            {
+                var vm = new MainWindowViewModel(CreateSetting());
+
+                var items = vm.MenuItems.OfType<NavigationViewItem>().ToList();
+                Assert.Contains(items, item => item.Content?.ToString() == LocalizationManager.Instance["MainWindow_MenuReport"]);
+            });
+        }
+
+        [Fact]
+        public void MenuItems_ReportItem_TargetPage_IsReportPage()
+        {
+            RunOnSta(() =>
+            {
+                var vm = new MainWindowViewModel(CreateSetting());
+
+                var report = vm.MenuItems.OfType<NavigationViewItem>()
+                    .FirstOrDefault(item => item.Content?.ToString() == LocalizationManager.Instance["MainWindow_MenuReport"]);
+
+                Assert.Equal(typeof(ReportPage), report?.TargetPageType);
+            });
+        }
+
         // ── FooterMenuItems ────────────────────────────────────────────────────
 
         [Fact]

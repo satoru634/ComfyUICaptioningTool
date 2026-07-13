@@ -51,10 +51,14 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 captioning_config.json をベースに prepend_tags/exclude_tags を
                                                 マージ結果へ差し替えた captioning_config_result.json を
                                                 対象ディレクトリ直下へ出力する（SaveExecutedConfigAsync）
-      DataViewModel.cs                      <- 実行結果・タグ集計レポート表示ページの VM。
-                                                CaptioningRunResultStore.LastResult を購読して直近の実行結果を
-                                                表示し、対象ディレクトリを選択してタグ集計レポート
-                                                （tags_report.txt）を生成・一覧表示する
+      DataViewModel.cs                      <- 実行結果表示ページの VM。CaptioningRunResultStore.LastResult
+                                                を購読して直近の実行結果（ディレクトリ/日時/サマリ/ログ）を
+                                                表示するのみ（ページ遷移時の処理がないため INavigationAware
+                                                は非実装）
+      ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath から
+                                                Wd14TaggerRunner を読み込み、対象ディレクトリを選択して
+                                                タグ集計レポート（tags_report.txt）を生成・一覧表示する
+                                                （旧 DataViewModel から分離）
       SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
                                                 パス選択（BrowseConfigPathCommand）を実装済み
       ConfigViewModel.cs                    <- captioning_config.json 編集ページの VM。ConfigPath が指す
@@ -69,9 +73,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       MainPage.xaml(.cs)                    <- ディレクトリ一括タグ付け実行画面（対象ディレクトリ選択・
                                                 再帰/上書き/レポート生成オプション・prepend/exclude タグ入力・
                                                 進捗バー/ログ・完了サマリ）
-      DataPage.xaml(.cs)                    <- 実行結果・タグ集計レポート表示画面（直近の実行結果の
-                                                ディレクトリ/日時/サマリ/ログ表示、レポート対象ディレクトリ
-                                                選択・生成・タグ/出現回数の一覧表示）
+      DataPage.xaml(.cs)                    <- 実行結果表示画面（直近の実行結果のディレクトリ/日時/
+                                                サマリ/ログ表示のみ）
+      ReportPage.xaml(.cs)                  <- タグ集計レポート表示画面（対象ディレクトリ選択・再帰
+                                                オプション・生成・タグ/出現回数の一覧表示。旧 DataPage から分離）
       ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
                                                 しきい値・prepend/exclude タグ既定値の編集、保存ボタン）
       SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択）。
@@ -102,10 +107,12 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 既定/入力タグの union と重複排除・ResultStore への反映）。
                                                 SymbolIcon 生成を伴うテストは STA スレッドが必要なため
                                                 RunOnSta（TestSupport.StaTestRunner に委譲）でラップ
-      DataViewModelTests.cs                 <- DataViewModel のテスト（ConfigPath 読み込み成否・
+      DataViewModelTests.cs                 <- DataViewModel のテスト（ResultStore 購読による
+                                                導出プロパティ更新のみ）
+      ReportViewModelTests.cs               <- ReportViewModel のテスト（ConfigPath 読み込み成否・
                                                 GenerateReportCommand の CanExecute/実行・レポート行の解析
-                                                （コロンを含むタグ名を含む）・ResultStore 購読による
-                                                導出プロパティ更新・エラーハンドリング）
+                                                （コロンを含むタグ名を含む）・エラーハンドリング。
+                                                旧 DataViewModelTests から分離）
       SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）
       ConfigViewModelTests.cs               <- ConfigViewModel のテスト（ConfigPath 読み込み成否・
                                                 ファイル未存在時の新規作成扱い・SaveCommand の CanExecute/実行・
