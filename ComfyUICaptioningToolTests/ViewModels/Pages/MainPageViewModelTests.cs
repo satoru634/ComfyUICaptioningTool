@@ -15,14 +15,12 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
     {
         private readonly string _tempDir;
         private readonly FakeSnackbarService _fakeSnackbar;
-        private readonly CaptioningRunResultStore _resultStore;
 
         public MainPageViewModelTests()
         {
             _tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(_tempDir);
             _fakeSnackbar = new FakeSnackbarService();
-            _resultStore = new CaptioningRunResultStore();
             EnsureTemplateFile();
         }
 
@@ -123,7 +121,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         private MainPageViewModel CreateVm(
             Setting<AppConfig>? setting = null,
             Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? factory = null)
-            => new MainPageViewModel(setting ?? CreateSetting(), _fakeSnackbar, _resultStore, factory);
+            => new MainPageViewModel(setting ?? CreateSetting(), _fakeSnackbar, factory);
 
         /// <summary>有効な ConfigPath を設定した Setting で ViewModel を作成し、OnNavigatedToAsync まで済ませる。</summary>
         private async Task<MainPageViewModel> CreateReadyVmAsync(FakeCaptioningService fake, string? targetDirectory = null)
@@ -359,33 +357,6 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
 
             Assert.False(vm.IsRunning);
-        }
-
-        [Fact]
-        public async Task RunCommand_Execute_Success_UpdatesResultStoreLastResult()
-        {
-            var fake = new FakeCaptioningService { Result = (3, 1, 0) };
-            var vm = await CreateReadyVmAsync(fake);
-
-            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
-
-            var result = _resultStore.LastResult;
-            Assert.NotNull(result);
-            Assert.Equal(_tempDir, result!.Directory);
-            Assert.Equal(3, result.Processed);
-            Assert.Equal(1, result.Skipped);
-            Assert.Equal(0, result.Errors);
-        }
-
-        [Fact]
-        public async Task RunCommand_Execute_ServiceThrows_DoesNotUpdateResultStore()
-        {
-            var fake = new FakeCaptioningService { ThrowOnProcessDirectory = true };
-            var vm = await CreateReadyVmAsync(fake);
-
-            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
-
-            Assert.Null(_resultStore.LastResult);
         }
 
         [Fact]

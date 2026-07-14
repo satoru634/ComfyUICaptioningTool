@@ -6,8 +6,8 @@
     xmlns:helpers="clr-namespace:ComfyUICaptioningTool.Helpers"
     xmlns:local="clr-namespace:ComfyUICaptioningTool.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="clr-namespace:ComfyUICaptioningTool.Models"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:helper="clr-namespace:ComfyUICaptioningTool.Helpers"
     Title="DataPage"
     d:DataContext="{d:DesignInstance local:DataPage, IsDesignTimeCreatable=False}"
     d:DesignHeight="800"
@@ -19,7 +19,8 @@
     mc:Ignorable="d">
 
     <Page.Resources>
-        <helper:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Page.Resources>
 
     <Grid Margin="16,8,16,16">
@@ -29,83 +30,157 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- タイトル -->
-        <TextBlock
-            Grid.Row="0"
-            Margin="0,0,0,12"
-            FontSize="20"
-            FontWeight="SemiBold"
-            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_Title]}" />
+        <!-- ヘッダー -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                FontSize="20"
+                FontWeight="SemiBold"
+                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_Title]}" />
+            <ui:Button
+                Grid.Column="1"
+                Command="{Binding ViewModel.RefreshCommand}"
+                Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_RefreshButtonContent]}"
+                Appearance="Secondary"
+                Icon="{ui:SymbolIcon ArrowSync24}" />
+        </Grid>
 
-        <!-- 直近の実行結果 -->
-        <TextBlock
+        <!-- 読み込み中インジケーター -->
+        <ProgressBar
             Grid.Row="1"
-            Margin="0,0,0,4"
-            FontSize="14"
-            FontWeight="Medium"
-            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Data_LastResultSectionLabel]}" />
-        <Border
-            Grid.Row="2"
-            Padding="12"
-            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="4">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+            Height="4"
+            IsIndeterminate="True"
+            Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                <TextBlock
-                    Grid.Row="0"
-                    Margin="0,0,0,4"
-                    FontSize="12"
-                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="{Binding ViewModel.LastResultDirectory, Mode=OneWay}"
-                    Visibility="{Binding ViewModel.LastResultDirectory, Converter={StaticResource StringToVisibilityConverter}}" />
-                <TextBlock
-                    Grid.Row="1"
-                    Margin="0,0,0,4"
-                    FontSize="12"
-                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="{Binding ViewModel.LastResultTimestampText, Mode=OneWay}"
-                    Visibility="{Binding ViewModel.LastResultTimestampText, Converter={StaticResource StringToVisibilityConverter}}" />
-                <TextBlock
-                    Grid.Row="2"
-                    Margin="0,0,0,8"
-                    FontWeight="Medium"
-                    Text="{Binding ViewModel.LastResultSummary, Mode=OneWay}"
-                    Visibility="{Binding ViewModel.LastResultSummary, Converter={StaticResource StringToVisibilityConverter}}" />
-                <Border
-                    Grid.Row="3"
-                    Padding="4"
-                    Background="{DynamicResource ApplicationBackgroundBrush}"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="4">
-                    <ListBox
-                        BorderThickness="0"
-                        ItemsSource="{Binding ViewModel.LastResultLogEntries, Mode=OneWay}"
-                        ScrollViewer.CanContentScroll="True"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                        ScrollViewer.VerticalScrollBarVisibility="Auto">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Border>
-            </Grid>
-        </Border>
+        <!-- 状態メッセージ -->
+        <TextBlock
+            Grid.Row="2"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="14"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding ViewModel.StatusMessage, Mode=OneWay}"
+            Visibility="{Binding ViewModel.StatusMessage, Converter={StaticResource StringToVisibilityConverter}}" />
+
+        <!-- 実行結果ログ一覧 -->
+        <ScrollViewer
+            Grid.Row="2"
+            VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding ViewModel.Results, Mode=OneWay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type models:CaptioningResultLogPreview}">
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="12"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- ステータスアイコン -->
+                                <Border
+                                    Grid.Column="0"
+                                    Width="32"
+                                    Height="32"
+                                    Margin="0,0,12,0"
+                                    VerticalAlignment="Top"
+                                    CornerRadius="16">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSuccess}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsSuccess}" Value="False">
+                                                    <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSuccess}" Value="True">
+                                                        <Setter Property="Text" Value="✓" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSuccess}" Value="False">
+                                                        <Setter Property="Text" Value="✗" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+
+                                <!-- 情報 -->
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="Medium"
+                                        Text="{Binding Log.Directory}" />
+                                    <TextBlock
+                                        Margin="0,2,0,0"
+                                        FontSize="12"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="{Binding TimestampText}" />
+                                    <!-- 成功時: サマリ, 失敗時: エラーメッセージ -->
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontWeight="Medium"
+                                        TextWrapping="Wrap"
+                                        Text="{Binding SummaryText}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSuccess}" Value="False">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <!-- 1 ファイルごとの処理結果ログ -->
+                                    <Border
+                                        Margin="0,8,0,0"
+                                        Padding="4"
+                                        MaxHeight="160"
+                                        Background="{DynamicResource ApplicationBackgroundBrush}"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                        <ListBox
+                                            BorderThickness="0"
+                                            ItemsSource="{Binding Log.LogEntries}"
+                                            ScrollViewer.CanContentScroll="True"
+                                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock FontSize="12" Text="{Binding}" TextWrapping="Wrap" Margin="0,-6,0,-6" />
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
     </Grid>
 </Page>

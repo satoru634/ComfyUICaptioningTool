@@ -41,9 +41,6 @@ namespace ComfyUICaptioningTool
 
                 services.AddSingleton(setting);
 
-                // 直近のディレクトリ一括タグ付け実行結果を MainPage/DataPage 間で共有するストア
-                services.AddSingleton<CaptioningRunResultStore>();
-
                 // テーマ（ライト／ダーク）切り替えサービス
                 services.AddSingleton<IThemeService, ThemeService>();
 
