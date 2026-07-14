@@ -6,8 +6,7 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 ただしビルドで実際に使われる実体ではない
                                                 （CLAUDE.md の「ComfyUILibs の参照経路に注意」を参照）
   ComfyUICaptioningTool/                    <- メイン WPF プロジェクト（GUI のみ）
-    App.xaml / App.xaml.cs                  <- DI・ホスト設定（ComfyUIRunWorkflow から流用）。
-                                                CaptioningRunResultStore をシングルトン登録
+    App.xaml / App.xaml.cs                  <- DI・ホスト設定（ComfyUIRunWorkflow から流用）
     AssemblyInfo.cs
     app.manifest
     wpfui-icon.ico
@@ -22,12 +21,12 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 既定 prepend/exclude タグは captioning_config.json 側の
                                                 prepend_tags/exclude_tags で保持する方式に一本化したため、
                                                 本クラスには持たない）
-      CaptioningRunResult.cs                <- MainPageViewModel の実行結果スナップショット（positional record）。
-                                                CaptioningRunResultStore 経由で DataPage と共有する
       CaptioningResultLog.cs                <- 実行ログ（1 ファイルごとの処理結果・成功/失敗ステータス）と
                                                 今回使用した設定（WorkflowConfig、prepend/exclude タグはマージ後）
                                                 をマージした結果ログ（positional record）。AppConfig.ResultsFolder
                                                 配下へ captioning_result_{timestamp}.json として出力される
+      CaptioningResultLogPreview.cs         <- DataPage の一覧表示用に CaptioningResultLog と整形済み表示文字列
+                                                （日時・サマリ/エラーメッセージ）をまとめた positional record
       TagCountEntry.cs                      <- tags_report.txt の 1 行（Tag/Count）を表す positional record
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
@@ -48,13 +47,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 インターフェース（テスト時にネットワーク通信を伴う実装を
                                                 差し替えるための境界）
       CaptioningServiceAdapter.cs           <- ICaptioningService の既定実装（実 CaptioningService をラップ）
-      CaptioningRunResultStore.cs           <- 直近の実行結果（CaptioningRunResult）を保持する ObservableObject の
-                                                DI シングルトン。MainPageViewModel が更新し、DataViewModel が購読する
     ViewModels/Pages/
       MainPageViewModel.cs                  <- ディレクトリ一括タグ付け実行ページの VM。ConfigPath から
                                                 Wd14TaggerRunner を読み込み、ICaptioningService 経由で
                                                 ProcessDirectoryAsync/GenerateReportAsync を実行する。
-                                                実行成功時に CaptioningRunResultStore.LastResult を更新し、
                                                 captioning_config.json をベースに prepend_tags/exclude_tags を
                                                 マージ結果へ差し替えた captioning_config_result.json を
                                                 対象ディレクトリ直下へ出力する（SaveExecutedConfigAsync）。
@@ -62,10 +58,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 AppConfig.ResultsFolder 配下へ captioning_result_{timestamp}.json
                                                 として出力する（SaveResultLogAsync、成功・失敗どちらの場合も
                                                 RunAsync の finally から呼び出す）
-      DataViewModel.cs                      <- 実行結果表示ページの VM。CaptioningRunResultStore.LastResult
-                                                を購読して直近の実行結果（ディレクトリ/日時/サマリ/ログ）を
-                                                表示するのみ（ページ遷移時の処理がないため INavigationAware
-                                                は非実装）
+      DataViewModel.cs                      <- 実行結果表示ページの VM。AppConfig.ResultsFolder 配下の
+                                                captioning_result_*.json を新しい順に読み込んで一覧表示する
+                                                （RefreshCommand・ページ遷移のたびに再読み込みする
+                                                OnNavigatedToAsync を実装）
       ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath から
                                                 Wd14TaggerRunner を読み込み、対象ディレクトリを選択して
                                                 タグ集計レポート（tags_report.txt）を生成・一覧表示する
@@ -85,8 +81,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       MainPage.xaml(.cs)                    <- ディレクトリ一括タグ付け実行画面（対象ディレクトリ選択・
                                                 再帰/上書き/レポート生成オプション・prepend/exclude タグ入力・
                                                 進捗バー/ログ・完了サマリ）
-      DataPage.xaml(.cs)                    <- 実行結果表示画面（直近の実行結果のディレクトリ/日時/
-                                                サマリ/ログ表示のみ）
+      DataPage.xaml(.cs)                    <- 実行結果表示画面（AppConfig.ResultsFolder 配下の
+                                                captioning_result_*.json を新しい順に一覧表示。各カードに
+                                                ディレクトリ/日時/サマリ・エラーメッセージ/1 ファイルごとの
+                                                処理結果ログを表示し、更新ボタンで再スキャンする）
       ReportPage.xaml(.cs)                  <- タグ集計レポート表示画面（対象ディレクトリ選択・再帰
                                                 オプション・生成・タグ/出現回数の一覧表示。旧 DataPage から分離）
       ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
@@ -107,8 +105,6 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       LocalizationManagerTests.cs           <- LocalizationManager のカルチャ切替・フォールバック挙動のテスト
     Models/
       AppConfigTests.cs                     <- AppConfig/WindowSettingData のデフォルト値・PropertyChanged のテスト
-    Services/
-      CaptioningRunResultStoreTests.cs      <- CaptioningRunResultStore の初期値・PropertyChanged のテスト
     TestSupport/
       StaThreadGate.cs                      <- STA スレッドで WPF オブジェクトを生成するテスト同士を直列化する共有 lock
       StaTestRunner.cs                      <- 非同期 ViewModel メソッドを STA スレッド上で実行するヘルパー。
@@ -117,13 +113,15 @@ ComfyUICaptioningTool/                      <- ソリューションルート
     ViewModels/Pages/
       MainPageViewModelTests.cs             <- MainPageViewModel のテスト（ConfigPath 読み込み成否・
                                                 RunCommand の CanExecute/実行・進捗/ログ/サマリ・エラーハンドリング・
-                                                既定/入力タグの union と重複排除・ResultStore への反映・
+                                                既定/入力タグの union と重複排除・
                                                 ResultsFolder への captioning_result_*.json 出力（成功/失敗
                                                 双方のステータス・ResultsFolder 未設定時のスキップ））。
                                                 SymbolIcon 生成を伴うテストは STA スレッドが必要なため
                                                 RunOnSta（TestSupport.StaTestRunner に委譲）でラップ
-      DataViewModelTests.cs                 <- DataViewModel のテスト（ResultStore 購読による
-                                                導出プロパティ更新のみ）
+      DataViewModelTests.cs                 <- DataViewModel のテスト（ResultsFolder 未設定/未存在/結果なし時の
+                                                状態メッセージ・captioning_result_*.json の新しい順読み込みと
+                                                成功/失敗の表示文字列・不正な JSON ファイルのスキップ・
+                                                RefreshCommand による再読み込み）
       ReportViewModelTests.cs               <- ReportViewModel のテスト（ConfigPath 読み込み成否・
                                                 GenerateReportCommand の CanExecute/実行・レポート行の解析
                                                 （コロンを含むタグ名を含む）・エラーハンドリング。
