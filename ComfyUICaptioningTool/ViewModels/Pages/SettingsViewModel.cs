@@ -120,5 +120,21 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             if (dialog.ShowDialog() == true)
                 Config.Data.ConfigPath = dialog.FileName;
         }
+
+        /// <summary>実行結果ログ（captioning_result_*.json）の出力先フォルダ選択ダイアログを開く。</summary>
+        [RelayCommand]
+        private void BrowseResultsFolder()
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = LocalizationManager.Instance["Settings_ResultsFolderDialogTitle"],
+            };
+
+            if (!string.IsNullOrWhiteSpace(Config.Data.ResultsFolder))
+                dialog.InitialDirectory = Config.Data.ResultsFolder;
+
+            if (dialog.ShowDialog() == true)
+                Config.Data.ResultsFolder = dialog.FolderName;
+        }
     }
 }

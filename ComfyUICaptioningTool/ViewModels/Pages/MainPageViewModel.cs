@@ -231,10 +231,23 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             ProgressTotal = 0;
             ProgressText = "";
 
+            // Results フォルダへの結果ログ出力（SaveResultLogAsync）は成功・失敗どちらの場合も
+            // finally で行うため、finally から参照する値をここで宣言しておく。
+            var status = "error";
+            var processed = 0;
+            var skipped = 0;
+            var errors = 0;
+            string? errorMessage = null;
+            var prependTags = new List<string>();
+            var excludeTags = new List<string>();
+            WorkflowConfig? usedConfig = null;
+
             try
             {
-                var prependTags = MergeTags(_taggerRunner!.PrependTags, PrependTagsText);
-                var excludeTags = MergeTags(_taggerRunner!.ExcludeTags, ExcludeTagsText);
+                prependTags = MergeTags(_taggerRunner!.PrependTags, PrependTagsText);
+                excludeTags = MergeTags(_taggerRunner!.ExcludeTags, ExcludeTagsText);
+                usedConfig = await LoadConfigWithMergedTagsAsync(prependTags, excludeTags);
+
                 var service = _captioningServiceFactory(_taggerRunner!, prependTags, excludeTags);
 
                 // System.Progress<T> はコールバックを SynchronizationContext.Post 経由で非同期に配送するため、
@@ -242,13 +255,14 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                 // 本 ViewModel の await はすべて UI スレッドのコンテキストを捕捉して再開するため、
                 // 同期的に呼び出しても問題ない（かつテストからも決定的に検証できる）。
                 var progress = new SynchronousProgress<CaptioningProgress>(OnProgress);
-                var (processed, skipped, errors) = await service.ProcessDirectoryAsync(
+                (processed, skipped, errors) = await service.ProcessDirectoryAsync(
                     directory, Recursive, Overwrite, progress);
 
+                status = "success";
                 SummaryText = string.Format(
                     LocalizationManager.Instance["Main_SummaryFormat"], processed, skipped, errors);
 
-                await SaveExecutedConfigAsync(directory, prependTags, excludeTags);
+                await SaveExecutedConfigAsync(directory, usedConfig);
 
                 if (GenerateReport)
                 {
@@ -276,6 +290,8 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             }
             catch (ComfyUIException ex)
             {
+                errorMessage = ex.Message;
+
                 _snackbarService.Show(
                     LocalizationManager.Instance["Common_Error"],
                     ex.Message,
@@ -285,6 +301,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             }
             finally
             {
+                await SaveResultLogAsync(directory, status, processed, skipped, errors, errorMessage, usedConfig);
                 IsRunning = false;
             }
         }
@@ -312,24 +329,75 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         }
 
         /// <summary>
-        /// captioning_config.json をベースに、prepend_tags/exclude_tags を今回の実行で実際に使用した
-        /// マージ結果（既定値 + MainPage 入力値の union）に差し替えた JSON を、対象ディレクトリ直下へ
-        /// <see cref="ConfigResultFileName"/> として出力する（今回の実行に使用した設定の記録）。
+        /// captioning_config.json を読み込み、prepend_tags/exclude_tags を今回の実行で実際に使用した
+        /// マージ結果（既定値 + MainPage 入力値の union）に差し替えた <see cref="WorkflowConfig"/> を返す。
         /// </summary>
-        private async Task SaveExecutedConfigAsync(
-            string directory, IReadOnlyList<string> prependTags, IReadOnlyList<string> excludeTags)
+        private async Task<WorkflowConfig> LoadConfigWithMergedTagsAsync(
+            IReadOnlyList<string> prependTags, IReadOnlyList<string> excludeTags)
         {
             var json = await File.ReadAllTextAsync(Config.Data.ConfigPath, Encoding.UTF8);
             var config = JsonSerializer.Deserialize<WorkflowConfig>(json, ConfigReadOptions) ?? new WorkflowConfig();
             config.PrependTags = prependTags.ToList();
             config.ExcludeTags = excludeTags.ToList();
+            return config;
+        }
 
+        /// <summary>
+        /// <paramref name="config"/>（<see cref="LoadConfigWithMergedTagsAsync"/> で構築済みのもの）を
+        /// 対象ディレクトリ直下へ <see cref="ConfigResultFileName"/> として出力する（今回の実行に使用した設定の記録）。
+        /// </summary>
+        private async Task SaveExecutedConfigAsync(string directory, WorkflowConfig config)
+        {
             var outputPath = Path.Combine(directory, ConfigResultFileName);
             var outputJson = JsonSerializer.Serialize(config, ConfigWriteOptions);
             await File.WriteAllTextAsync(outputPath, outputJson, Encoding.UTF8);
 
             LogEntries.Add(string.Format(
                 LocalizationManager.Instance["Main_ConfigResultSavedFormat"], outputPath));
+        }
+
+        /// <summary>
+        /// 実行ログ（1 ファイルごとの処理結果）と今回使用した設定をマージした結果ログを、
+        /// <see cref="AppConfig.ResultsFolder"/> 配下へ captioning_result_{timestamp}.json として出力する。
+        /// ComfyUIRunWorkflow の result_*.json/tag_result_*.json と同じ方針で、成功・失敗どちらの場合も出力する
+        /// （<see cref="RunAsync"/> の finally から呼び出す）。ResultsFolder が未設定、または保存自体が
+        /// 失敗した場合は実行結果に影響させない。
+        /// </summary>
+        private async Task SaveResultLogAsync(
+            string directory, string status, int processed, int skipped, int errors,
+            string? errorMessage, WorkflowConfig? config)
+        {
+            var resultsFolder = Config.Data.ResultsFolder;
+            if (string.IsNullOrWhiteSpace(resultsFolder))
+                return;
+
+            try
+            {
+                Directory.CreateDirectory(resultsFolder);
+
+                var timestamp = DateTime.Now;
+                var log = new CaptioningResultLog(
+                    Status: status,
+                    Timestamp: timestamp,
+                    Directory: directory,
+                    Recursive: Recursive,
+                    Processed: processed,
+                    Skipped: skipped,
+                    Errors: errors,
+                    Error: errorMessage,
+                    LogEntries: LogEntries.ToList(),
+                    Config: config);
+
+                var outputPath = Path.Combine(resultsFolder, $"captioning_result_{timestamp:yyyyMMdd_HHmmss}.json");
+                var outputJson = JsonSerializer.Serialize(log, ConfigWriteOptions);
+                await File.WriteAllTextAsync(outputPath, outputJson, Encoding.UTF8);
+
+                LogEntries.Add(string.Format(LocalizationManager.Instance["Main_ResultLogSavedFormat"], outputPath));
+            }
+            catch
+            {
+                // 保存失敗は実行結果に影響させない（ComfyUIRunWorkflow の TrySaveResultAsync と同じ方針）
+            }
         }
 
         /// <summary>カンマ区切りタグ文字列を trim・空要素除去したリストに分割する。</summary>

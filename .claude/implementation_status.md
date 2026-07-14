@@ -1,8 +1,8 @@
 # 実装状況
 
-## 現在の状態（2026-07-11 時点）
+## 現在の状態（2026-07-14 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -148,6 +148,19 @@
 - `App.xaml.cs` に `ReportPage`/`ReportViewModel` をシングルトン登録
 - `Resources/Strings.resx`/`Strings.en.resx`: `MainWindow_MenuReport` を追加。`Data_Title` の文言を「実行結果・タグ集計レポート」→「実行結果」に変更。`Data_ReportSectionLabel`/`Data_GenerateReportButton`/`Data_ReportGeneratedFormat`/`Data_TagColumnHeader`/`Data_CountColumnHeader` は `Report_Title`/`Report_GenerateReportButton`/`Report_ReportGeneratedFormat`/`Report_TagColumnHeader`/`Report_CountColumnHeader` にリネームして `Report_*` セクションへ移設した（`Main_DirectoryLabel` 等の共有キーは変更なし）
 - `ComfyUICaptioningToolTests`: `ViewModels/Pages/DataViewModelTests.cs` を実行結果関連のテストのみに全面書き換え（4件）。旧 `DataViewModelTests.cs` のレポート関連テストを `ViewModels/Pages/ReportViewModelTests.cs`（新設）へ移設。`ViewModels/Windows/MainWindowViewModelTests.cs` に Report ナビゲーション項目のテストを2件追加。計137件、全件パス確認済み
+
+### フェーズ11: 実行結果ログ（captioning_result_*.json）の Results フォルダ出力（`feature/merged-result-log` ブランチ、実装完了）
+
+`MainPage` の `LogEntries`（1 ファイルごとの処理結果ログ）と、フェーズ9で導入した実行結果設定 JSON（`captioning_config_result.json`、対象ディレクトリ直下に出力される「使用した設定」の記録）を1つにマージした結果ログを、`ComfyUIRunWorkflow` の `result_*.json`/`tag_result_*.json` と同じ方式で `Results` フォルダへ出力する機能を追加した。
+
+- **出力先フォルダ**: `ComfyUIRunWorkflow` の `AppConfig.ResultsFolder` と同じ方式で `Models/AppConfig.cs` に `ResultsFolder`（既定値: `Directory.GetCurrentDirectory()` 直下の `Results`）を新設し、`SettingsPage` にフォルダ選択ダイアログのカード（`SettingsViewModel.BrowseResultsFolderCommand`）を追加した。`ConfigPath` カードと同じ見た目・パターンで実装（`Settings_OutputSectionLabel`「出力」セクションに配置）
+- **出力タイミング**: `captioning_config_result.json`（成功時のみ、対象ディレクトリ直下）とは異なり、本機能は **成功・失敗どちらの場合も出力する**。`MainPageViewModel.RunAsync` を try/catch/finally に再構成し、`finally` から `SaveResultLogAsync` を呼び出す（`status`/`processed`/`skipped`/`errors`/`errorMessage`/`usedConfig` を try 内で更新しつつ finally で参照する構造）。`ComfyUIException` 以外の予期しない例外が発生した場合も finally は実行されるため結果ログは出力されるが、`errorMessage` は `ComfyUIException` 経由でのみ設定される（既存の仕様上の制約、フェーズ9以前から同様）
+- **出力ファイル名**: `captioning_result_{yyyyMMdd_HHmmss}.json`（`ComfyUIRunWorkflow` の命名規則を踏襲）
+- **JSON 構造**: `Models/CaptioningResultLog.cs`（positional record）を新設。`status`/`timestamp`/`directory`/`recursive`/`processed`/`skipped`/`errors`/`error`/`log_entries`（実行ログのスナップショット）に加え、`config`（`ComfyUILibs.Models.WorkflowConfig`、`captioning_config.json` の内容をベースに `prepend_tags`/`exclude_tags` のみ今回の実行で実際に使用したマージ結果へ差し替えたもの）をネストして持つ。JSON プロパティ名は `ComfyUILibs.Models.WorkflowResult`/`TagResult` と同じ snake_case（`[property: JsonPropertyName("...")]`）
+  - `captioning_config.json` の読み込み・タグマージ処理は `MainPageViewModel.LoadConfigWithMergedTagsAsync`（新設）に切り出し、`SaveExecutedConfigAsync`（captioning_config_result.json 出力）と `SaveResultLogAsync`（本機能）の両方から同じ `WorkflowConfig` インスタンスを共有する（ファイル二重読み込みを避けるため、`RunAsync` の冒頭でこれを呼び出す形に変更した）
+- **保存失敗時の扱い**: `ResultsFolder` が空文字の場合は `SaveResultLogAsync` は何もしない（`ComfyUIRunWorkflow` の `TrySaveResultAsync` と同じ方針）。保存処理自体が例外を投げた場合も `catch { }` で握りつぶし、実行結果（スナックバー表示・`IsRunning` 等）には影響させない
+- `Resources/Strings.resx`/`Strings.en.resx` に `Settings_OutputSectionLabel`/`Settings_ResultsFolderLabel`/`Settings_ResultsFolderDialogTitle`/`Main_ResultLogSavedFormat` を追加
+- `ComfyUICaptioningToolTests`: `Models/AppConfigTests.cs` に `ResultsFolder` の既定値・`PropertyChanged` テストを追加。`ViewModels/Pages/MainPageViewModelTests.cs` にテスト用 `CreateSetting()` ヘルパーが隔離した一時フォルダを `ResultsFolder` の既定値として設定するよう変更（実 CWD を汚さないため）。成功時に `captioning_result_*.json` が正しい内容（ネストした `config` を含む）で出力されること・保存ログ行が追加されること・`ThrowOnProcessDirectory` 時も `status="error"`/`error` メッセージ付きで出力されること・`ResultsFolder` 空文字時は例外にならず何も出力しないことを検証する4件を新規追加。既存の `RunCommand_Execute_ReportsProgressToLogEntries`（ログ件数の厳密一致を検証していたテスト）は新しいログ行が1件増える影響を受けるため件数期待値を修正した（フェーズ9と同様の対応）。計143件、全件パス確認済み
 
 ### 将来的な拡張
 

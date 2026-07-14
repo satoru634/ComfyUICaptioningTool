@@ -66,8 +66,16 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             File.WriteAllText(targetPath, templateJson);
         }
 
+        /// <summary>
+        /// ResultsFolder は AppConfig の既定値だとカレントディレクトリ配下を指し、テスト実行環境を
+        /// 汚してしまうため、テスト用に隔離した _tempDir 配下のフォルダを既定として設定する。
+        /// </summary>
         private Setting<AppConfig> CreateSetting()
-            => new Setting<AppConfig>(Path.Combine(_tempDir, "setting.json"), onLoad: false);
+        {
+            var setting = new Setting<AppConfig>(Path.Combine(_tempDir, "setting.json"), onLoad: false);
+            setting.Data.ResultsFolder = Path.Combine(_tempDir, "Results");
+            return setting;
+        }
 
         private string WriteValidConfigFile()
         {
@@ -303,8 +311,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
 
-            // 進捗ログ2件に加え、実行結果設定 JSON 保存のログが1件追加される
-            Assert.Equal(3, vm.LogEntries.Count);
+            // 進捗ログ2件に加え、実行結果設定 JSON 保存・結果ログ保存のログがそれぞれ1件追加される
+            Assert.Equal(4, vm.LogEntries.Count);
             Assert.Contains("a.jpg", vm.LogEntries[0]);
             Assert.Contains("b.jpg", vm.LogEntries[1]);
             Assert.Equal(2, vm.ProgressCurrent);
@@ -522,6 +530,100 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             var resultPath = Path.Combine(_tempDir, "captioning_config_result.json");
             Assert.False(File.Exists(resultPath));
+        }
+
+        // ── 実行結果ログ（captioning_result_*.json、ResultsFolder 配下）出力 ──────
+
+        private static string GetSingleResultLogPath(string resultsFolder)
+        {
+            var files = Directory.GetFiles(resultsFolder, "captioning_result_*.json");
+            Assert.Single(files);
+            return files[0];
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_Success_WritesResultLogToResultsFolder()
+        {
+            var fake = new FakeCaptioningService { Result = (2, 1, 0) };
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteConfigFileWithTags(
+                new[] { "my_chara" }, new[] { "rating:general" });
+            var vm = CreateVm(setting, (_, _, _) => fake);
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+            vm.Recursive = true;
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            var resultPath = GetSingleResultLogPath(setting.Data.ResultsFolder);
+            var log = System.Text.Json.JsonSerializer.Deserialize<CaptioningResultLog>(
+                File.ReadAllText(resultPath),
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+
+            Assert.Equal("success", log.Status);
+            Assert.Null(log.Error);
+            Assert.Equal(_tempDir, log.Directory);
+            Assert.True(log.Recursive);
+            Assert.Equal(2, log.Processed);
+            Assert.Equal(1, log.Skipped);
+            Assert.Equal(0, log.Errors);
+            Assert.NotEmpty(log.LogEntries);
+            Assert.NotNull(log.Config);
+            Assert.Equal("http://127.0.0.1:8188", log.Config!.ComfyuiUrl);
+            Assert.Equal(new[] { "my_chara" }, log.Config.PrependTags);
+            Assert.Equal(new[] { "rating:general" }, log.Config.ExcludeTags);
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_Success_LogsResultLogSavedMessage()
+        {
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            var vm = CreateVm(setting, (_, _, _) => new FakeCaptioningService());
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            var resultPath = GetSingleResultLogPath(setting.Data.ResultsFolder);
+            Assert.Contains(vm.LogEntries, e => e.Contains(resultPath));
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_ServiceThrows_WritesResultLogWithErrorStatus()
+        {
+            var fake = new FakeCaptioningService { ThrowOnProcessDirectory = true, ThrowMessage = "接続エラー" };
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            var vm = CreateVm(setting, (_, _, _) => fake);
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            var resultPath = GetSingleResultLogPath(setting.Data.ResultsFolder);
+            var log = System.Text.Json.JsonSerializer.Deserialize<CaptioningResultLog>(
+                File.ReadAllText(resultPath),
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+
+            Assert.Equal("error", log.Status);
+            Assert.Equal("接続エラー", log.Error);
+            Assert.NotNull(log.Config);
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_EmptyResultsFolder_DoesNotThrowAndSkipsResultLog()
+        {
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            setting.Data.ResultsFolder = "";
+            var vm = CreateVm(setting, (_, _, _) => new FakeCaptioningService());
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            Assert.False(vm.IsRunning);
         }
 
         [Fact]

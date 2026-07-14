@@ -15,12 +15,19 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       wpfui-icon-256.png / wpfui-icon-1024.png
     Models/
       AppConfig.cs                          <- アプリ設定ルート（WindowSettingData・Language に加え、
-                                                captioning_config.json のパスを保持する ConfigPath を追加済み。
+                                                captioning_config.json のパスを保持する ConfigPath、
+                                                実行結果ログ（captioning_result_*.json）の出力先フォルダを
+                                                保持する ResultsFolder（既定: カレントディレクトリ直下の
+                                                Results。ComfyUIRunWorkflow と同じ方式）を追加済み。
                                                 既定 prepend/exclude タグは captioning_config.json 側の
                                                 prepend_tags/exclude_tags で保持する方式に一本化したため、
                                                 本クラスには持たない）
       CaptioningRunResult.cs                <- MainPageViewModel の実行結果スナップショット（positional record）。
                                                 CaptioningRunResultStore 経由で DataPage と共有する
+      CaptioningResultLog.cs                <- 実行ログ（1 ファイルごとの処理結果・成功/失敗ステータス）と
+                                                今回使用した設定（WorkflowConfig、prepend/exclude タグはマージ後）
+                                                をマージした結果ログ（positional record）。AppConfig.ResultsFolder
+                                                配下へ captioning_result_{timestamp}.json として出力される
       TagCountEntry.cs                      <- tags_report.txt の 1 行（Tag/Count）を表す positional record
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
@@ -50,7 +57,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 実行成功時に CaptioningRunResultStore.LastResult を更新し、
                                                 captioning_config.json をベースに prepend_tags/exclude_tags を
                                                 マージ結果へ差し替えた captioning_config_result.json を
-                                                対象ディレクトリ直下へ出力する（SaveExecutedConfigAsync）
+                                                対象ディレクトリ直下へ出力する（SaveExecutedConfigAsync）。
+                                                さらに実行ログ + 使用した設定をマージした CaptioningResultLog を
+                                                AppConfig.ResultsFolder 配下へ captioning_result_{timestamp}.json
+                                                として出力する（SaveResultLogAsync、成功・失敗どちらの場合も
+                                                RunAsync の finally から呼び出す）
       DataViewModel.cs                      <- 実行結果表示ページの VM。CaptioningRunResultStore.LastResult
                                                 を購読して直近の実行結果（ディレクトリ/日時/サマリ/ログ）を
                                                 表示するのみ（ページ遷移時の処理がないため INavigationAware
@@ -60,7 +71,8 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 タグ集計レポート（tags_report.txt）を生成・一覧表示する
                                                 （旧 DataViewModel から分離）
       SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
-                                                パス選択（BrowseConfigPathCommand）を実装済み
+                                                パス選択（BrowseConfigPathCommand）、実行結果ログ出力先
+                                                ResultsFolder の選択（BrowseResultsFolderCommand）を実装済み
       ConfigViewModel.cs                    <- captioning_config.json 編集ページの VM。ConfigPath が指す
                                                 ファイルを System.Text.Json で直接読み書きする（ComfyUI との
                                                 通信は行わないため ICaptioningService 経由のファクトリー境界は
@@ -79,7 +91,8 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 オプション・生成・タグ/出現回数の一覧表示。旧 DataPage から分離）
       ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
                                                 しきい値・prepend/exclude タグ既定値の編集、保存ボタン）
-      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択）。
+      SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択、
+                                                実行結果ログ出力先 ResultsFolder のフォルダ選択）。
                                                 ラベルは LocalizationManager バインディング
     Views/Windows/
       MainWindow.xaml(.cs)                  <- ナビゲーションホスト
@@ -104,7 +117,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
     ViewModels/Pages/
       MainPageViewModelTests.cs             <- MainPageViewModel のテスト（ConfigPath 読み込み成否・
                                                 RunCommand の CanExecute/実行・進捗/ログ/サマリ・エラーハンドリング・
-                                                既定/入力タグの union と重複排除・ResultStore への反映）。
+                                                既定/入力タグの union と重複排除・ResultStore への反映・
+                                                ResultsFolder への captioning_result_*.json 出力（成功/失敗
+                                                双方のステータス・ResultsFolder 未設定時のスキップ））。
                                                 SymbolIcon 生成を伴うテストは STA スレッドが必要なため
                                                 RunOnSta（TestSupport.StaTestRunner に委譲）でラップ
       DataViewModelTests.cs                 <- DataViewModel のテスト（ResultStore 購読による
