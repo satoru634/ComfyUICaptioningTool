@@ -82,6 +82,9 @@
   <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>captioning_config.json パス</value></data>
   <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>captioning_config.json を選択</value></data>
   <data name="Settings_ConfigFileDialogFilter" xml:space="preserve"><value>JSON ファイル|*.json|すべてのファイル|*.*</value></data>
+  <data name="Settings_OutputSectionLabel" xml:space="preserve"><value>出力</value></data>
+  <data name="Settings_ResultsFolderLabel" xml:space="preserve"><value>実行結果ログの出力フォルダ</value></data>
+  <data name="Settings_ResultsFolderDialogTitle" xml:space="preserve"><value>実行結果ログの出力フォルダを選択</value></data>
 
   <!-- Main（ディレクトリ一括タグ付け実行ページ） -->
   <data name="Main_Title" xml:space="preserve"><value>ディレクトリ一括タグ付け</value></data>
@@ -101,6 +104,7 @@
   <data name="Main_SummaryFormat" xml:space="preserve"><value>完了: 処理 {0}, スキップ {1}, エラー {2}</value></data>
   <data name="Main_ReportSavedFormat" xml:space="preserve"><value>レポートを保存しました: {0}</value></data>
   <data name="Main_ConfigResultSavedFormat" xml:space="preserve"><value>使用した設定を保存しました: {0}</value></data>
+  <data name="Main_ResultLogSavedFormat" xml:space="preserve"><value>実行結果ログを保存しました: {0}</value></data>
   <data name="Main_ConfigLoadErrorFormat" xml:space="preserve"><value>WD14 Tagger 設定の読み込みエラー: {0}</value></data>
   <data name="Main_StatusOk" xml:space="preserve"><value>OK</value></data>
   <data name="Main_StatusSkip" xml:space="preserve"><value>SKIP</value></data>

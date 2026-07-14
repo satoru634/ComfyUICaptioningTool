@@ -68,6 +68,13 @@ namespace ComfyUICaptioningTool.Models
         private string _configPath = Path.Combine(AppContext.BaseDirectory, "captioning_config.json");
 
         /// <summary>
+        /// タグ付け実行結果ログ（実行ログ + 使用した設定をマージした JSON）の出力先フォルダ。
+        /// ComfyUIRunWorkflow の ResultsFolder と同じ方式で、SettingsPage のフォルダ選択ダイアログで変更できる。
+        /// </summary>
+        [ObservableProperty]
+        private string _resultsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Results");
+
+        /// <summary>
         /// 初回起動時のデフォルト値を設定する。
         /// 設定ファイルが存在する場合は JSON デシリアライズ後に上書きされる。
         /// </summary>

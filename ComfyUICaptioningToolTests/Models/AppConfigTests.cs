@@ -225,5 +225,27 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.Contains("ConfigPath", changed);
         }
 
+        // ── AppConfig ResultsFolder ────────────────────────────────────────────────
+
+        [Fact]
+        public void AppConfig_ResultsFolder_DefaultValue_IsResultsUnderCurrentDirectory()
+        {
+            var config = new AppConfig();
+
+            Assert.Equal(Path.Combine(Directory.GetCurrentDirectory(), "Results"), config.ResultsFolder);
+        }
+
+        [Fact]
+        public void AppConfig_ResultsFolder_Set_RaisesPropertyChanged()
+        {
+            var config = new AppConfig();
+            var changed = new List<string?>();
+            ((INotifyPropertyChanged)config).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+            config.ResultsFolder = @"C:\Results";
+
+            Assert.Contains("ResultsFolder", changed);
+        }
+
     }
 }

@@ -82,6 +82,9 @@
   <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>captioning_config.json Path</value></data>
   <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>Select captioning_config.json</value></data>
   <data name="Settings_ConfigFileDialogFilter" xml:space="preserve"><value>JSON files|*.json|All files|*.*</value></data>
+  <data name="Settings_OutputSectionLabel" xml:space="preserve"><value>Output</value></data>
+  <data name="Settings_ResultsFolderLabel" xml:space="preserve"><value>Result Log Output Folder</value></data>
+  <data name="Settings_ResultsFolderDialogTitle" xml:space="preserve"><value>Select the result log output folder</value></data>
 
   <!-- Main (directory batch tagging execution page) -->
   <data name="Main_Title" xml:space="preserve"><value>Batch Directory Tagging</value></data>
@@ -101,6 +104,7 @@
   <data name="Main_SummaryFormat" xml:space="preserve"><value>Done: processed {0}, skipped {1}, errors {2}</value></data>
   <data name="Main_ReportSavedFormat" xml:space="preserve"><value>Report saved: {0}</value></data>
   <data name="Main_ConfigResultSavedFormat" xml:space="preserve"><value>Saved the settings used: {0}</value></data>
+  <data name="Main_ResultLogSavedFormat" xml:space="preserve"><value>Result log saved: {0}</value></data>
   <data name="Main_ConfigLoadErrorFormat" xml:space="preserve"><value>Failed to load WD14 Tagger settings: {0}</value></data>
   <data name="Main_StatusOk" xml:space="preserve"><value>OK</value></data>
   <data name="Main_StatusSkip" xml:space="preserve"><value>SKIP</value></data>
