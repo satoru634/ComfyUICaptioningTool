@@ -30,7 +30,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       TagCountEntry.cs                      <- tags_report.txt の 1 行（Tag/Count）を表す positional record
       GalleryImageEntry.cs                  <- GalleryPage の一覧表示用に、画像 1 枚とその同名 .txt から
                                                 読み込んだタグ・サムネイル（BitmapImage?）をまとめた
-                                                positional record（HasTags 派生プロパティを持つ）
+                                                ObservableObject（HasTags 派生プロパティを持つ）。
+                                                Tags は ObservableCollection&lt;string&gt; で、AddTag/RemoveTag
+                                                （フェーズ14で追加、カード単位のタグ追加・削除）呼び出しの
+                                                たびに即座に同名 .txt へ保存する（0 件になった場合は .txt
+                                                自体を削除する）
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
@@ -68,7 +72,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       GalleryViewModel.cs                   <- 画像・タグ一覧ページの VM。対象ディレクトリ内の画像を収集し、
                                                 同名 .txt からタグを読み込んでサムネイルと共に一覧表示する
                                                 （LoadCommand）。ComfyUI と通信しないため ICaptioningService
-                                                ファクトリー境界・Wd14TaggerRunner には依存しない
+                                                ファクトリー境界・Wd14TaggerRunner には依存しない。
+                                                読み込み済み全画像に対する一括タグ追加・削除
+                                                （BulkAddTagCommand/BulkRemoveTagCommand、フェーズ14で追加）
+                                                も持つ
       ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath から
                                                 Wd14TaggerRunner を読み込み、対象ディレクトリを選択して
                                                 タグ集計レポート（tags_report.txt）を生成・一覧表示する
@@ -93,10 +100,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 ディレクトリ/日時/サマリ・エラーメッセージ/1 ファイルごとの
                                                 処理結果ログを表示し、更新ボタンで再スキャンする）
       GalleryPage.xaml(.cs)                 <- 画像・タグ一覧画面（対象ディレクトリ選択・再帰オプション・
-                                                読み込みボタン、WrapPanel によるカード折り返し表示。各カードに
+                                                読み込みボタン、一括タグ操作カード（フェーズ14で追加）、
+                                                WrapPanel によるカード折り返し表示。各カードに
                                                 サムネイル（読み込み失敗時は SymbolIcon プレースホルダー）・
-                                                ファイル名・タグ一覧（チップ表示、.txt 未存在時は
-                                                「タグ未生成」表示）を表示する）
+                                                ファイル名・タグ一覧（チップ表示、削除ボタン付き、.txt 未存在時は
+                                                「タグ未生成」表示）・タグ追加入力欄を表示する）
       ReportPage.xaml(.cs)                  <- タグ集計レポート表示画面（対象ディレクトリ選択・再帰
                                                 オプション・生成・タグ/出現回数の一覧表示。旧 DataPage から分離）
       ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
@@ -117,6 +125,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       LocalizationManagerTests.cs           <- LocalizationManager のカルチャ切替・フォールバック挙動のテスト
     Models/
       AppConfigTests.cs                     <- AppConfig/WindowSettingData のデフォルト値・PropertyChanged のテスト
+      GalleryImageEntryTests.cs             <- GalleryImageEntry のテスト（フェーズ14で新設。AddTag の
+                                                trim/重複排除（大文字小文字無視）/既存タグへの追記と
+                                                対応する .txt 書き込み内容、RemoveTag の存在有無別の挙動
+                                                （最後の1件削除時は .txt 自体が削除されること）、
+                                                AddNewTagCommand 実行時の NewTagInput 反映・クリアを検証）
     TestSupport/
       StaThreadGate.cs                      <- STA スレッドで WPF オブジェクトを生成するテスト同士を直列化する共有 lock
       StaTestRunner.cs                      <- 非同期 ViewModel メソッドを STA スレッド上で実行するヘルパー。
@@ -138,7 +151,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 ディレクトリ未存在/画像0件時のメッセージ・タグの trim/空要素除去・
                                                 .txt なし画像の HasTags=false・非対応拡張子の除外・Recursive
                                                 の有無・ファイル名昇順ソート・不正な画像バイト列でも
-                                                Thumbnail=null のままエントリが残ることを検証）
+                                                Thumbnail=null のままエントリが残ることを検証。フェーズ14で
+                                                BulkAddTagCommand/BulkRemoveTagCommand の CanExecute・
+                                                全画像への一括追加/削除（大文字小文字無視）のテストを追加）
       ReportViewModelTests.cs               <- ReportViewModel のテスト（ConfigPath 読み込み成否・
                                                 GenerateReportCommand の CanExecute/実行・レポート行の解析
                                                 （コロンを含むタグ名を含む）・エラーハンドリング。

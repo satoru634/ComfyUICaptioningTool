@@ -180,5 +180,73 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             var entry = Assert.Single(vm.Images);
             Assert.Null(entry.Thumbnail);
         }
+
+        // ── 一括タグ操作 ──────────────────────────────────────────────────────
+
+        [Fact]
+        public void BulkAddTagCommand_CanExecute_False_WhenImagesEmpty()
+        {
+            var vm = new GalleryViewModel(CreateSetting()) { BulkTagInput = "tag" };
+
+            Assert.False(vm.BulkAddTagCommand.CanExecute(null));
+            Assert.False(vm.BulkRemoveTagCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task BulkAddTagCommand_CanExecute_False_WhenBulkTagInputEmpty()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            await vm.LoadCommand.ExecuteAsync(null);
+
+            Assert.False(vm.BulkAddTagCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task BulkAddTagCommand_CanExecute_True_WhenImagesLoadedAndInputSet()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            await vm.LoadCommand.ExecuteAsync(null);
+            vm.BulkTagInput = "new_tag";
+
+            Assert.True(vm.BulkAddTagCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task BulkAddTagCommand_Execute_AddsTagToAllImages_AndClearsInput()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            File.WriteAllBytes(Path.Combine(_tempDir, "b.jpg"), new byte[] { 1 });
+            File.WriteAllText(Path.Combine(_tempDir, "b.txt"), "existing");
+            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            await vm.LoadCommand.ExecuteAsync(null);
+            vm.BulkTagInput = "new_tag";
+
+            vm.BulkAddTagCommand.Execute(null);
+
+            Assert.All(vm.Images, entry => Assert.Contains("new_tag", entry.Tags));
+            Assert.Equal("", vm.BulkTagInput);
+        }
+
+        [Fact]
+        public async Task BulkRemoveTagCommand_Execute_RemovesTagFromAllImages_IgnoringCase()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "Tag_A, tag_b");
+            File.WriteAllBytes(Path.Combine(_tempDir, "b.jpg"), new byte[] { 1 });
+            File.WriteAllText(Path.Combine(_tempDir, "b.txt"), "tag_b");
+            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            await vm.LoadCommand.ExecuteAsync(null);
+            vm.BulkTagInput = "TAG_A";
+
+            vm.BulkRemoveTagCommand.Execute(null);
+
+            var entryA = vm.Images.Single(i => i.FileName == "a.jpg");
+            var entryB = vm.Images.Single(i => i.FileName == "b.jpg");
+            Assert.Equal(new[] { "tag_b" }, entryA.Tags);
+            Assert.Equal(new[] { "tag_b" }, entryB.Tags);
+            Assert.Equal("", vm.BulkTagInput);
+        }
     }
 }

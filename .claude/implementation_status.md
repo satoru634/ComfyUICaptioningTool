@@ -1,8 +1,8 @@
 # 実装状況
 
-## 現在の状態（2026-07-15 時点）
+## 現在の状態（2026-07-16 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -188,6 +188,30 @@
 - `Resources/Strings.resx`/`Strings.en.resx` に `MainWindow_MenuGallery`・`Gallery_Title`/`Gallery_LoadButtonContent`/`Gallery_FolderNotFound_Format`/`Gallery_NoImages`/`Gallery_NoTagsLabel` を追加（`Main_DirectoryLabel`/`Main_DirectoryPlaceholder`/`Main_DirectoryDialogTitle`/`Main_RecursiveLabel`/`Common_BrowseButtonTooltip` は既存キーを再利用）
 - `ComfyUICaptioningToolTests`: `ViewModels/Pages/GalleryViewModelTests.cs`（新設、13件。初期状態・`LoadCommand` の `CanExecute`・ディレクトリ未存在/画像0件時のメッセージ・タグの trim/空要素除去（重複は保持したままであることも含む）・`.txt` なし画像の `HasTags=false`・非対応拡張子の除外・`Recursive` の有無によるサブディレクトリ画像の包含/除外・ファイル名昇順ソート・不正な画像バイト列でも `Thumbnail=null` のままエントリが一覧に残ることを検証）。`ViewModels/Windows/MainWindowViewModelTests.cs` に `MenuItems_Contains_GalleryItem`/`MenuItems_GalleryItem_TargetPage_IsGalleryPage` の2件を追加。計157件、全件パス確認済み
 - 実アプリでの目視確認は、この環境で過去のフェーズ（3・4・8・10）から繰り返し発生している「座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する」という既知の環境依存の制約により今回も断念し、`DataPage.xaml`/`ReportPage.xaml` と同一の XAML パターンであることのコードレビューとユニットテストで代替した
+
+### フェーズ14: GalleryPage へのタグ編集機能（追加・削除）の追加（`feature/gallery-tag-edit` ブランチ、実装完了）
+
+「タグの編集機能（追加と削除）を追加したい」というユーザー要望を受けて追加した。実装前に候補（`GalleryPage` を拡張する／新規専用ページを作る／`MainPage` に統合する）を提示して確認し、既に画像とタグをカードで並べて表示している `GalleryPage`（フェーズ13で「タグは読み取り専用」として実装）を拡張する方針を採用した。あわせて「カード単位のインライン編集」に加えて「読み込み済み全画像に対する一括タグ追加・削除」も欲しいとの要望があったため両方実装し、変更はいずれも即時に同名 `.txt` へ保存する方式とした。
+
+- **`Models/GalleryImageEntry.cs` を positional record から `ObservableObject` 継承の `partial class` に変更**: `Tags` を `IReadOnlyList<string>`（イミュータブル）から `ObservableCollection<string>` に変更し、`CollectionChanged` を購読して `HasTags` の変更通知を行う。カード単位のタグ追加・削除・同名 `.txt` への保存をこのクラス自身に持たせた
+  - `AddTag(string tag)`: trim 後に空文字なら追加しない。既存タグと大文字小文字無視で重複する場合も追加しない（`MainPageViewModel.MergeTags` が採用している `StringComparer.OrdinalIgnoreCase` の重複排除方針に合わせた）。追加後は即座に `SaveTags()` を呼ぶ
+  - `RemoveTag(string tag)`（`[RelayCommand]`、カードのタグチップ削除ボタン用。`GalleryViewModel` の一括削除からも直接呼び出す）: `Tags.Remove(tag)` が成功した場合のみ `SaveTags()` を呼ぶ
+  - `AddNewTag()`（`[RelayCommand]`、private。カードの「タグを追加」入力欄用）: `NewTagInput`（新設 `[ObservableProperty]`）の内容を `AddTag` に渡してから入力欄をクリアする
+  - `SaveTags()`: `Tags` をカンマ区切りで同名 `.txt` へ書き込む。**`Tags.Count == 0` になった場合は `.txt` ファイル自体を削除する**（空ファイルとして残さない設計判断。削除後は `HasTags=false` となり「タグ未生成」表示に戻る）
+- **`ViewModels/Pages/GalleryViewModel.cs` に一括タグ操作を追加**: `BulkTagInput`（`[ObservableProperty]`、一括操作対象のタグ入力欄）・`BulkAddTagCommand`/`BulkRemoveTagCommand`（`CanExecute`: `Images.Count > 0 && !string.IsNullOrWhiteSpace(BulkTagInput)`）を新設
+  - `BulkAddTagCommand`: 読み込み済み `Images` の全エントリに対して `entry.AddTag(BulkTagInput)` を呼ぶ（重複排除・trim は `GalleryImageEntry.AddTag` 側の挙動にそのまま従う）
+  - `BulkRemoveTagCommand`: 各エントリの `Tags` から `BulkTagInput` と大文字小文字無視で一致する要素を**すべて**列挙してから `entry.RemoveTag` する（`Tags` は重複除去しない仕様のため、同じタグが複数あるケースを考慮して一致分を全件削除する。1 件のみ削除すると「消したつもりのタグが残る」という直感に反する挙動になるため）
+  - 実行後はいずれも `BulkTagInput` をクリアする
+- **`Views/Pages/GalleryPage.xaml` の変更**:
+  - ページ上部（対象ディレクトリ選択カードの下）に「一括タグ操作」カードを新設（テキストボックス + 「全てに追加」/「全てから削除」ボタン、`ViewModel.BulkTagInput`/`BulkAddTagCommand`/`BulkRemoveTagCommand` にバインド）。既存の各 `Grid.Row` インデックスは 1 つずつ繰り下げた
+  - 各画像カードのタグチップ（`Border` + `TextBlock`）に削除ボタン（`×` の `ui:Button`、`Appearance="Transparent"`）を追加。`ItemsControl.ItemTemplate` 内から親 `ItemsControl`（`DataContext` が `GalleryImageEntry`）の `RemoveTagCommand` を `RelativeSource={RelativeSource AncestorType=ItemsControl}` で参照し、`CommandParameter` にタグ文字列自身を渡す
+  - タグ一覧の `ItemsControl` を `ScrollViewer` で包み、カード下部に「タグを追加」用の `ui:TextBox`（`NewTagInput` にバインド、`Enter` キーで `AddNewTagCommand` を実行する `KeyBinding` 付き）+ 追加ボタンを新設。タグ一覧が `Grid.RowSpan="2"` で専有していた領域を Row0（タグ一覧）/Row1（追加欄）に分割したため、カード全体の `Height` を `248` → `296` に拡張した
+- `Resources/Strings.resx`/`Strings.en.resx` に `Gallery_BulkTagSectionLabel`/`Gallery_BulkTagPlaceholder`/`Gallery_BulkAddButtonContent`/`Gallery_BulkRemoveButtonContent`/`Gallery_AddTagPlaceholder`/`Gallery_RemoveTagTooltip` を追加
+- `ComfyUICaptioningToolTests`:
+  - `Models/GalleryImageEntryTests.cs`（新設、11件）: コンストラクターの初期状態、`AddTag`（trim・重複排除・大文字小文字無視・既存タグへの追記・空文字無視）と対応する `.txt` 書き込み内容の検証、`RemoveTag`（存在しないタグの無視・存在するタグの削除・最後の1件削除時に `.txt` 自体が削除されること）、`AddNewTagCommand` 実行時に `NewTagInput` が反映されクリアされることを検証
+  - `ViewModels/Pages/GalleryViewModelTests.cs` に一括操作のテストを追加（6件）: `BulkAddTagCommand`/`BulkRemoveTagCommand` の `CanExecute`（`Images` 空・`BulkTagInput` 空それぞれで false になること）、一括追加が全エントリに反映され入力欄がクリアされること、一括削除が大文字小文字無視で全エントリから一致タグを取り除くこと
+  - 計172件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認。`dotnet test` がテストを検出できない既知の環境依存事象は今回も発生した）
+- 実アプリでの目視確認は、この環境で過去のフェーズ（3・4・8・10・13）から繰り返し発生している「座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する」という既知の環境依存の制約により今回も断念し、`GalleryPage.xaml` の既存パターン（`ReportPage.xaml`/`DataPage.xaml` と共通のカードデザイン）を踏襲していることのコードレビューとユニットテストで代替した
 
 ### 将来的な拡張
 
