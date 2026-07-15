@@ -252,6 +252,7 @@
                                 <ScrollViewer
                                     Grid.Column="1"
                                     Grid.Row="0"
+                                    PreviewMouseWheel="TagsScrollViewer_PreviewMouseWheel"
                                     VerticalScrollBarVisibility="Auto">
                                     <ItemsControl
                                         ItemsSource="{Binding Tags}"
