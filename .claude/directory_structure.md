@@ -104,7 +104,14 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 WrapPanel によるカード折り返し表示。各カードに
                                                 サムネイル（読み込み失敗時は SymbolIcon プレースホルダー）・
                                                 ファイル名・タグ一覧（チップ表示、削除ボタン付き、.txt 未存在時は
-                                                「タグ未生成」表示）・タグ追加入力欄を表示する）
+                                                「タグ未生成」表示）・タグ追加入力欄を表示する）。
+                                                各カードのタグ一覧は独自にスクロール可能な入れ子 ScrollViewer
+                                                だが、素の入れ子のままだと画像・タグ一覧全体を包む外側の
+                                                ScrollViewer までマウスホイールイベントがバブルせず外側の
+                                                スクロールが機能しなくなるため、GalleryPage.xaml.cs に
+                                                TagsScrollViewer_PreviewMouseWheel（内側がスクロール端に
+                                                達している場合のみイベントを親要素へ手動転送する）を実装し、
+                                                XAML 側から PreviewMouseWheel でアタッチしている
       ReportPage.xaml(.cs)                  <- タグ集計レポート表示画面（対象ディレクトリ選択・再帰
                                                 オプション・生成・タグ/出現回数の一覧表示。旧 DataPage から分離）
       ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
