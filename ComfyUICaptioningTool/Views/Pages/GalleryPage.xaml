@@ -29,6 +29,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -100,16 +101,66 @@
             </Grid>
         </Border>
 
+        <!-- 一括タグ操作カード -->
+        <Border
+            Grid.Row="2"
+            Margin="0,0,0,8"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Grid.Row="0"
+                    Margin="0,0,0,4"
+                    FontSize="12"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkTagSectionLabel]}" />
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ui:TextBox
+                        Grid.Column="0"
+                        Height="36"
+                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkTagPlaceholder]}"
+                        Text="{Binding ViewModel.BulkTagInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <ui:Button
+                        Grid.Column="1"
+                        Height="36"
+                        Margin="12,0,0,0"
+                        Appearance="Secondary"
+                        Command="{Binding ViewModel.BulkAddTagCommand}"
+                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkAddButtonContent]}" />
+                    <ui:Button
+                        Grid.Column="2"
+                        Height="36"
+                        Margin="12,0,0,0"
+                        Appearance="Secondary"
+                        Command="{Binding ViewModel.BulkRemoveTagCommand}"
+                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkRemoveButtonContent]}" />
+                </Grid>
+            </Grid>
+        </Border>
+
         <!-- 読み込み中インジケーター -->
         <ProgressBar
-            Grid.Row="2"
+            Grid.Row="3"
             Height="4"
             IsIndeterminate="True"
             Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
         <!-- 状態メッセージ -->
         <TextBlock
-            Grid.Row="3"
+            Grid.Row="4"
             Margin="0,8,0,0"
             HorizontalAlignment="Center"
             FontSize="14"
@@ -119,7 +170,7 @@
 
         <!-- 画像・タグ一覧 -->
         <ScrollViewer
-            Grid.Row="4"
+            Grid.Row="5"
             Margin="0,8,0,0"
             VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding ViewModel.Images, Mode=OneWay}">
@@ -131,7 +182,6 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type models:GalleryImageEntry}">
                         <Border
-                            Height="248"
                             Margin="0,0,0,8"
                             Padding="8"
                             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
@@ -145,7 +195,7 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
@@ -153,8 +203,8 @@
                                 <Image
                                     Grid.Column="0"
                                     Grid.Row="0"
-                                    Width="200"
-                                    Height="200"
+                                    Width="192"
+                                    Height="192"
                                     Source="{Binding Thumbnail}"
                                     Stretch="Uniform">
                                     <Image.Style>
@@ -199,37 +249,51 @@
                                     ToolTip="{Binding FileName}" />
 
                                 <!-- タグ一覧 -->
-                                <ItemsControl
+                                <ScrollViewer
                                     Grid.Column="1"
                                     Grid.Row="0"
-                                    Grid.RowSpan="2"
-                                    ItemsSource="{Binding Tags}"
-                                    Visibility="{Binding HasTags, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border
-                                                MaxHeight="168"
-                                                Margin="0,0,4,4"
-                                                Padding="6,2"
-                                                Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                                                CornerRadius="8">
-                                                <TextBlock
-                                                    FontSize="12"
-                                                    Text="{Binding}"
-                                                    TextWrapping="Wrap" />
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                    VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl
+                                        ItemsSource="{Binding Tags}"
+                                        Visibility="{Binding HasTags, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border
+                                                    Margin="0,0,4,4"
+                                                    Padding="4,2"
+                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                    CornerRadius="8">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock
+                                                            FontSize="12"
+                                                            Text="{Binding}"
+                                                            TextWrapping="Wrap"
+                                                            VerticalAlignment="Center" />
+                                                        <ui:Button
+                                                            Width="18"
+                                                            Height="18"
+                                                            Margin="4,0,0,0"
+                                                            Padding="0"
+                                                            Appearance="Transparent"
+                                                            Command="{Binding DataContext.RemoveTagCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Content="×"
+                                                            FontSize="12"
+                                                            ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_RemoveTagTooltip]}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
                                 <TextBlock
                                     Grid.Column="1"
                                     Grid.Row="0"
-                                    Grid.RowSpan="2"
                                     FontSize="12"
                                     FontStyle="Italic"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
@@ -245,6 +309,36 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
+
+                                <!-- タグ追加入力欄 -->
+                                <Grid
+                                    Grid.Column="1"
+                                    Grid.Row="1"
+                                    Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <ui:TextBox
+                                        Grid.Column="0"
+                                        Height="36"
+                                        FontSize="12"
+                                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagPlaceholder]}"
+                                        Text="{Binding NewTagInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <ui:TextBox.InputBindings>
+                                            <KeyBinding Key="Return" Command="{Binding AddNewTagCommand}" />
+                                        </ui:TextBox.InputBindings>
+                                    </ui:TextBox>
+                                    <ui:Button
+                                        Grid.Column="1"
+                                        Width="36"
+                                        Height="36"
+                                        Margin="8,0,0,0"
+                                        Appearance="Secondary"
+                                        Command="{Binding AddNewTagCommand}"
+                                        Icon="{ui:SymbolIcon AddCircle24}" />
+                                </Grid>
                             </Grid>
                         </Border>
                     </DataTemplate>

@@ -125,6 +125,12 @@
   <data name="Gallery_FolderNotFound_Format" xml:space="preserve"><value>フォルダが見つかりません:&#x0a;{0}</value></data>
   <data name="Gallery_NoImages" xml:space="preserve"><value>対象ディレクトリに画像が見つかりませんでした。</value></data>
   <data name="Gallery_NoTagsLabel" xml:space="preserve"><value>タグ未生成</value></data>
+  <data name="Gallery_BulkTagSectionLabel" xml:space="preserve"><value>一括タグ操作</value></data>
+  <data name="Gallery_BulkTagPlaceholder" xml:space="preserve"><value>タグ名</value></data>
+  <data name="Gallery_BulkAddButtonContent" xml:space="preserve"><value>全てに追加</value></data>
+  <data name="Gallery_BulkRemoveButtonContent" xml:space="preserve"><value>全てから削除</value></data>
+  <data name="Gallery_AddTagPlaceholder" xml:space="preserve"><value>タグを追加</value></data>
+  <data name="Gallery_RemoveTagTooltip" xml:space="preserve"><value>タグを削除</value></data>
 
   <!-- Report（タグ集計レポート表示ページ） -->
   <data name="Report_Title" xml:space="preserve"><value>タグ集計レポート</value></data>

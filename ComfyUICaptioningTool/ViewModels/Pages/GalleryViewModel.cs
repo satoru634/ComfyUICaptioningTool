@@ -46,7 +46,15 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
         /// <summary>読み込んだ画像とタグの一覧（ファイル名昇順）。</summary>
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(BulkAddTagCommand))]
+        [NotifyCanExecuteChangedFor(nameof(BulkRemoveTagCommand))]
         private ObservableCollection<GalleryImageEntry> _images = new();
+
+        /// <summary>一括タグ操作（<see cref="BulkAddTagCommand"/>/<see cref="BulkRemoveTagCommand"/>）の対象タグ入力欄。</summary>
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(BulkAddTagCommand))]
+        [NotifyCanExecuteChangedFor(nameof(BulkRemoveTagCommand))]
+        private string _bulkTagInput = "";
 
         /// <summary>DI コンテナから設定を受け取って初期化する。</summary>
         public GalleryViewModel(Setting<AppConfig> config)
@@ -128,6 +136,37 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             }
 
             return entries;
+        }
+
+        // ── 一括タグ操作 ──────────────────────────────────────────────────────
+
+        private bool CanBulkEditTag() => Images.Count > 0 && !string.IsNullOrWhiteSpace(BulkTagInput);
+
+        /// <summary>読み込み済みの全画像に対して、<see cref="BulkTagInput"/> のタグをまとめて追加する。</summary>
+        [RelayCommand(CanExecute = nameof(CanBulkEditTag))]
+        private void BulkAddTag()
+        {
+            foreach (var entry in Images)
+                entry.AddTag(BulkTagInput);
+
+            BulkTagInput = "";
+        }
+
+        /// <summary>読み込み済みの全画像から、<see cref="BulkTagInput"/> と一致するタグ（大文字小文字無視）をまとめて削除する。</summary>
+        [RelayCommand(CanExecute = nameof(CanBulkEditTag))]
+        private void BulkRemoveTag()
+        {
+            var trimmed = BulkTagInput.Trim();
+            foreach (var entry in Images)
+            {
+                var matches = entry.Tags
+                    .Where(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                foreach (var match in matches)
+                    entry.RemoveTag(match);
+            }
+
+            BulkTagInput = "";
         }
 
         /// <summary>カンマ区切りタグ文字列を trim・空要素除去したリストに分割する。</summary>
