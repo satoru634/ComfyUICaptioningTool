@@ -174,6 +174,32 @@ namespace ComfyUICaptioningToolTests.ViewModels.Windows
         }
 
         [Fact]
+        public void MenuItems_Contains_GalleryItem()
+        {
+            RunOnSta(() =>
+            {
+                var vm = new MainWindowViewModel(CreateSetting());
+
+                var items = vm.MenuItems.OfType<NavigationViewItem>().ToList();
+                Assert.Contains(items, item => item.Content?.ToString() == LocalizationManager.Instance["MainWindow_MenuGallery"]);
+            });
+        }
+
+        [Fact]
+        public void MenuItems_GalleryItem_TargetPage_IsGalleryPage()
+        {
+            RunOnSta(() =>
+            {
+                var vm = new MainWindowViewModel(CreateSetting());
+
+                var gallery = vm.MenuItems.OfType<NavigationViewItem>()
+                    .FirstOrDefault(item => item.Content?.ToString() == LocalizationManager.Instance["MainWindow_MenuGallery"]);
+
+                Assert.Equal(typeof(GalleryPage), gallery?.TargetPageType);
+            });
+        }
+
+        [Fact]
         public void MenuItems_Contains_ReportItem()
         {
             RunOnSta(() =>

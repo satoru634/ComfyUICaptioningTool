@@ -71,6 +71,12 @@ namespace ComfyUICaptioningTool.ViewModels.Windows
                 },
                 new NavigationViewItem()
                 {
+                    Content = LocalizationManager.Instance["MainWindow_MenuGallery"],
+                    Icon = new SymbolIcon { Symbol = SymbolRegular.ImageMultiple24 },
+                    TargetPageType = typeof(Views.Pages.GalleryPage)
+                },
+                new NavigationViewItem()
+                {
                     Content = LocalizationManager.Instance["MainWindow_MenuReport"],
                     Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
                     TargetPageType = typeof(Views.Pages.ReportPage)

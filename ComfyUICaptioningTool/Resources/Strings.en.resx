@@ -62,6 +62,7 @@
   <!-- MainWindow -->
   <data name="MainWindow_MenuHome" xml:space="preserve"><value>Home</value></data>
   <data name="MainWindow_MenuData" xml:space="preserve"><value>Data</value></data>
+  <data name="MainWindow_MenuGallery" xml:space="preserve"><value>Gallery</value></data>
   <data name="MainWindow_MenuReport" xml:space="preserve"><value>Tag Report</value></data>
   <data name="MainWindow_MenuConfig" xml:space="preserve"><value>Config File</value></data>
   <data name="MainWindow_MenuSettings" xml:space="preserve"><value>Settings</value></data>
@@ -117,6 +118,13 @@
   <data name="Data_FolderNotFound_Format" xml:space="preserve"><value>Folder not found:&#x0a;{0}</value></data>
   <data name="Data_NoResults" xml:space="preserve"><value>No results</value></data>
   <data name="Data_LastRunTimestampFormat" xml:space="preserve"><value>Run at: {0}</value></data>
+
+  <!-- Gallery (images & tags page) -->
+  <data name="Gallery_Title" xml:space="preserve"><value>Images &amp; Tags</value></data>
+  <data name="Gallery_LoadButtonContent" xml:space="preserve"><value>Load</value></data>
+  <data name="Gallery_FolderNotFound_Format" xml:space="preserve"><value>Folder not found:&#x0a;{0}</value></data>
+  <data name="Gallery_NoImages" xml:space="preserve"><value>No images were found in the target directory.</value></data>
+  <data name="Gallery_NoTagsLabel" xml:space="preserve"><value>No tags yet</value></data>
 
   <!-- Report (tag frequency report page) -->
   <data name="Report_Title" xml:space="preserve"><value>Tag Frequency Report</value></data>

@@ -62,6 +62,7 @@
   <!-- MainWindow -->
   <data name="MainWindow_MenuHome" xml:space="preserve"><value>ホーム</value></data>
   <data name="MainWindow_MenuData" xml:space="preserve"><value>データ</value></data>
+  <data name="MainWindow_MenuGallery" xml:space="preserve"><value>ギャラリー</value></data>
   <data name="MainWindow_MenuReport" xml:space="preserve"><value>タグ集計レポート</value></data>
   <data name="MainWindow_MenuConfig" xml:space="preserve"><value>設定ファイル</value></data>
   <data name="MainWindow_MenuSettings" xml:space="preserve"><value>設定</value></data>
@@ -117,6 +118,13 @@
   <data name="Data_FolderNotFound_Format" xml:space="preserve"><value>フォルダが見つかりません:&#x0a;{0}</value></data>
   <data name="Data_NoResults" xml:space="preserve"><value>結果がありません</value></data>
   <data name="Data_LastRunTimestampFormat" xml:space="preserve"><value>実行日時: {0}</value></data>
+
+  <!-- Gallery（画像・タグ一覧ページ） -->
+  <data name="Gallery_Title" xml:space="preserve"><value>画像・タグ一覧</value></data>
+  <data name="Gallery_LoadButtonContent" xml:space="preserve"><value>読み込み</value></data>
+  <data name="Gallery_FolderNotFound_Format" xml:space="preserve"><value>フォルダが見つかりません:&#x0a;{0}</value></data>
+  <data name="Gallery_NoImages" xml:space="preserve"><value>対象ディレクトリに画像が見つかりませんでした。</value></data>
+  <data name="Gallery_NoTagsLabel" xml:space="preserve"><value>タグ未生成</value></data>
 
   <!-- Report（タグ集計レポート表示ページ） -->
   <data name="Report_Title" xml:space="preserve"><value>タグ集計レポート</value></data>
