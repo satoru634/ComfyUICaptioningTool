@@ -2,7 +2,7 @@
 
 ## 現在の状態（2026-07-16 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -212,6 +212,18 @@
   - `ViewModels/Pages/GalleryViewModelTests.cs` に一括操作のテストを追加（6件）: `BulkAddTagCommand`/`BulkRemoveTagCommand` の `CanExecute`（`Images` 空・`BulkTagInput` 空それぞれで false になること）、一括追加が全エントリに反映され入力欄がクリアされること、一括削除が大文字小文字無視で全エントリから一致タグを取り除くこと
   - 計172件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認。`dotnet test` がテストを検出できない既知の環境依存事象は今回も発生した）
 - 実アプリでの目視確認は、この環境で過去のフェーズ（3・4・8・10・13）から繰り返し発生している「座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する」という既知の環境依存の制約により今回も断念し、`GalleryPage.xaml` の既存パターン（`ReportPage.xaml`/`DataPage.xaml` と共通のカードデザイン）を踏襲していることのコードレビューとユニットテストで代替した
+
+### フェーズ15: GalleryPage のタグ編集を captioning_config_result.json へ反映（`feature/gallery-tag-config-result-sync` ブランチ、実装完了）
+
+「GalleryPage でタグ編集した際に、captioning_config_result.json（フェーズ9で `MainPage` 実行成功時に対象ディレクトリ直下へ出力される、今回使用した設定の記録ファイル）にもタグを反映し、次回の一括タグ付け実行（`ConfigPath` として同ファイルを指定するケース）に手動編集内容を引き継ぎたい」というユーザー要望を受けて追加した。タグ追加時は `prepend_tags` に、削除時は `exclude_tags` に反映する（ユーザー指定の対応関係）。
+
+- `Models/GalleryImageEntry.cs` の `AddTag`/`RemoveTag`（フェーズ14で追加済み、同名 `.txt` への即時保存を行うメソッド）に、新設 `UpdateConfigResult(Action<WorkflowConfig> update)` の呼び出しを追加した
+  - `AddTag`: `config.PrependTags` にタグを追加（大文字小文字無視で重複排除）。矛盾を避けるため `config.ExcludeTags` から同じタグを削除する
+  - `RemoveTag`: `config.ExcludeTags` にタグを追加（同様に重複排除）。`config.PrependTags` から同じタグを削除する
+  - `UpdateConfigResult`: 画像と同じディレクトリの `captioning_config_result.json`（`MainPageViewModel.SaveExecutedConfigAsync` と同じファイル名・`System.Text.Json` オプション。`PropertyNameCaseInsensitive` で読み込み、`JsonIgnoreCondition.WhenWritingNull` で null プロパティを出力しない）を読み込み（存在しなければ `new WorkflowConfig()`）、コールバックで書き換えてから保存する。読み込み・保存に失敗した場合は `catch { }` で握りつぶし、タグ本体の `.txt` 保存自体（`SaveTags()`）には影響させない（`MainPageViewModel.SaveResultLogAsync` と同じ「記録ファイルへの反映失敗は主処理に影響させない」方針）
+  - `GalleryImageEntry` は `ConfigViewModel`/`MainPageViewModel` と同様、ComfyUI との通信を伴わないファイル I/O のみのため `ICaptioningService` ファクトリー境界は導入していない
+- `ComfyUICaptioningToolTests`: `Models/GalleryImageEntryTests.cs` に8件追加（`captioning_config_result.json` 未存在時の新規作成・空文字入力時は作成しないこと・既存ファイルの他フィールド維持と `prepend_tags`/`exclude_tags` への追記・大文字小文字無視の重複排除・追加時に `exclude_tags` から同じタグを取り除くこと・削除時に `prepend_tags` から同じタグを取り除くこと・存在しないタグの削除時はファイルを作成しないこと）。計180件、全件パス確認済み
+- 実アプリでの目視確認は、過去のフェーズ（3・4・8・10・13・14）から繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビューで代替した
 
 ### 将来的な拡張
 
