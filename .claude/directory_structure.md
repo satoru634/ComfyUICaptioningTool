@@ -34,7 +34,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 Tags は ObservableCollection&lt;string&gt; で、AddTag/RemoveTag
                                                 （フェーズ14で追加、カード単位のタグ追加・削除）呼び出しの
                                                 たびに即座に同名 .txt へ保存する（0 件になった場合は .txt
-                                                自体を削除する）
+                                                自体を削除する）。あわせて画像と同じディレクトリの
+                                                captioning_config_result.json へも反映する（フェーズ15で追加。
+                                                追加タグは prepend_tags、削除タグは exclude_tags へ、矛盾する
+                                                側は取り除いた上で追記。読み込み・保存失敗時は握りつぶし
+                                                .txt 保存自体には影響させない）
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
