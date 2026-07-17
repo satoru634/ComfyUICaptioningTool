@@ -81,11 +81,12 @@ namespace ComfyUICaptioningTool.Models
 
         /// <summary>
         /// タグを追加する。前後の空白は trim し、大文字小文字を無視して既存タグと重複する場合・
-        /// trim 後に空文字になる場合は追加しない。追加時は即座に同名 .txt へ保存し、
+        /// trim 後に空文字になる場合は追加しない。<paramref name="prepend"/> が true の場合は先頭に、
+        /// それ以外は末尾に追加する。追加時は即座に同名 .txt へ保存し、
         /// captioning_config_result.json の prepend_tags へも反映する（exclude_tags 側に
         /// 同じタグがあれば矛盾しないよう取り除く）。実際に追加した場合は true を返す。
         /// </summary>
-        public bool AddTag(string tag)
+        public bool AddTag(string tag, bool prepend = false)
         {
             var trimmed = tag.Trim();
             if (trimmed.Length == 0)
@@ -93,7 +94,10 @@ namespace ComfyUICaptioningTool.Models
             if (Tags.Any(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase)))
                 return false;
 
-            Tags.Add(trimmed);
+            if (prepend)
+                Tags.Insert(0, trimmed);
+            else
+                Tags.Add(trimmed);
             SaveTags();
 
             UpdateConfigResult(config =>
@@ -144,13 +148,26 @@ namespace ComfyUICaptioningTool.Models
         }
 
         /// <summary>
-        /// カード上の「タグを追加」入力欄（<see cref="NewTagInput"/>）の内容をタグとして追加し、
+        /// カード上の「タグを追加」入力欄（<see cref="NewTagInput"/>）の内容をタグとして末尾に追加し、
         /// 実際に追加できた場合のみ TagList 更新コールバックを呼び出す。
         /// </summary>
         [RelayCommand]
         private async Task AddNewTagAsync()
         {
             var added = AddTag(NewTagInput);
+            NewTagInput = "";
+            if (added && _onTagsChangedAsync is not null)
+                await _onTagsChangedAsync();
+        }
+
+        /// <summary>
+        /// カード上の「タグを追加」入力欄（<see cref="NewTagInput"/>）の内容をタグとして先頭に追加し、
+        /// 実際に追加できた場合のみ TagList 更新コールバックを呼び出す。
+        /// </summary>
+        [RelayCommand]
+        private async Task AddNewTagToStartAsync()
+        {
+            var added = AddTag(NewTagInput, prepend: true);
             NewTagInput = "";
             if (added && _onTagsChangedAsync is not null)
                 await _onTagsChangedAsync();

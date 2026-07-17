@@ -2,7 +2,7 @@
 
 ## 現在の状態（2026-07-16 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）・フェーズ17（`GalleryPage` の一括タグ操作入力欄を `ui:AutoSuggestBox` 化し、`TagReportGenerator` から取得したタグ一覧を候補表示する `TagList` を追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）・フェーズ17（`GalleryPage` の一括タグ操作入力欄を `ui:AutoSuggestBox` 化し、`TagReportGenerator` から取得したタグ一覧を候補表示する `TagList` を追加）・フェーズ18（`GalleryPage` カード単位のタグ追加入力欄に「先頭に追加」ボタンを追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -248,6 +248,16 @@
   - `ViewModels/Pages/GalleryViewModelTests.cs` に6件追加（初期状態で `TagList` が空・`ConfigPath` 未設定時は `LoadCommand` 実行後も空のまま・有効な `ConfigPath` + tags_report.txt から `TagList` が反映されること・レポート生成失敗時は `TagList` が空のまま影響を受けないこと・`BulkAddTagCommand` 実行後に `TagList` が再構築されること・カード単位の `AddNewTagCommand` 実行後にも `TagList` が再構築されること）
   - 計194件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認）
 - 実アプリでの目視確認は、過去のフェーズ（3・4・8・10・13・14・15）から繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビューで代替した
+
+### フェーズ18: GalleryPage カード単位のタグ追加に「先頭に追加」ボタンを追加（実装完了）
+
+「GalleryPage の画像カードにあるタグ追加入力欄は末尾に追加するボタンしか無いので、先頭に追加できるボタンも追加してほしい」というユーザー要望を受けて追加した。
+
+- `Models/GalleryImageEntry.cs`: `AddTag(string tag, bool prepend = false)` に `prepend` パラメーターを追加し、`true` の場合は `Tags.Insert(0, trimmed)` で先頭に挿入する（`false`（既定）は従来どおり末尾追加、`BulkAddTagCommand`（`GalleryViewModel`）等の既存呼び出し元は変更不要）。カード上の「タグを追加」入力欄用に、末尾追加の `AddNewTagCommand`（既存）と対になる `[RelayCommand] AddNewTagToStartAsync`（生成コマンド名 `AddNewTagToStartCommand`）を新設した。実装・コールバック呼び出し（`_onTagsChangedAsync` による `GalleryViewModel.TagList` 再構築）のパターンは `AddNewTagAsync` と同一
+- `Views/Pages/GalleryPage.xaml`: 各カードのタグ追加入力欄のボタン列を1列（末尾追加のみ）から2列に変更し、先頭追加ボタン（`AddNewTagToStartCommand`、アイコン `ArrowUp24`）を入力欄側（左）・既存の末尾追加ボタン（`AddNewTagCommand`、アイコン `AddCircle24`）を右側に配置した。両ボタンの意味の違いが分かるよう、双方に `ToolTip`（`Gallery_AddTagToStartTooltip`/`Gallery_AddTagToEndTooltip`）を新設して付与した（既存の末尾追加ボタンにはこれまで ToolTip が無かったため今回追加）
+- `Resources/Strings.resx`/`Strings.en.resx` に `Gallery_AddTagToStartTooltip`/`Gallery_AddTagToEndTooltip` を追加
+- `ComfyUICaptioningToolTests`: `Models/GalleryImageEntryTests.cs` に5件追加（`AddTag(prepend: true)` が先頭挿入・カンマ区切り書き込みを行うことと重複排除の挙動、`AddNewTagToStartCommand` 実行時に入力欄の内容が先頭に追加されクリアされること、実際に追加できた場合のみ TagList 更新コールバックが呼ばれ空文字入力時は呼ばれないこと）。計199件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認。`dotnet test` がテストを検出できない既知の環境依存事象は今回も発生した）
+- 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビュー（既存の `AddNewTagCommand`/`AddNewTagAsync` と対称な実装であること）で代替した
 
 ### 将来的な拡張
 
