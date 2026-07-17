@@ -4,7 +4,11 @@ using System.Text;
 using System.Windows.Media.Imaging;
 using ComfyUICaptioningTool.Helpers;
 using ComfyUICaptioningTool.Models;
+using ComfyUICaptioningTool.Services;
 using ComfyUILibs.Common;
+using ComfyUILibs.Exceptions;
+using ComfyUILibs.Services;
+using Wpf.Ui.Abstractions.Controls;
 
 namespace ComfyUICaptioningTool.ViewModels.Pages
 {
@@ -12,8 +16,11 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
     /// GalleryPage の ViewModel。任意ディレクトリ内の画像と、同名 .txt から読み込んだタグを
     /// カード一覧として表示する。ComfyUI との通信は行わないため（ファイルシステムの走査のみ）、
     /// ConfigPage/ReportPage が使う ICaptioningService ファクトリー境界は不要。
+    /// ただし一括タグ操作の入力候補（<see cref="TagList"/>）は <see cref="TagReportGenerator"/> 経由で
+    /// tags_report.txt から取得するため、この用途に限り ICaptioningService ファクトリー・Wd14TaggerRunner
+    /// （ConfigPath 由来）に依存する。
     /// </summary>
-    public partial class GalleryViewModel : ObservableObject
+    public partial class GalleryViewModel : ObservableObject, INavigationAware
     {
         /// <summary>タグ付け対象とみなす画像ファイルの拡張子（大文字小文字は無視）。
         /// ComfyUILibs.Services.CaptioningService の同名一覧と揃えているが internal のため参照できず、
@@ -56,10 +63,91 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         [NotifyCanExecuteChangedFor(nameof(BulkRemoveTagCommand))]
         private string _bulkTagInput = "";
 
-        /// <summary>DI コンテナから設定を受け取って初期化する。</summary>
-        public GalleryViewModel(Setting<AppConfig> config)
+        /// <summary>一括タグ操作の AutoSuggestBox で候補表示するタグ一覧（tags_report.txt 由来）。</summary>
+        [ObservableProperty]
+        private ObservableCollection<string> _tagList = new();
+
+        /// <summary>
+        /// <see cref="Wd14TaggerRunner"/> と prepend/exclude タグから <see cref="ICaptioningService"/> を生成するファクトリー。
+        /// TagList 更新（<see cref="TagReportGenerator"/> 呼び出し）のみに使うため prepend/exclude タグは常に空リストで呼び出す。
+        /// </summary>
+        private readonly Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService> _captioningServiceFactory;
+
+        /// <summary>Config.Data.ConfigPath から読み込んだ Wd14TaggerRunner。読み込み失敗・未設定時は null。</summary>
+        private Wd14TaggerRunner? _taggerRunner;
+
+        /// <summary>
+        /// DI コンテナから設定を受け取って初期化する。
+        /// <paramref name="captioningServiceFactory"/> はテスト用の差し替え口（省略時は実ネットワーク通信を行う既定実装）。
+        /// </summary>
+        public GalleryViewModel(
+            Setting<AppConfig> config,
+            Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? captioningServiceFactory = null)
         {
             Config = config;
+            _captioningServiceFactory = captioningServiceFactory
+                ?? ((runner, prepend, exclude) => new CaptioningServiceAdapter(runner, prepend, exclude));
+        }
+
+        // ── INavigationAware ─────────────────────────────────────────────────
+
+        /// <summary>ページへ遷移するたびに captioning_config.json を再読み込みし、Runner を初期化する。</summary>
+        public Task OnNavigatedToAsync()
+        {
+            TryLoadRunner();
+            return Task.CompletedTask;
+        }
+
+        /// <summary>ページから離れるときは何もしない。</summary>
+        public Task OnNavigatedFromAsync() => Task.CompletedTask;
+
+        /// <summary>
+        /// 設定ページで指定された ConfigPath から Wd14TaggerRunner を初期化する。TagList の取得にのみ使うため、
+        /// 失敗しても画像・タグ一覧本体の表示には影響させない（スナックバー等のエラー表示は行わない）。
+        /// </summary>
+        private void TryLoadRunner()
+        {
+            var path = Config.Data.ConfigPath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                _taggerRunner = null;
+                return;
+            }
+
+            try
+            {
+                _taggerRunner = new Wd14TaggerRunner(path);
+            }
+            catch (ComfyUIException)
+            {
+                _taggerRunner = null;
+            }
+        }
+
+        // ── タグ候補一覧（TagList）の更新 ──────────────────────────────────────
+
+        /// <summary>
+        /// 対象ディレクトリの tags_report.txt を <see cref="TagReportGenerator"/> で生成・解析し、
+        /// <see cref="TagList"/> を更新する。Runner 未読み込み・対象ディレクトリ未設定/未存在の場合は何もしない。
+        /// 失敗しても TagList は直前の内容のまま保持し、画像・タグ一覧本体の表示には影響させない。
+        /// </summary>
+        private async Task RefreshTagListAsync()
+        {
+            if (_taggerRunner is null)
+                return;
+            if (string.IsNullOrWhiteSpace(TargetDirectory) || !Directory.Exists(TargetDirectory))
+                return;
+
+            try
+            {
+                var service = _captioningServiceFactory(_taggerRunner, Array.Empty<string>(), Array.Empty<string>());
+                var entries = await TagReportGenerator.GenerateAsync(service, TargetDirectory, Recursive);
+                TagList = new ObservableCollection<string>(entries.Select(e => e.Tag));
+            }
+            catch
+            {
+                // タグ候補一覧の更新失敗は画像・タグ一覧本体の表示には影響させない
+            }
         }
 
         // ── ディレクトリ選択 ───────────────────────────────────────────────────
@@ -103,11 +191,13 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
             try
             {
-                var entries = await Task.Run(() => CollectEntries(directory, Recursive));
+                var entries = await Task.Run(() => CollectEntries(directory, Recursive, RefreshTagListAsync));
                 Images = new ObservableCollection<GalleryImageEntry>(entries);
 
                 if (entries.Count == 0)
                     StatusMessage = LocalizationManager.Instance["Gallery_NoImages"];
+
+                await RefreshTagListAsync();
             }
             finally
             {
@@ -116,7 +206,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         }
 
         /// <summary>対象ディレクトリ内の画像ファイルを収集し、同名 .txt のタグとサムネイルを添えて返す（ファイル名昇順）。</summary>
-        private static List<GalleryImageEntry> CollectEntries(string directory, bool recursive)
+        private static List<GalleryImageEntry> CollectEntries(string directory, bool recursive, Func<Task> onTagsChangedAsync)
         {
             var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             var imagePaths = Directory.EnumerateFiles(directory, "*", option)
@@ -132,7 +222,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                     : new List<string>();
 
                 entries.Add(new GalleryImageEntry(
-                    Path.GetFileName(imagePath), imagePath, tags, TryCreateThumbnail(imagePath)));
+                    Path.GetFileName(imagePath), imagePath, tags, TryCreateThumbnail(imagePath), onTagsChangedAsync));
             }
 
             return entries;
@@ -142,19 +232,23 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
         private bool CanBulkEditTag() => Images.Count > 0 && !string.IsNullOrWhiteSpace(BulkTagInput);
 
-        /// <summary>読み込み済みの全画像に対して、<see cref="BulkTagInput"/> のタグをまとめて追加する。</summary>
+        /// <summary>読み込み済みの全画像に対して、<see cref="BulkTagInput"/> のタグをまとめて追加し、TagList を更新する。</summary>
         [RelayCommand(CanExecute = nameof(CanBulkEditTag))]
-        private void BulkAddTag()
+        private async Task BulkAddTagAsync()
         {
             foreach (var entry in Images)
                 entry.AddTag(BulkTagInput);
 
             BulkTagInput = "";
+            await RefreshTagListAsync();
         }
 
-        /// <summary>読み込み済みの全画像から、<see cref="BulkTagInput"/> と一致するタグ（大文字小文字無視）をまとめて削除する。</summary>
+        /// <summary>
+        /// 読み込み済みの全画像から、<see cref="BulkTagInput"/> と一致するタグ（大文字小文字無視）をまとめて削除し、
+        /// TagList を更新する。
+        /// </summary>
         [RelayCommand(CanExecute = nameof(CanBulkEditTag))]
-        private void BulkRemoveTag()
+        private async Task BulkRemoveTagAsync()
         {
             var trimmed = BulkTagInput.Trim();
             foreach (var entry in Images)
@@ -167,6 +261,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             }
 
             BulkTagInput = "";
+            await RefreshTagListAsync();
         }
 
         /// <summary>カンマ区切りタグ文字列を trim・空要素除去したリストに分割する。</summary>

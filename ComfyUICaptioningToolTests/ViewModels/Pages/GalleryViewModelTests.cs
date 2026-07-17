@@ -1,8 +1,11 @@
 using System.IO;
 using ComfyUICaptioningTool.Helpers;
 using ComfyUICaptioningTool.Models;
+using ComfyUICaptioningTool.Services;
 using ComfyUICaptioningTool.ViewModels.Pages;
+using ComfyUICaptioningToolTests.Fakes;
 using ComfyUILibs.Common;
+using ComfyUILibs.Services;
 
 namespace ComfyUICaptioningToolTests.ViewModels.Pages
 {
@@ -20,6 +23,73 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
         private Setting<AppConfig> CreateSetting()
             => new(Path.Combine(_tempDir, "setting.json"), onLoad: false);
+
+        /// <summary>
+        /// Wd14TaggerRunner は AppDomain.CurrentDomain.BaseDirectory/templates を参照するため、
+        /// テスト実行ディレクトリにテンプレートファイルを配置しておく（ReportViewModelTests と同じ回避策）。
+        /// </summary>
+        private static void EnsureTemplateFile()
+        {
+            var basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates");
+            Directory.CreateDirectory(basePath);
+            var targetPath = Path.Combine(basePath, "template_wd14_tagger.json");
+            if (File.Exists(targetPath))
+                return;
+
+            var templateJson = """
+                {
+                  "1": {
+                    "class_type": "LoadImage",
+                    "inputs": {"image": ""},
+                    "_meta": {"title": "画像を読み込む"}
+                  },
+                  "2": {
+                    "class_type": "WDTimmTagger",
+                    "inputs": {
+                      "model_name": "",
+                      "general_threshold": 0.5,
+                      "character_threshold": 0.5
+                    },
+                    "_meta": {"title": "WD Timm Tagger"}
+                  },
+                  "3": {
+                    "class_type": "PreviewAny",
+                    "inputs": {},
+                    "_meta": {"title": "プレビュー任意"}
+                  }
+                }
+                """;
+            File.WriteAllText(targetPath, templateJson);
+        }
+
+        private string WriteValidConfigFile()
+        {
+            EnsureTemplateFile();
+            var path = Path.Combine(_tempDir, "captioning_config.json");
+            File.WriteAllText(path, """
+                {
+                  "comfyui_url": "http://127.0.0.1:8188",
+                  "wd14_tagger": {
+                    "model_name": "wd-eva02-large-tagger-v3",
+                    "general_threshold": 0.35,
+                    "character_threshold": 0.85
+                  }
+                }
+                """);
+            return path;
+        }
+
+        /// <summary>有効な ConfigPath・FakeCaptioningService を設定した ViewModel を作成し、OnNavigatedToAsync まで済ませる。</summary>
+        private async Task<GalleryViewModel> CreateReadyVmAsync(FakeCaptioningService fake)
+        {
+            var setting = CreateSetting();
+            setting.Data.ConfigPath = WriteValidConfigFile();
+            var vm = new GalleryViewModel(
+                setting,
+                (Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>)((_, _, _) => fake));
+            await vm.OnNavigatedToAsync();
+            return vm;
+        }
 
         // ── コンストラクター ───────────────────────────────────────────────────
 
@@ -247,6 +317,94 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             Assert.Equal(new[] { "tag_b" }, entryA.Tags);
             Assert.Equal(new[] { "tag_b" }, entryB.Tags);
             Assert.Equal("", vm.BulkTagInput);
+        }
+
+        // ── TagList（タグ候補一覧）の更新 ─────────────────────────────────────
+
+        [Fact]
+        public void Constructor_InitialState_TagListIsEmpty()
+        {
+            var vm = new GalleryViewModel(CreateSetting());
+
+            Assert.Empty(vm.TagList);
+        }
+
+        [Fact]
+        public async Task LoadCommand_Execute_ConfigPathNotSet_TagListRemainsEmpty()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+
+            await vm.LoadCommand.ExecuteAsync(null);
+
+            Assert.Empty(vm.TagList);
+        }
+
+        [Fact]
+        public async Task LoadCommand_Execute_ValidConfig_PopulatesTagListFromReportFile()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            File.WriteAllLines(
+                Path.Combine(_tempDir, CaptioningService.ReportFileName),
+                new[] { "1girl: 3", "solo: 2" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+            vm.TargetDirectory = _tempDir;
+
+            await vm.LoadCommand.ExecuteAsync(null);
+
+            Assert.Equal(new[] { "1girl", "solo" }, vm.TagList);
+        }
+
+        [Fact]
+        public async Task LoadCommand_Execute_ReportGenerationThrows_TagListRemainsEmpty()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var fake = new FakeCaptioningService { ThrowOnGenerateReport = true };
+            var vm = await CreateReadyVmAsync(fake);
+            vm.TargetDirectory = _tempDir;
+
+            await vm.LoadCommand.ExecuteAsync(null);
+
+            Assert.Empty(vm.TagList);
+        }
+
+        [Fact]
+        public async Task BulkAddTagCommand_Execute_RefreshesTagListFromReportFile()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var fake = new FakeCaptioningService();
+            var vm = await CreateReadyVmAsync(fake);
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            vm.BulkTagInput = "new_tag";
+
+            File.WriteAllLines(
+                Path.Combine(_tempDir, CaptioningService.ReportFileName),
+                new[] { "new_tag: 1" });
+
+            await vm.BulkAddTagCommand.ExecuteAsync(null);
+
+            Assert.Equal(new[] { "new_tag" }, vm.TagList);
+        }
+
+        [Fact]
+        public async Task PerCardTagEdit_AfterLoad_RefreshesTagListFromReportFile()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var fake = new FakeCaptioningService();
+            var vm = await CreateReadyVmAsync(fake);
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            var entry = Assert.Single(vm.Images);
+            entry.NewTagInput = "card_tag";
+
+            File.WriteAllLines(
+                Path.Combine(_tempDir, CaptioningService.ReportFileName),
+                new[] { "card_tag: 1" });
+
+            await entry.AddNewTagCommand.ExecuteAsync(null);
+
+            Assert.Equal(new[] { "card_tag" }, vm.TagList);
         }
     }
 }

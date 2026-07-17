@@ -2,7 +2,7 @@
 
 ## 現在の状態（2026-07-16 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）・フェーズ17（`GalleryPage` の一括タグ操作入力欄を `ui:AutoSuggestBox` 化し、`TagReportGenerator` から取得したタグ一覧を候補表示する `TagList` を追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -233,6 +233,21 @@
 - `ReportViewModel.GenerateReportAsync` は上記メソッドを呼び出すよう書き換え、`ReportEntries` への追加・レポート生成完了メッセージの組み立てのみを担うようにした。挙動・エラーハンドリング・スナックバー表示は変更していない
 - **本フェーズでは `GalleryViewModel` 側への組み込みは行っていない**（ユーザーからの依頼は「分離」のみで、`GalleryViewModel` での具体的な利用方法（タグ一覧の表示・既存タグとの重複排除サジェスト等）は未確定のため、対象外とした。`GalleryViewModel` から利用する場合は `ReportViewModel` と同様に `Wd14TaggerRunner`/`ICaptioningService` ファクトリー境界（`Config.Data.ConfigPath` からの読み込み）を別途追加する必要がある）
 - `ComfyUICaptioningToolTests`: `Services/TagReportGeneratorTests.cs`（新設、4件。`ICaptioningService` 呼び出し引数の検証・行解析（複数件・コロンを含むタグ名）・例外伝播を検証）。計184件、全件パス確認済み
+
+### フェーズ17: GalleryPage 一括タグ操作の AutoSuggestBox 化・TagList 追加（`feature/gallery-taglist-autosuggest` ブランチ、実装完了）
+
+ユーザーが `GalleryPage.xaml` の一括タグ操作入力欄を `ui:TextBox` から `ui:AutoSuggestBox`（`OriginalItemsSource` に `GalleryViewModel.TagList` をバインドする形）へ変更済みだったのを受けて、フェーズ16で抽出した `TagReportGenerator` を使って `TagList` の中身（対象ディレクトリの tags_report.txt 由来のタグ一覧）を実装し、タグが編集されるたびに更新されるようにした。
+
+- **`GalleryViewModel` に `ICaptioningService`/`Wd14TaggerRunner` 依存を追加**: `TagList` の取得のみに使うため、`ReportViewModel` と同じ形（コンストラクター引数のファクトリー・`INavigationAware.OnNavigatedToAsync` での `Wd14TaggerRunner` 読み込み）を追加した。ただし本ページはこれまでスナックバー（`ISnackbarService`）に依存しない方針（フェーズ13）だったため、`ConfigPath` 未設定・読み込み失敗時もエラー表示は行わず、`TagList` の更新を静かにスキップするだけに留めている（画像・タグ一覧表示という主機能には一切影響させない）
+- **`RefreshTagListAsync`（新設 private メソッド）**: `Wd14TaggerRunner` 未読み込み・対象ディレクトリ未設定/未存在の場合は何もしない。それ以外は `TagReportGenerator.GenerateAsync` を呼び出し、返ってきた `TagCountEntry` のタグ名だけを `TagList` へ反映する。例外は握りつぶし、失敗時は `TagList` を直前の内容のまま保持する（`GalleryImageEntry.UpdateConfigResult` と同じ「補助機能の失敗は主機能に影響させない」方針）
+- **呼び出しタイミング**: (1) `LoadCommand` 実行後（画像一覧読み込み後に一度呼び出し、初期の候補一覧を構築）。(2) `BulkAddTagCommand`/`BulkRemoveTagCommand`（`private void` → `private async Task` に変更、`BulkAddTagAsync`/`BulkRemoveTagAsync`。`[RelayCommand]` のコマンド名は `Async` サフィックスが自動的に除去されるため `BulkAddTagCommand`/`BulkRemoveTagCommand` のまま維持され、XAML 側の変更は不要）実行後に一度だけ呼び出す。(3) カード単位のタグ編集（`GalleryImageEntry.AddNewTagCommand`/`RemoveTagCommand`）実行後
+- **カード単位の編集からの通知経路（`Models/GalleryImageEntry.cs`）**: `GalleryImageEntry` のコンストラクターに `Func<Task>? onTagsChangedAsync = null` を追加し、`GalleryViewModel.CollectEntries` がエントリ生成時に `RefreshTagListAsync` を渡す。`AddTag`/`RemoveTag`（既存の同名 .txt 保存ロジック本体）は `bool`（実際に追加/削除できたか）を返すよう変更した上で従来どおり `public` のまま維持し（`BulkAddTagCommand`/`BulkRemoveTagCommand` が直接呼ぶ経路はコールバックを経由しない設計のため、一括操作では画像 1 枚ごとに `TagList` を再構築しない）、新設した `[RelayCommand] private async Task AddNewTagAsync()`/`RemoveTagAsync(string tag)`（生成されるコマンド名はいずれも `Async` サフィックス除去により `AddNewTagCommand`/`RemoveTagCommand` のまま、XAML 側の変更は不要）が `AddTag`/`RemoveTag` 呼び出し後、実際に変更が起きた場合のみコールバックを await する
+- 一括操作でエントリ 1 件ごとにコールバックを発火させず `BulkAddTagCommand`/`BulkRemoveTagCommand` の最後に 1 回だけ `TagList` を更新する設計にしたのは、多数の画像に対する一括編集のたびに対象ディレクトリ全体を毎回スキャンする `TagReportGenerator`（内部で `CaptioningService.GenerateReportAsync` が全 `.txt` を読み直す）が N 回呼ばれる非効率を避けるため
+- `ComfyUICaptioningToolTests`:
+  - `Models/GalleryImageEntryTests.cs` に4件追加（`AddNewTagCommand`/`RemoveTagCommand` 実行時、実際にタグが追加/削除された場合のみコールバックが呼ばれること・空文字入力や存在しないタグ指定時はコールバックが呼ばれないこと）
+  - `ViewModels/Pages/GalleryViewModelTests.cs` に6件追加（初期状態で `TagList` が空・`ConfigPath` 未設定時は `LoadCommand` 実行後も空のまま・有効な `ConfigPath` + tags_report.txt から `TagList` が反映されること・レポート生成失敗時は `TagList` が空のまま影響を受けないこと・`BulkAddTagCommand` 実行後に `TagList` が再構築されること・カード単位の `AddNewTagCommand` 実行後にも `TagList` が再構築されること）
+  - 計194件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認）
+- 実アプリでの目視確認は、過去のフェーズ（3・4・8・10・13・14・15）から繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビューで代替した
 
 ### 将来的な拡張
 

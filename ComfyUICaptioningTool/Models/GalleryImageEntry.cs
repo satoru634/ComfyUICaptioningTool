@@ -59,28 +59,39 @@ namespace ComfyUICaptioningTool.Models
         [ObservableProperty]
         private string _newTagInput = "";
 
-        public GalleryImageEntry(string fileName, string fullPath, IEnumerable<string> tags, BitmapImage? thumbnail)
+        /// <summary>
+        /// カード単位のタグ編集（<see cref="AddNewTagCommand"/>/<see cref="RemoveTagCommand"/>）が完了するたびに
+        /// 呼び出されるコールバック（GalleryViewModel のタグ候補一覧 TagList の更新用）。null の場合は呼び出さない。
+        /// 一括操作（GalleryViewModel.BulkAddTag/BulkRemoveTag）は <see cref="AddTag"/>/<see cref="RemoveTag"/> を
+        /// 直接呼び出すためこのコールバックを経由しない（呼び出し元が一括操作完了後にまとめて更新する）。
+        /// </summary>
+        private readonly Func<Task>? _onTagsChangedAsync;
+
+        public GalleryImageEntry(
+            string fileName, string fullPath, IEnumerable<string> tags, BitmapImage? thumbnail,
+            Func<Task>? onTagsChangedAsync = null)
         {
             FileName = fileName;
             FullPath = fullPath;
             Thumbnail = thumbnail;
             Tags = new ObservableCollection<string>(tags);
             Tags.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasTags));
+            _onTagsChangedAsync = onTagsChangedAsync;
         }
 
         /// <summary>
         /// タグを追加する。前後の空白は trim し、大文字小文字を無視して既存タグと重複する場合・
         /// trim 後に空文字になる場合は追加しない。追加時は即座に同名 .txt へ保存し、
         /// captioning_config_result.json の prepend_tags へも反映する（exclude_tags 側に
-        /// 同じタグがあれば矛盾しないよう取り除く）。
+        /// 同じタグがあれば矛盾しないよう取り除く）。実際に追加した場合は true を返す。
         /// </summary>
-        public void AddTag(string tag)
+        public bool AddTag(string tag)
         {
             var trimmed = tag.Trim();
             if (trimmed.Length == 0)
-                return;
+                return false;
             if (Tags.Any(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase)))
-                return;
+                return false;
 
             Tags.Add(trimmed);
             SaveTags();
@@ -93,17 +104,19 @@ namespace ComfyUICaptioningTool.Models
 
                 config.ExcludeTags?.RemoveAll(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase));
             });
+
+            return true;
         }
 
         /// <summary>
         /// タグを削除する。削除できた場合は即座に同名 .txt へ保存し、captioning_config_result.json の
         /// exclude_tags へも反映する（prepend_tags 側に同じタグがあれば矛盾しないよう取り除く）。
+        /// 実際に削除した場合は true を返す。
         /// </summary>
-        [RelayCommand]
-        public void RemoveTag(string tag)
+        public bool RemoveTag(string tag)
         {
             if (!Tags.Remove(tag))
-                return;
+                return false;
 
             SaveTags();
 
@@ -115,14 +128,32 @@ namespace ComfyUICaptioningTool.Models
 
                 config.PrependTags?.RemoveAll(t => string.Equals(t, tag, StringComparison.OrdinalIgnoreCase));
             });
+
+            return true;
         }
 
-        /// <summary>カード上の「タグを追加」入力欄（<see cref="NewTagInput"/>）の内容をタグとして追加する。</summary>
+        /// <summary>
+        /// カードのタグチップ削除ボタン用コマンド。<see cref="RemoveTag"/> で実際に削除できた場合のみ、
+        /// TagList 更新コールバックを呼び出す。
+        /// </summary>
         [RelayCommand]
-        private void AddNewTag()
+        private async Task RemoveTagAsync(string tag)
         {
-            AddTag(NewTagInput);
+            if (RemoveTag(tag) && _onTagsChangedAsync is not null)
+                await _onTagsChangedAsync();
+        }
+
+        /// <summary>
+        /// カード上の「タグを追加」入力欄（<see cref="NewTagInput"/>）の内容をタグとして追加し、
+        /// 実際に追加できた場合のみ TagList 更新コールバックを呼び出す。
+        /// </summary>
+        [RelayCommand]
+        private async Task AddNewTagAsync()
+        {
+            var added = AddTag(NewTagInput);
             NewTagInput = "";
+            if (added && _onTagsChangedAsync is not null)
+                await _onTagsChangedAsync();
         }
 
         /// <summary>

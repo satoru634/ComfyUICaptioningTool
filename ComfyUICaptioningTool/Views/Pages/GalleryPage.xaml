@@ -128,11 +128,20 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <ui:TextBox
+                    <ui:AutoSuggestBox
+                        x:Name="SuggestTagName"
                         Grid.Column="0"
                         Height="36"
+                        VerticalAlignment="Stretch"
                         PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkTagPlaceholder]}"
-                        Text="{Binding ViewModel.BulkTagInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        Text="{Binding ViewModel.BulkTagInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        OriginalItemsSource="{Binding ViewModel.TagList}">
+                        <ui:AutoSuggestBox.Icon>
+                            <ui:IconSourceElement>
+                                <ui:SymbolIconSource Symbol="Search24" />
+                            </ui:IconSourceElement>
+                        </ui:AutoSuggestBox.Icon>
+                    </ui:AutoSuggestBox>
                     <ui:Button
                         Grid.Column="1"
                         Height="36"
