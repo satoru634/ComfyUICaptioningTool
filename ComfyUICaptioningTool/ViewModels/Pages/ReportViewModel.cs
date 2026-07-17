@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Text.RegularExpressions;
 using ComfyUICaptioningTool.Helpers;
 using ComfyUICaptioningTool.Models;
 using ComfyUICaptioningTool.Services;
@@ -32,9 +31,6 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
         /// <summary>Config.Data.ConfigPath から読み込んだ Wd14TaggerRunner。読み込み失敗時は null。</summary>
         private Wd14TaggerRunner? _taggerRunner;
-
-        /// <summary>tags_report.txt の行（"タグ名: 出現回数"）を解析する正規表現。</summary>
-        private static readonly Regex ReportLinePattern = new(@"^(.*): (\d+)$");
 
         /// <summary>ConfigPath の読み込みに成功し、レポート生成が実行可能な状態かどうか。</summary>
         [ObservableProperty]
@@ -167,17 +163,11 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             try
             {
                 var service = _captioningServiceFactory(_taggerRunner!, Array.Empty<string>(), Array.Empty<string>());
-                await service.GenerateReportAsync(directory, ReportRecursive);
+                var entries = await TagReportGenerator.GenerateAsync(service, directory, ReportRecursive);
+                foreach (var entry in entries)
+                    ReportEntries.Add(entry);
 
                 var reportPath = Path.Combine(directory, ComfyUILibs.Services.CaptioningService.ReportFileName);
-                var lines = await File.ReadAllLinesAsync(reportPath);
-                foreach (var line in lines)
-                {
-                    var match = ReportLinePattern.Match(line);
-                    if (match.Success)
-                        ReportEntries.Add(new TagCountEntry(match.Groups[1].Value, int.Parse(match.Groups[2].Value)));
-                }
-
                 ReportStatusText = string.Format(
                     LocalizationManager.Instance["Report_ReportGeneratedFormat"], ReportEntries.Count, reportPath);
 
