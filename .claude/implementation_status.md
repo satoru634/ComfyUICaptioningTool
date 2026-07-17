@@ -2,7 +2,7 @@
 
 ## 現在の状態（2026-07-16 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -224,6 +224,15 @@
   - `GalleryImageEntry` は `ConfigViewModel`/`MainPageViewModel` と同様、ComfyUI との通信を伴わないファイル I/O のみのため `ICaptioningService` ファクトリー境界は導入していない
 - `ComfyUICaptioningToolTests`: `Models/GalleryImageEntryTests.cs` に8件追加（`captioning_config_result.json` 未存在時の新規作成・空文字入力時は作成しないこと・既存ファイルの他フィールド維持と `prepend_tags`/`exclude_tags` への追記・大文字小文字無視の重複排除・追加時に `exclude_tags` から同じタグを取り除くこと・削除時に `prepend_tags` から同じタグを取り除くこと・存在しないタグの削除時はファイルを作成しないこと）。計180件、全件パス確認済み
 - 実アプリでの目視確認は、過去のフェーズ（3・4・8・10・13・14）から繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビューで代替した
+
+### フェーズ16: タグ集計レポート生成ロジックの抽出（`feature/extract-tag-report-generator` ブランチ、実装完了）
+
+「`ReportViewModel.GenerateReportAsync` にあるタグ集計レポート生成ロジックを、`GalleryViewModel` でもタグ一覧を扱う際に再利用できるよう別クラスへ分離してほしい」というユーザー要望を受けて、`ICaptioningService.GenerateReportAsync` の呼び出し + `tags_report.txt` の読み込み・行解析（`"タグ名: 出現回数"` → `TagCountEntry`）を `Services/TagReportGenerator.cs`（新設、`static` クラス）へ抽出した。
+
+- `TagReportGenerator.GenerateAsync(ICaptioningService service, string directory, bool recursive)`: `service.GenerateReportAsync` → `tags_report.txt` 読み込み → 正規表現 `^(.*): (\d+)$` での行解析（`ReportViewModel` から移設したものと同一の正規表現、`rating:general` のようにタグ名自体にコロンを含むケースも安全に解析できる）を行い `List<TagCountEntry>` を返す静的メソッド。`ComfyUIException` はそのまま呼び出し元に伝播させる（`ReportViewModel` 側の catch で処理する既存の方針を変えない）
+- `ReportViewModel.GenerateReportAsync` は上記メソッドを呼び出すよう書き換え、`ReportEntries` への追加・レポート生成完了メッセージの組み立てのみを担うようにした。挙動・エラーハンドリング・スナックバー表示は変更していない
+- **本フェーズでは `GalleryViewModel` 側への組み込みは行っていない**（ユーザーからの依頼は「分離」のみで、`GalleryViewModel` での具体的な利用方法（タグ一覧の表示・既存タグとの重複排除サジェスト等）は未確定のため、対象外とした。`GalleryViewModel` から利用する場合は `ReportViewModel` と同様に `Wd14TaggerRunner`/`ICaptioningService` ファクトリー境界（`Config.Data.ConfigPath` からの読み込み）を別途追加する必要がある）
+- `ComfyUICaptioningToolTests`: `Services/TagReportGeneratorTests.cs`（新設、4件。`ICaptioningService` 呼び出し引数の検証・行解析（複数件・コロンを含むタグ名）・例外伝播を検証）。計184件、全件パス確認済み
 
 ### 将来的な拡張
 

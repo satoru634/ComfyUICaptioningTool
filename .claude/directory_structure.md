@@ -58,6 +58,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 インターフェース（テスト時にネットワーク通信を伴う実装を
                                                 差し替えるための境界）
       CaptioningServiceAdapter.cs           <- ICaptioningService の既定実装（実 CaptioningService をラップ）
+      TagReportGenerator.cs                 <- ICaptioningService.GenerateReportAsync を呼び出し、
+                                                tags_report.txt を読み込んで TagCountEntry のリストへ
+                                                変換する静的クラス（フェーズ16で ReportViewModel から
+                                                抽出。GalleryViewModel 等の別 ViewModel でも
+                                                タグ一覧取得に再利用できるようにしたもの）
     ViewModels/Pages/
       MainPageViewModel.cs                  <- ディレクトリ一括タグ付け実行ページの VM。ConfigPath から
                                                 Wd14TaggerRunner を読み込み、ICaptioningService 経由で
@@ -83,7 +88,8 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath から
                                                 Wd14TaggerRunner を読み込み、対象ディレクトリを選択して
                                                 タグ集計レポート（tags_report.txt）を生成・一覧表示する
-                                                （旧 DataViewModel から分離）
+                                                （旧 DataViewModel から分離）。レポート生成・解析本体は
+                                                Services/TagReportGenerator.cs へ抽出済み（フェーズ16）
       SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
                                                 パス選択（BrowseConfigPathCommand）、実行結果ログ出力先
                                                 ResultsFolder の選択（BrowseResultsFolderCommand）を実装済み
@@ -141,6 +147,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 対応する .txt 書き込み内容、RemoveTag の存在有無別の挙動
                                                 （最後の1件削除時は .txt 自体が削除されること）、
                                                 AddNewTagCommand 実行時の NewTagInput 反映・クリアを検証）
+    Services/
+      TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
+                                                ICaptioningService 呼び出し引数の検証・レポート行の解析
+                                                （複数件・コロンを含むタグ名）・例外伝播を検証）
     TestSupport/
       StaThreadGate.cs                      <- STA スレッドで WPF オブジェクトを生成するテスト同士を直列化する共有 lock
       StaTestRunner.cs                      <- 非同期 ViewModel メソッドを STA スレッド上で実行するヘルパー。
@@ -168,7 +178,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       ReportViewModelTests.cs               <- ReportViewModel のテスト（ConfigPath 読み込み成否・
                                                 GenerateReportCommand の CanExecute/実行・レポート行の解析
                                                 （コロンを含むタグ名を含む）・エラーハンドリング。
-                                                旧 DataViewModelTests から分離）
+                                                旧 DataViewModelTests から分離。レポート行解析自体の
+                                                詳細な検証は Services/TagReportGeneratorTests.cs 側にも
+                                                持つ（フェーズ16でロジックを抽出したため重複気味だが、
+                                                ReportViewModel 側は「サービス呼び出し～画面表示」の
+                                                結合的な検証として残している）
       SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）
       ConfigViewModelTests.cs               <- ConfigViewModel のテスト（ConfigPath 読み込み成否・
                                                 ファイル未存在時の新規作成扱い・SaveCommand の CanExecute/実行・
