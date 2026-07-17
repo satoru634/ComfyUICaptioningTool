@@ -41,12 +41,15 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 読み込み・保存失敗時は握りつぶし .txt 保存自体には影響させない）。
                                                 コンストラクターに Func&lt;Task&gt;? onTagsChangedAsync を
                                                 受け取り（フェーズ17で追加）、カード単位のコマンド
-                                                AddNewTagCommand/RemoveTagCommand（実体は AddNewTagAsync/
-                                                RemoveTagAsync。[RelayCommand] の Async サフィックス除去に
-                                                より生成コマンド名は変わらない）が実際にタグを変更できた
-                                                場合のみこのコールバックを呼び出す（GalleryViewModel の
-                                                TagList 更新用。一括操作からは AddTag/RemoveTag を直接
-                                                呼ぶためコールバックを経由しない）
+                                                AddNewTagCommand/AddNewTagToStartCommand/RemoveTagCommand
+                                                （実体は AddNewTagAsync/AddNewTagToStartAsync/RemoveTagAsync。
+                                                [RelayCommand] の Async サフィックス除去により生成コマンド名は
+                                                変わらない）が実際にタグを変更できた場合のみこのコールバックを
+                                                呼び出す（GalleryViewModel の TagList 更新用。一括操作からは
+                                                AddTag/RemoveTag を直接呼ぶためコールバックを経由しない）。
+                                                AddTag は prepend 引数（既定 false）を持ち、true の場合は
+                                                先頭に挿入する（フェーズ18で追加。AddNewTagToStartCommand が
+                                                これを利用してカード上の「先頭に追加」ボタンを実装する）
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
@@ -133,7 +136,8 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 表示。各カードに
                                                 サムネイル（読み込み失敗時は SymbolIcon プレースホルダー）・
                                                 ファイル名・タグ一覧（チップ表示、削除ボタン付き、.txt 未存在時は
-                                                「タグ未生成」表示）・タグ追加入力欄を表示する）。
+                                                「タグ未生成」表示）・タグ追加入力欄（先頭に追加/末尾に追加の
+                                                2 ボタン、フェーズ18で先頭追加ボタンを追加）を表示する）。
                                                 各カードのタグ一覧は独自にスクロール可能な入れ子 ScrollViewer
                                                 だが、素の入れ子のままだと画像・タグ一覧全体を包む外側の
                                                 ScrollViewer までマウスホイールイベントがバブルせず外側の
@@ -169,7 +173,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 フェーズ17で、onTagsChangedAsync コールバックが
                                                 AddNewTagCommand/RemoveTagCommand 実行時に実際にタグを
                                                 変更できた場合のみ呼ばれ、空文字入力や存在しないタグ
-                                                指定時は呼ばれないことを検証するテストを追加）
+                                                指定時は呼ばれないことを検証するテストを追加。フェーズ18で、
+                                                AddTag(prepend: true) が先頭挿入・重複排除を行うこと、
+                                                AddNewTagToStartCommand 実行時の NewTagInput 反映・クリアと
+                                                onTagsChangedAsync コールバックの呼び出し条件を検証する
+                                                テストを追加）
     Services/
       TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
                                                 ICaptioningService 呼び出し引数の検証・レポート行の解析

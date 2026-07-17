@@ -328,6 +328,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
                                     <ui:TextBox
@@ -346,8 +347,18 @@
                                         Height="36"
                                         Margin="8,0,0,0"
                                         Appearance="Secondary"
+                                        Command="{Binding AddNewTagToStartCommand}"
+                                        Icon="{ui:SymbolIcon ArrowUp24}"
+                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToStartTooltip]}" />
+                                    <ui:Button
+                                        Grid.Column="2"
+                                        Width="36"
+                                        Height="36"
+                                        Margin="8,0,0,0"
+                                        Appearance="Secondary"
                                         Command="{Binding AddNewTagCommand}"
-                                        Icon="{ui:SymbolIcon AddCircle24}" />
+                                        Icon="{ui:SymbolIcon AddCircle24}"
+                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToEndTooltip]}" />
                                 </Grid>
                             </Grid>
                         </Border>

@@ -95,6 +95,28 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.Equal(new[] { "Tag_A" }, entry.Tags);
         }
 
+        [Fact]
+        public void AddTag_PrependTrue_InsertsAtStart_AndWritesCommaJoined()
+        {
+            var path = CreateImagePath();
+            var entry = new GalleryImageEntry("a.jpg", path, new[] { "existing" }, null);
+
+            entry.AddTag("new_tag", prepend: true);
+
+            Assert.Equal(new[] { "new_tag", "existing" }, entry.Tags);
+            Assert.Equal("new_tag, existing", File.ReadAllText(Path.ChangeExtension(path, ".txt")));
+        }
+
+        [Fact]
+        public void AddTag_PrependTrue_DuplicateIgnoringCase_DoesNotAdd()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "Tag_A" }, null);
+
+            entry.AddTag("tag_a", prepend: true);
+
+            Assert.Equal(new[] { "Tag_A" }, entry.Tags);
+        }
+
         // ── RemoveTag ─────────────────────────────────────────────────────────
 
         [Fact]
@@ -151,6 +173,22 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.Equal("", entry.NewTagInput);
         }
 
+        // ── AddNewTagToStartCommand ───────────────────────────────────────────
+
+        [Fact]
+        public void AddNewTagToStartCommand_Execute_InsertsInputAtStart_AndClears()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "existing" }, null)
+            {
+                NewTagInput = "typed_tag",
+            };
+
+            entry.AddNewTagToStartCommand.Execute(null);
+
+            Assert.Equal(new[] { "typed_tag", "existing" }, entry.Tags);
+            Assert.Equal("", entry.NewTagInput);
+        }
+
         // ── TagList 更新コールバック（GalleryViewModel.RefreshTagListAsync 相当） ────
 
         [Fact]
@@ -181,6 +219,38 @@ namespace ComfyUICaptioningToolTests.Models
             };
 
             await entry.AddNewTagCommand.ExecuteAsync(null);
+
+            Assert.Equal(0, callbackCount);
+        }
+
+        [Fact]
+        public async Task AddNewTagToStartCommand_Execute_TagActuallyAdded_InvokesCallback()
+        {
+            var callbackCount = 0;
+            var entry = new GalleryImageEntry(
+                "a.jpg", CreateImagePath(), Array.Empty<string>(), null,
+                onTagsChangedAsync: () => { callbackCount++; return Task.CompletedTask; })
+            {
+                NewTagInput = "typed_tag",
+            };
+
+            await entry.AddNewTagToStartCommand.ExecuteAsync(null);
+
+            Assert.Equal(1, callbackCount);
+        }
+
+        [Fact]
+        public async Task AddNewTagToStartCommand_Execute_EmptyInput_DoesNotInvokeCallback()
+        {
+            var callbackCount = 0;
+            var entry = new GalleryImageEntry(
+                "a.jpg", CreateImagePath(), Array.Empty<string>(), null,
+                onTagsChangedAsync: () => { callbackCount++; return Task.CompletedTask; })
+            {
+                NewTagInput = "   ",
+            };
+
+            await entry.AddNewTagToStartCommand.ExecuteAsync(null);
 
             Assert.Equal(0, callbackCount);
         }

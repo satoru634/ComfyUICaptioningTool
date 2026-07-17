@@ -131,6 +131,8 @@
   <data name="Gallery_BulkRemoveButtonContent" xml:space="preserve"><value>全てから削除</value></data>
   <data name="Gallery_AddTagPlaceholder" xml:space="preserve"><value>タグを追加</value></data>
   <data name="Gallery_RemoveTagTooltip" xml:space="preserve"><value>タグを削除</value></data>
+  <data name="Gallery_AddTagToStartTooltip" xml:space="preserve"><value>先頭に追加</value></data>
+  <data name="Gallery_AddTagToEndTooltip" xml:space="preserve"><value>末尾に追加</value></data>
 
   <!-- Report（タグ集計レポート表示ページ） -->
   <data name="Report_Title" xml:space="preserve"><value>タグ集計レポート</value></data>
