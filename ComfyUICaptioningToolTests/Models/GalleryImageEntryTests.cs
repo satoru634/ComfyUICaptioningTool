@@ -151,6 +151,66 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.Equal("", entry.NewTagInput);
         }
 
+        // ── TagList 更新コールバック（GalleryViewModel.RefreshTagListAsync 相当） ────
+
+        [Fact]
+        public async Task AddNewTagCommand_Execute_TagActuallyAdded_InvokesCallback()
+        {
+            var callbackCount = 0;
+            var entry = new GalleryImageEntry(
+                "a.jpg", CreateImagePath(), Array.Empty<string>(), null,
+                onTagsChangedAsync: () => { callbackCount++; return Task.CompletedTask; })
+            {
+                NewTagInput = "typed_tag",
+            };
+
+            await entry.AddNewTagCommand.ExecuteAsync(null);
+
+            Assert.Equal(1, callbackCount);
+        }
+
+        [Fact]
+        public async Task AddNewTagCommand_Execute_EmptyInput_DoesNotInvokeCallback()
+        {
+            var callbackCount = 0;
+            var entry = new GalleryImageEntry(
+                "a.jpg", CreateImagePath(), Array.Empty<string>(), null,
+                onTagsChangedAsync: () => { callbackCount++; return Task.CompletedTask; })
+            {
+                NewTagInput = "   ",
+            };
+
+            await entry.AddNewTagCommand.ExecuteAsync(null);
+
+            Assert.Equal(0, callbackCount);
+        }
+
+        [Fact]
+        public async Task RemoveTagCommand_Execute_TagActuallyRemoved_InvokesCallback()
+        {
+            var callbackCount = 0;
+            var entry = new GalleryImageEntry(
+                "a.jpg", CreateImagePath(), new[] { "tag1" }, null,
+                onTagsChangedAsync: () => { callbackCount++; return Task.CompletedTask; });
+
+            await entry.RemoveTagCommand.ExecuteAsync("tag1");
+
+            Assert.Equal(1, callbackCount);
+        }
+
+        [Fact]
+        public async Task RemoveTagCommand_Execute_TagNotFound_DoesNotInvokeCallback()
+        {
+            var callbackCount = 0;
+            var entry = new GalleryImageEntry(
+                "a.jpg", CreateImagePath(), new[] { "tag1" }, null,
+                onTagsChangedAsync: () => { callbackCount++; return Task.CompletedTask; });
+
+            await entry.RemoveTagCommand.ExecuteAsync("nonexistent");
+
+            Assert.Equal(0, callbackCount);
+        }
+
         // ── captioning_config_result.json への反映 ───────────────────────────────
 
         private string ConfigResultPath => Path.Combine(_tempDir, "captioning_config_result.json");

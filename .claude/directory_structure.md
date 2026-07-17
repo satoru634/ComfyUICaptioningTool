@@ -32,13 +32,21 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 読み込んだタグ・サムネイル（BitmapImage?）をまとめた
                                                 ObservableObject（HasTags 派生プロパティを持つ）。
                                                 Tags は ObservableCollection&lt;string&gt; で、AddTag/RemoveTag
-                                                （フェーズ14で追加、カード単位のタグ追加・削除）呼び出しの
-                                                たびに即座に同名 .txt へ保存する（0 件になった場合は .txt
-                                                自体を削除する）。あわせて画像と同じディレクトリの
-                                                captioning_config_result.json へも反映する（フェーズ15で追加。
-                                                追加タグは prepend_tags、削除タグは exclude_tags へ、矛盾する
-                                                側は取り除いた上で追記。読み込み・保存失敗時は握りつぶし
-                                                .txt 保存自体には影響させない）
+                                                （フェーズ14で追加、カード単位のタグ追加・削除。実際に
+                                                追加/削除できたかを bool で返す）呼び出しのたびに即座に
+                                                同名 .txt へ保存する（0 件になった場合は .txt 自体を削除する）。
+                                                あわせて画像と同じディレクトリの captioning_config_result.json
+                                                へも反映する（フェーズ15で追加。追加タグは prepend_tags、
+                                                削除タグは exclude_tags へ、矛盾する側は取り除いた上で追記。
+                                                読み込み・保存失敗時は握りつぶし .txt 保存自体には影響させない）。
+                                                コンストラクターに Func&lt;Task&gt;? onTagsChangedAsync を
+                                                受け取り（フェーズ17で追加）、カード単位のコマンド
+                                                AddNewTagCommand/RemoveTagCommand（実体は AddNewTagAsync/
+                                                RemoveTagAsync。[RelayCommand] の Async サフィックス除去に
+                                                より生成コマンド名は変わらない）が実際にタグを変更できた
+                                                場合のみこのコールバックを呼び出す（GalleryViewModel の
+                                                TagList 更新用。一括操作からは AddTag/RemoveTag を直接
+                                                呼ぶためコールバックを経由しない）
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
@@ -80,11 +88,19 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 OnNavigatedToAsync を実装）
       GalleryViewModel.cs                   <- 画像・タグ一覧ページの VM。対象ディレクトリ内の画像を収集し、
                                                 同名 .txt からタグを読み込んでサムネイルと共に一覧表示する
-                                                （LoadCommand）。ComfyUI と通信しないため ICaptioningService
-                                                ファクトリー境界・Wd14TaggerRunner には依存しない。
+                                                （LoadCommand）。画像・タグ一覧本体の表示は ComfyUI と通信
+                                                しないため ICaptioningService ファクトリー境界・
+                                                Wd14TaggerRunner には依存しないが、一括タグ操作の
+                                                AutoSuggestBox 候補一覧 TagList（フェーズ17で追加）の取得
+                                                （TagReportGenerator 経由で tags_report.txt を生成・解析）
+                                                にのみこれらに依存する（INavigationAware.OnNavigatedToAsync
+                                                で ConfigPath から Wd14TaggerRunner を読み込む。失敗しても
+                                                TagList 更新を静かにスキップするのみでエラー表示はしない）。
                                                 読み込み済み全画像に対する一括タグ追加・削除
-                                                （BulkAddTagCommand/BulkRemoveTagCommand、フェーズ14で追加）
-                                                も持つ
+                                                （BulkAddTagCommand/BulkRemoveTagCommand、フェーズ14で追加。
+                                                実体は BulkAddTagAsync/BulkRemoveTagAsync で完了後に一度
+                                                だけ TagList を再構築する）も持つ。LoadCommand 完了後・
+                                                カード単位のタグ編集完了後にも TagList を再構築する
       ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath から
                                                 Wd14TaggerRunner を読み込み、対象ディレクトリを選択して
                                                 タグ集計レポート（tags_report.txt）を生成・一覧表示する
@@ -110,8 +126,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 ディレクトリ/日時/サマリ・エラーメッセージ/1 ファイルごとの
                                                 処理結果ログを表示し、更新ボタンで再スキャンする）
       GalleryPage.xaml(.cs)                 <- 画像・タグ一覧画面（対象ディレクトリ選択・再帰オプション・
-                                                読み込みボタン、一括タグ操作カード（フェーズ14で追加）、
-                                                WrapPanel によるカード折り返し表示。各カードに
+                                                読み込みボタン、一括タグ操作カード（フェーズ14で追加。
+                                                入力欄はフェーズ17で ui:TextBox から ui:AutoSuggestBox へ
+                                                変更し、OriginalItemsSource を ViewModel.TagList へバインド
+                                                してタグ候補を表示する）、WrapPanel によるカード折り返し
+                                                表示。各カードに
                                                 サムネイル（読み込み失敗時は SymbolIcon プレースホルダー）・
                                                 ファイル名・タグ一覧（チップ表示、削除ボタン付き、.txt 未存在時は
                                                 「タグ未生成」表示）・タグ追加入力欄を表示する）。
@@ -146,7 +165,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 trim/重複排除（大文字小文字無視）/既存タグへの追記と
                                                 対応する .txt 書き込み内容、RemoveTag の存在有無別の挙動
                                                 （最後の1件削除時は .txt 自体が削除されること）、
-                                                AddNewTagCommand 実行時の NewTagInput 反映・クリアを検証）
+                                                AddNewTagCommand 実行時の NewTagInput 反映・クリアを検証。
+                                                フェーズ17で、onTagsChangedAsync コールバックが
+                                                AddNewTagCommand/RemoveTagCommand 実行時に実際にタグを
+                                                変更できた場合のみ呼ばれ、空文字入力や存在しないタグ
+                                                指定時は呼ばれないことを検証するテストを追加）
     Services/
       TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
                                                 ICaptioningService 呼び出し引数の検証・レポート行の解析
@@ -174,7 +197,16 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 の有無・ファイル名昇順ソート・不正な画像バイト列でも
                                                 Thumbnail=null のままエントリが残ることを検証。フェーズ14で
                                                 BulkAddTagCommand/BulkRemoveTagCommand の CanExecute・
-                                                全画像への一括追加/削除（大文字小文字無視）のテストを追加）
+                                                全画像への一括追加/削除（大文字小文字無視）のテストを追加。
+                                                フェーズ17で、TagList の初期状態が空であること・ConfigPath
+                                                未設定時は LoadCommand 実行後も空のままであること・有効な
+                                                ConfigPath + tags_report.txt から TagList が反映されること・
+                                                レポート生成失敗時は TagList が空のまま影響を受けないこと・
+                                                BulkAddTagCommand/カード単位の AddNewTagCommand 実行後に
+                                                TagList が再構築されることを検証するテストを追加。
+                                                ReportViewModelTests と同様の Wd14TaggerRunner テンプレート
+                                                ファイル配置・captioning_config.json 書き出しヘルパーを
+                                                CreateReadyVmAsync として追加した）
       ReportViewModelTests.cs               <- ReportViewModel のテスト（ConfigPath 読み込み成否・
                                                 GenerateReportCommand の CanExecute/実行・レポート行の解析
                                                 （コロンを含むタグ名を含む）・エラーハンドリング。
