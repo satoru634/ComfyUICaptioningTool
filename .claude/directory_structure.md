@@ -100,8 +100,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 で ConfigPath から Wd14TaggerRunner を読み込む。失敗しても
                                                 TagList 更新を静かにスキップするのみでエラー表示はしない）。
                                                 読み込み済み全画像に対する一括タグ追加・削除
-                                                （BulkAddTagCommand/BulkRemoveTagCommand、フェーズ14で追加。
-                                                実体は BulkAddTagAsync/BulkRemoveTagAsync で完了後に一度
+                                                （BulkAddTagCommand/BulkAddTagToStartCommand/
+                                                BulkRemoveTagCommand、フェーズ14で追加、先頭追加は
+                                                フェーズ19で追加。実体は BulkAddTagAsync/
+                                                BulkAddTagToStartAsync/BulkRemoveTagAsync で完了後に一度
                                                 だけ TagList を再構築する）も持つ。LoadCommand 完了後・
                                                 カード単位のタグ編集完了後にも TagList を再構築する
       ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath から
@@ -132,7 +134,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 読み込みボタン、一括タグ操作カード（フェーズ14で追加。
                                                 入力欄はフェーズ17で ui:TextBox から ui:AutoSuggestBox へ
                                                 変更し、OriginalItemsSource を ViewModel.TagList へバインド
-                                                してタグ候補を表示する）、WrapPanel によるカード折り返し
+                                                してタグ候補を表示する。先頭に追加/末尾に追加/削除の
+                                                3 ボタンをアイコン+ToolTip 表示で並べる。先頭追加ボタンは
+                                                フェーズ19で追加）、WrapPanel によるカード折り返し
                                                 表示。各カードに
                                                 サムネイル（読み込み失敗時は SymbolIcon プレースホルダー）・
                                                 ファイル名・タグ一覧（チップ表示、削除ボタン付き、.txt 未存在時は
@@ -214,7 +218,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 TagList が再構築されることを検証するテストを追加。
                                                 ReportViewModelTests と同様の Wd14TaggerRunner テンプレート
                                                 ファイル配置・captioning_config.json 書き出しヘルパーを
-                                                CreateReadyVmAsync として追加した）
+                                                CreateReadyVmAsync として追加した。フェーズ19で、
+                                                BulkAddTagToStartCommand の CanExecute・全画像の先頭への
+                                                一括追加・実行後の TagList 再構築を検証するテストを追加）
       ReportViewModelTests.cs               <- ReportViewModel のテスト（ConfigPath 読み込み成否・
                                                 GenerateReportCommand の CanExecute/実行・レポート行の解析
                                                 （コロンを含むタグ名を含む）・エラーハンドリング。

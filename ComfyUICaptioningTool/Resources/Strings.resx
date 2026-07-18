@@ -127,7 +127,8 @@
   <data name="Gallery_NoTagsLabel" xml:space="preserve"><value>タグ未生成</value></data>
   <data name="Gallery_BulkTagSectionLabel" xml:space="preserve"><value>一括タグ操作</value></data>
   <data name="Gallery_BulkTagPlaceholder" xml:space="preserve"><value>タグ名</value></data>
-  <data name="Gallery_BulkAddButtonContent" xml:space="preserve"><value>全てに追加</value></data>
+  <data name="Gallery_BulkAddButtonContent" xml:space="preserve"><value>全ての末尾に追加</value></data>
+  <data name="Gallery_BulkAddToStartButtonContent" xml:space="preserve"><value>全ての先頭に追加</value></data>
   <data name="Gallery_BulkRemoveButtonContent" xml:space="preserve"><value>全てから削除</value></data>
   <data name="Gallery_AddTagPlaceholder" xml:space="preserve"><value>タグを追加</value></data>
   <data name="Gallery_RemoveTagTooltip" xml:space="preserve"><value>タグを削除</value></data>

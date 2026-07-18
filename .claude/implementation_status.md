@@ -2,7 +2,7 @@
 
 ## 現在の状態（2026-07-16 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）・フェーズ17（`GalleryPage` の一括タグ操作入力欄を `ui:AutoSuggestBox` 化し、`TagReportGenerator` から取得したタグ一覧を候補表示する `TagList` を追加）・フェーズ18（`GalleryPage` カード単位のタグ追加入力欄に「先頭に追加」ボタンを追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）・フェーズ17（`GalleryPage` の一括タグ操作入力欄を `ui:AutoSuggestBox` 化し、`TagReportGenerator` から取得したタグ一覧を候補表示する `TagList` を追加）・フェーズ18（`GalleryPage` カード単位のタグ追加入力欄に「先頭に追加」ボタンを追加）・フェーズ19（`GalleryPage` 一括タグ操作にも「先頭に追加」ボタンを追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -258,6 +258,16 @@
 - `Resources/Strings.resx`/`Strings.en.resx` に `Gallery_AddTagToStartTooltip`/`Gallery_AddTagToEndTooltip` を追加
 - `ComfyUICaptioningToolTests`: `Models/GalleryImageEntryTests.cs` に5件追加（`AddTag(prepend: true)` が先頭挿入・カンマ区切り書き込みを行うことと重複排除の挙動、`AddNewTagToStartCommand` 実行時に入力欄の内容が先頭に追加されクリアされること、実際に追加できた場合のみ TagList 更新コールバックが呼ばれ空文字入力時は呼ばれないこと）。計199件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認。`dotnet test` がテストを検出できない既知の環境依存事象は今回も発生した）
 - 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビュー（既存の `AddNewTagCommand`/`AddNewTagAsync` と対称な実装であること）で代替した
+
+### フェーズ19: GalleryPage 一括タグ操作にも「先頭に追加」ボタンを追加（実装完了）
+
+フェーズ18でカード単位のタグ追加入力欄に「先頭に追加」ボタンを追加したのに続き、「一括タグ操作の部分にも同様に、先頭にタグを追加するボタンを実装してほしい」というユーザー要望を受けて追加した。着手前に、ユーザーが `GalleryPage.xaml` の一括タグ操作ボタン（`BulkAddTagCommand`/`BulkRemoveTagCommand`）を `Content` 文字列表示から `Icon`（`AddSquare24`/`Delete24`）+ `ToolTip` 表示へ変更済みだったため、これを踏襲する形で実装した。
+
+- `ViewModels/Pages/GalleryViewModel.cs`: 既存の `BulkAddTagAsync`（`BulkTagInput` を全画像の末尾に追加）と対になる `[RelayCommand(CanExecute = nameof(CanBulkEditTag))] BulkAddTagToStartAsync`（生成コマンド名 `BulkAddTagToStartCommand`）を新設。`GalleryImageEntry.AddTag(BulkTagInput, prepend: true)` を全画像に対して呼び出し、完了後に `BulkTagInput` をクリアして `RefreshTagListAsync` を呼ぶ（`BulkAddTagAsync` と同一パターン）。`Images`/`BulkTagInput` の `[NotifyCanExecuteChangedFor]` にも `BulkAddTagToStartCommand` を追加した
+- `Views/Pages/GalleryPage.xaml`: 一括タグ操作カードの `Grid.ColumnDefinitions` を3列から4列に拡張し、`AutoSuggestBox` の直後（末尾追加ボタンの左）に先頭追加ボタン（`BulkAddTagToStartCommand`、アイコン `ArrowUp24`、カード単位の先頭追加ボタンと同じアイコン）を配置した
+- `Resources/Strings.resx`/`Strings.en.resx`: 新設 `Gallery_BulkAddToStartButtonContent`（「全ての先頭に追加」/"Add to start of all"）を追加。既存 `Gallery_BulkAddButtonContent` は先頭追加ボタンとの区別のため文言を「全てに追加」→「全ての末尾に追加」（"Add to all"→"Add to end of all"）に変更した
+- `ComfyUICaptioningToolTests`: `ViewModels/Pages/GalleryViewModelTests.cs` に、既存の `BulkAddTagCommand` 系テスト（`CanExecute`・全画像への反映・入力欄クリア・`TagList` 再構築）と対称な `BulkAddTagToStartCommand` のテストを追加（`CanExecute` の false/true 判定に `BulkAddTagToStartCommand` の検証を追加、`BulkAddTagToStartCommand_Execute_InsertsTagAtStartOfAllImages_AndClearsInput`・`BulkAddTagToStartCommand_Execute_RefreshesTagListFromReportFile` を新規追加）。計201件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認）
+- 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビュー（既存の `BulkAddTagCommand`/`BulkAddTagAsync` と対称な実装であること）で代替した
 
 ### 将来的な拡張
 
