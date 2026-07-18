@@ -54,12 +54,17 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         /// <summary>読み込んだ画像とタグの一覧（ファイル名昇順）。</summary>
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(BulkAddTagCommand))]
+        [NotifyCanExecuteChangedFor(nameof(BulkAddTagToStartCommand))]
         [NotifyCanExecuteChangedFor(nameof(BulkRemoveTagCommand))]
         private ObservableCollection<GalleryImageEntry> _images = new();
 
-        /// <summary>一括タグ操作（<see cref="BulkAddTagCommand"/>/<see cref="BulkRemoveTagCommand"/>）の対象タグ入力欄。</summary>
+        /// <summary>
+        /// 一括タグ操作（<see cref="BulkAddTagCommand"/>/<see cref="BulkAddTagToStartCommand"/>/
+        /// <see cref="BulkRemoveTagCommand"/>）の対象タグ入力欄。
+        /// </summary>
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(BulkAddTagCommand))]
+        [NotifyCanExecuteChangedFor(nameof(BulkAddTagToStartCommand))]
         [NotifyCanExecuteChangedFor(nameof(BulkRemoveTagCommand))]
         private string _bulkTagInput = "";
 
@@ -232,12 +237,23 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
         private bool CanBulkEditTag() => Images.Count > 0 && !string.IsNullOrWhiteSpace(BulkTagInput);
 
-        /// <summary>読み込み済みの全画像に対して、<see cref="BulkTagInput"/> のタグをまとめて追加し、TagList を更新する。</summary>
+        /// <summary>読み込み済みの全画像に対して、<see cref="BulkTagInput"/> のタグをまとめて末尾に追加し、TagList を更新する。</summary>
         [RelayCommand(CanExecute = nameof(CanBulkEditTag))]
         private async Task BulkAddTagAsync()
         {
             foreach (var entry in Images)
                 entry.AddTag(BulkTagInput);
+
+            BulkTagInput = "";
+            await RefreshTagListAsync();
+        }
+
+        /// <summary>読み込み済みの全画像に対して、<see cref="BulkTagInput"/> のタグをまとめて先頭に追加し、TagList を更新する。</summary>
+        [RelayCommand(CanExecute = nameof(CanBulkEditTag))]
+        private async Task BulkAddTagToStartAsync()
+        {
+            foreach (var entry in Images)
+                entry.AddTag(BulkTagInput, prepend: true);
 
             BulkTagInput = "";
             await RefreshTagListAsync();

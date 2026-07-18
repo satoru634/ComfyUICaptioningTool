@@ -127,7 +127,8 @@
   <data name="Gallery_NoTagsLabel" xml:space="preserve"><value>No tags yet</value></data>
   <data name="Gallery_BulkTagSectionLabel" xml:space="preserve"><value>Bulk tag operations</value></data>
   <data name="Gallery_BulkTagPlaceholder" xml:space="preserve"><value>Tag name</value></data>
-  <data name="Gallery_BulkAddButtonContent" xml:space="preserve"><value>Add to all</value></data>
+  <data name="Gallery_BulkAddButtonContent" xml:space="preserve"><value>Add to end of all</value></data>
+  <data name="Gallery_BulkAddToStartButtonContent" xml:space="preserve"><value>Add to start of all</value></data>
   <data name="Gallery_BulkRemoveButtonContent" xml:space="preserve"><value>Remove from all</value></data>
   <data name="Gallery_AddTagPlaceholder" xml:space="preserve"><value>Add tag</value></data>
   <data name="Gallery_RemoveTagTooltip" xml:space="preserve"><value>Remove tag</value></data>

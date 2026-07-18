@@ -126,6 +126,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <ui:AutoSuggestBox
@@ -147,15 +148,25 @@
                         Height="36"
                         Margin="12,0,0,0"
                         Appearance="Secondary"
-                        Command="{Binding ViewModel.BulkAddTagCommand}"
-                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkAddButtonContent]}" />
+                        Command="{Binding ViewModel.BulkAddTagToStartCommand}"
+                        Icon="{ui:SymbolIcon ArrowUp24}"
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkAddToStartButtonContent]}" />
                     <ui:Button
                         Grid.Column="2"
                         Height="36"
                         Margin="12,0,0,0"
                         Appearance="Secondary"
+                        Command="{Binding ViewModel.BulkAddTagCommand}"
+                        Icon="{ui:SymbolIcon AddSquare24}"
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkAddButtonContent]}" />
+                    <ui:Button
+                        Grid.Column="3"
+                        Height="36"
+                        Margin="12,0,0,0"
+                        Appearance="Secondary"
                         Command="{Binding ViewModel.BulkRemoveTagCommand}"
-                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkRemoveButtonContent]}" />
+                        Icon="{ui:SymbolIcon Delete24}"
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkRemoveButtonContent]}" />
                 </Grid>
             </Grid>
         </Border>
