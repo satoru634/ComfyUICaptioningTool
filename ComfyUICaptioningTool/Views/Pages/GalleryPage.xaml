@@ -8,6 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:ComfyUICaptioningTool.Models"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
     Title="GalleryPage"
     d:DataContext="{d:DesignInstance local:GalleryPage, IsDesignTimeCreatable=False}"
     d:DesignHeight="800"
@@ -20,6 +21,7 @@
 
     <Page.Resources>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <helpers:TagExistsToBoolean x:Key="TagExistsToBoolean"/>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Page.Resources>
 
@@ -166,7 +168,19 @@
                         Appearance="Secondary"
                         Command="{Binding ViewModel.BulkRemoveTagCommand}"
                         Icon="{ui:SymbolIcon Delete24}"
-                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkRemoveButtonContent]}" />
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_BulkRemoveButtonContent]}">
+                        <ui:Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource TagExistsToBoolean}">
+                                <Binding Path="ViewModel.BulkTagInput" />
+                                <Binding Path="ViewModel.TagList" />
+                                <Binding>
+                                    <Binding.Source>
+                                        <sys:Boolean>False</sys:Boolean>
+                                    </Binding.Source>
+                                </Binding>
+                            </MultiBinding>
+                        </ui:Button.IsEnabled>
+                    </ui:Button>
                 </Grid>
             </Grid>
         </Border>
@@ -360,7 +374,19 @@
                                         Appearance="Secondary"
                                         Command="{Binding AddNewTagToStartCommand}"
                                         Icon="{ui:SymbolIcon ArrowUp24}"
-                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToStartTooltip]}" />
+                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToStartTooltip]}">
+                                        <ui:Button.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource TagExistsToBoolean}">
+                                                <Binding Path="NewTagInput" />
+                                                <Binding Path="Tags" />
+                                                <Binding>
+                                                    <Binding.Source>
+                                                        <sys:Boolean>True</sys:Boolean>
+                                                    </Binding.Source>
+                                                </Binding>
+                                            </MultiBinding>
+                                        </ui:Button.IsEnabled>
+                                    </ui:Button>
                                     <ui:Button
                                         Grid.Column="2"
                                         Width="36"
@@ -369,7 +395,19 @@
                                         Appearance="Secondary"
                                         Command="{Binding AddNewTagCommand}"
                                         Icon="{ui:SymbolIcon AddCircle24}"
-                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToEndTooltip]}" />
+                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToEndTooltip]}">
+                                        <ui:Button.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource TagExistsToBoolean}">
+                                                <Binding Path="NewTagInput" />
+                                                <Binding Path="Tags" />
+                                                <Binding>
+                                                    <Binding.Source>
+                                                        <sys:Boolean>True</sys:Boolean>
+                                                    </Binding.Source>
+                                                </Binding>
+                                            </MultiBinding>
+                                        </ui:Button.IsEnabled>
+                                    </ui:Button>
                                 </Grid>
                             </Grid>
                         </Border>
