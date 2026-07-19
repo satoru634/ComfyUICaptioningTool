@@ -100,6 +100,11 @@
   <data name="Main_PrependTagsLabel" xml:space="preserve"><value>先頭に追加するタグ</value></data>
   <data name="Main_ExcludeTagsLabel" xml:space="preserve"><value>除外するタグ</value></data>
   <data name="Main_TagsPlaceholder" xml:space="preserve"><value>tag1, tag2, ...</value></data>
+  <data name="Main_ImportConfigButtonTooltip" xml:space="preserve"><value>別の captioning_config.json からタグをインポート</value></data>
+  <data name="Main_ImportConfigDialogTitle" xml:space="preserve"><value>インポートする captioning_config.json を選択</value></data>
+  <data name="Main_ImportConfigSuccessFormat" xml:space="preserve"><value>タグをインポートしました: {0}</value></data>
+  <data name="Main_ImportConfigParseErrorFormat" xml:space="preserve"><value>インポートファイルの解析に失敗しました（JSON が不正です）: {0}</value></data>
+  <data name="Main_ImportConfigReadErrorFormat" xml:space="preserve"><value>インポートファイルの読み込みに失敗しました: {0}</value></data>
   <data name="Main_RunButton" xml:space="preserve"><value>実行</value></data>
   <data name="Main_LogHeader" xml:space="preserve"><value>ログ</value></data>
   <data name="Main_SummaryFormat" xml:space="preserve"><value>完了: 処理 {0}, スキップ {1}, エラー {2}</value></data>

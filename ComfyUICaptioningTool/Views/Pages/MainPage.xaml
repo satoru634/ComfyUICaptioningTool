@@ -161,7 +161,7 @@
                     FontSize="12"
                     Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_PrependTagsLabel]}" />
                 <ui:TextBox
-                    Height="80"
+                    Height="36"
                     Margin="0,0,0,12"
                     PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
                     Text="{Binding ViewModel.PrependTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -170,9 +170,17 @@
                     FontSize="12"
                     Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ExcludeTagsLabel]}" />
                 <ui:TextBox
+                    Margin="0,0,0,4"
                     Height="80"
                     PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
                     Text="{Binding ViewModel.ExcludeTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <ui:Button
+                    Margin="0,8,0,0"
+                    Height="36"
+                    Appearance="Secondary"
+                    Command="{Binding ViewModel.ImportTagsFromConfigCommand}"
+                    Icon="{ui:SymbolIcon ArrowImport24}"
+                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ImportConfigButtonTooltip]}" />
             </StackPanel>
         </Border>
 

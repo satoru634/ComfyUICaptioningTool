@@ -269,6 +269,21 @@
 - `ComfyUICaptioningToolTests`: `ViewModels/Pages/GalleryViewModelTests.cs` に、既存の `BulkAddTagCommand` 系テスト（`CanExecute`・全画像への反映・入力欄クリア・`TagList` 再構築）と対称な `BulkAddTagToStartCommand` のテストを追加（`CanExecute` の false/true 判定に `BulkAddTagToStartCommand` の検証を追加、`BulkAddTagToStartCommand_Execute_InsertsTagAtStartOfAllImages_AndClearsInput`・`BulkAddTagToStartCommand_Execute_RefreshesTagListFromReportFile` を新規追加）。計201件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認）
 - 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビュー（既存の `BulkAddTagCommand`/`BulkAddTagAsync` と対称な実装であること）で代替した
 
+### フェーズ20: MainPage タグフィルタへの他 captioning_config.json からのタグインポート機能追加（`feature/import-tags-from-config` ブランチ、実装完了）
+
+「別の captioning_config.json から prepend_tags/exclude_tags をインポートしたい」というユーザー要望を受けて、`MainPage` のタグフィルタ（先頭に追加するタグ/除外するタグ）セクションにインポート機能を追加した。着手前に (1) インポートしたタグを既存の入力欄内容に対してどう反映するか、(2) 「簡易的なバリデーション」の範囲、の2点をユーザーに確認し、(1) 既存の入力欄の内容に追記（マージ、大文字小文字無視で重複排除）する、(2) JSON 構文チェックのみ（`ConfigLoader.ValidateWd14TaggerConfig` のような厳密な必須項目チェックは行わない）、の方針で実装した。
+
+- `ViewModels/Pages/MainPageViewModel.cs`:
+  - `[RelayCommand] ImportTagsFromConfig()`（生成コマンド名 `ImportTagsFromConfigCommand`、`BrowseDirectoryCommand` と同じくファイルダイアログを開くだけの薄いラッパー）を新設。`Microsoft.Win32.OpenFileDialog`（JSON フィルタ付き）でインポート元ファイルを選択させ、選択されたら `ImportTagsFromFile(path)` を呼び出す
+  - `public void ImportTagsFromFile(string path)`（新設）: 実際のインポート処理本体。ファイルダイアログの操作を伴わずユニットテストできるよう、コマンド本体から分離した公開メソッドとした（`ICaptioningService` ファクトリーのような DI 境界ではなく、`GalleryImageEntry.AddTag` 等と同様のシンプルな公開メソッドによる分離）
+    - 読み込み: `File.ReadAllText` → `JsonSerializer.Deserialize<WorkflowConfig>`（`ConfigReadOptions`、`PropertyNameCaseInsensitive`）。JSON 構文が不正な場合（`JsonException`）はエラースナックバーを表示し、入力欄は変更しない（簡易的なバリデーションの範囲。`comfyui_url`/`wd14_tagger` 等の必須項目チェックは行わないため、prepend_tags/exclude_tags のみを持つ最小限の JSON でもインポート可能）
+    - 反映: インポートした `config.PrependTags`/`config.ExcludeTags`（キー欠落時は空リスト）を、現在の `PrependTagsText`/`ExcludeTagsText` の末尾に追記する（`MergeTagLists`、大文字小文字無視で重複排除、先に現れた方＝既存入力欄の内容を残す）。成功時は成功スナックバーを表示する
+  - 既存の `MergeTags(IReadOnlyList<string> defaults, string extraText)`（既定タグとテキスト入力の union）を、共通ヘルパー `MergeTagLists(IReadOnlyList<string> first, IReadOnlyList<string> second)`（2 つのタグリストを順番通り連結し重複排除するだけの汎用版）に委譲するようリファクタリングした。`ImportTagsFromFile` からも同じ `MergeTagLists` を利用する
+- `Views/Pages/MainPage.xaml`: タグフィルタセクションのラベル行（Grid.Row=4）を `TextBlock` 単体から `Grid`（ラベル + インポートボタン）に変更し、右端に `ArrowImport16` アイコンの `ui:Button`（`ImportTagsFromConfigCommand` にバインド、ToolTip 付き）を追加した
+- `Resources/Strings.resx`/`Strings.en.resx` に `Main_ImportConfigButtonTooltip`/`Main_ImportConfigDialogTitle`/`Main_ImportConfigSuccessFormat`/`Main_ImportConfigParseErrorFormat`/`Main_ImportConfigReadErrorFormat` を追加
+- `ComfyUICaptioningToolTests`: `ViewModels/Pages/MainPageViewModelTests.cs` に `ImportTagsFromFile` のテストを7件追加（空の入力欄への反映・既存入力欄への追記・大文字小文字無視の重複排除・prepend_tags/exclude_tags キー欠落時に入力欄が変化しないこと・成功時の成功スナックバー表示・JSON 構文不正時のエラースナックバー表示と入力欄が変化しないこと）。計220件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認）
+  - **既知の事象**: 本フェーズの実装・テストとは無関係に、テストスイート全体を実行すると `GalleryViewModelTests`/`DataViewModelTests` 等の英語文言を検証するテストが低頻度で「日本語文言が返る」形で失敗することがある（`LocalizationManager.CurrentCulture` の setter が `CultureInfo.DefaultThreadCurrentUICulture`（プロセス全体の既定値、スレッドプールが新規スレッド生成時にのみ参照）を書き換える一方、既存のカルチャ切替テスト（`LocalizationManagerTests`/`SettingsViewModelTests`）は該当スレッド上でのみ `try/finally` で元に戻しているため、xUnit v3 の並列実行でスレッドプールのスレッドがまたがって再利用されると、別テストの実行中スレッドに一時的な言語設定が残留することがある）。ベースライン（本フェーズの変更前）でも複数回実行のうち発生することを確認しており、本フェーズで新設したテストが原因ではないテスト基盤側の既知の flaky な事象と判断した（本フェーズの対応範囲外）
+
 ### 将来的な拡張
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図）の整備
