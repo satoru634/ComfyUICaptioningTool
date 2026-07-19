@@ -84,7 +84,12 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 さらに実行ログ + 使用した設定をマージした CaptioningResultLog を
                                                 AppConfig.ResultsFolder 配下へ captioning_result_{timestamp}.json
                                                 として出力する（SaveResultLogAsync、成功・失敗どちらの場合も
-                                                RunAsync の finally から呼び出す）
+                                                RunAsync の finally から呼び出す）。フェーズ20で、別の
+                                                captioning_config.json から prepend_tags/exclude_tags を
+                                                インポートし PrependTagsText/ExcludeTagsText へ追記する
+                                                ImportTagsFromConfigCommand（実体は OpenFileDialog を開く
+                                                ImportTagsFromConfig と、ダイアログ操作を伴わずテストできる
+                                                よう分離した公開メソッド ImportTagsFromFile(string path)）を追加
       DataViewModel.cs                      <- 実行結果表示ページの VM。AppConfig.ResultsFolder 配下の
                                                 captioning_result_*.json を新しい順に読み込んで一覧表示する
                                                 （RefreshCommand・ページ遷移のたびに再読み込みする

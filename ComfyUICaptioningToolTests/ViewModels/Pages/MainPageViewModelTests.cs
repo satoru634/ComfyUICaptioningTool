@@ -655,5 +655,137 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             Assert.False(vm.IsRunning);
         }
+
+        // ── ImportTagsFromFile（別の captioning_config.json からのタグインポート） ─
+
+        private string WriteImportConfigFile(IEnumerable<string>? prependTags, IEnumerable<string>? excludeTags)
+        {
+            var path = Path.Combine(_tempDir, "other_config.json");
+            var config = new
+            {
+                comfyui_url = "http://127.0.0.1:8188",
+                prepend_tags = prependTags,
+                exclude_tags = excludeTags,
+            };
+            File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(config));
+            return path;
+        }
+
+        [Fact]
+        public void ImportTagsFromFile_ValidConfig_AppendsToEmptyTextFields()
+        {
+            var vm = CreateVm();
+            var path = WriteImportConfigFile(new[] { "my_chara" }, new[] { "rating:general" });
+
+            RunOnSta(() =>
+            {
+                vm.ImportTagsFromFile(path);
+                return Task.CompletedTask;
+            });
+
+            Assert.Equal("my_chara", vm.PrependTagsText);
+            Assert.Equal("rating:general", vm.ExcludeTagsText);
+        }
+
+        [Fact]
+        public void ImportTagsFromFile_ValidConfig_AppendsAfterExistingInputText()
+        {
+            var vm = CreateVm();
+            vm.PrependTagsText = "1girl";
+            vm.ExcludeTagsText = "solo";
+            var path = WriteImportConfigFile(new[] { "my_chara" }, new[] { "rating:general" });
+
+            RunOnSta(() =>
+            {
+                vm.ImportTagsFromFile(path);
+                return Task.CompletedTask;
+            });
+
+            Assert.Equal("1girl, my_chara", vm.PrependTagsText);
+            Assert.Equal("solo, rating:general", vm.ExcludeTagsText);
+        }
+
+        [Fact]
+        public void ImportTagsFromFile_DuplicateTag_DeduplicatesCaseInsensitive()
+        {
+            var vm = CreateVm();
+            vm.PrependTagsText = "MY_CHARA";
+            var path = WriteImportConfigFile(new[] { "my_chara", "1girl" }, Array.Empty<string>());
+
+            RunOnSta(() =>
+            {
+                vm.ImportTagsFromFile(path);
+                return Task.CompletedTask;
+            });
+
+            Assert.Equal("MY_CHARA, 1girl", vm.PrependTagsText);
+        }
+
+        [Fact]
+        public void ImportTagsFromFile_ConfigWithoutTagKeys_LeavesTextUnchanged()
+        {
+            var vm = CreateVm();
+            vm.PrependTagsText = "1girl";
+            var path = Path.Combine(_tempDir, "other_config.json");
+            File.WriteAllText(path, """{ "comfyui_url": "http://127.0.0.1:8188" }""");
+
+            RunOnSta(() =>
+            {
+                vm.ImportTagsFromFile(path);
+                return Task.CompletedTask;
+            });
+
+            Assert.Equal("1girl", vm.PrependTagsText);
+        }
+
+        [Fact]
+        public void ImportTagsFromFile_ValidConfig_ShowsSuccessSnackbar()
+        {
+            var vm = CreateVm();
+            var path = WriteImportConfigFile(new[] { "my_chara" }, null);
+
+            RunOnSta(() =>
+            {
+                vm.ImportTagsFromFile(path);
+                return Task.CompletedTask;
+            });
+
+            Assert.Contains(_fakeSnackbar.Calls, c => c.Appearance == ControlAppearance.Success);
+        }
+
+        [Fact]
+        public void ImportTagsFromFile_InvalidJson_ShowsDangerSnackbar()
+        {
+            var vm = CreateVm();
+            var path = Path.Combine(_tempDir, "broken_config.json");
+            File.WriteAllText(path, "{ invalid json ");
+
+            RunOnSta(() =>
+            {
+                vm.ImportTagsFromFile(path);
+                return Task.CompletedTask;
+            });
+
+            Assert.Contains(_fakeSnackbar.Calls, c => c.Appearance == ControlAppearance.Danger);
+        }
+
+        [Fact]
+        public void ImportTagsFromFile_InvalidJson_DoesNotChangeExistingText()
+        {
+            var vm = CreateVm();
+            vm.PrependTagsText = "1girl";
+            vm.ExcludeTagsText = "solo";
+            var path = Path.Combine(_tempDir, "broken_config.json");
+            File.WriteAllText(path, "{ invalid json ");
+
+            RunOnSta(() =>
+            {
+                vm.ImportTagsFromFile(path);
+                return Task.CompletedTask;
+            });
+
+            Assert.Equal("1girl", vm.PrependTagsText);
+            Assert.Equal("solo", vm.ExcludeTagsText);
+        }
     }
 }

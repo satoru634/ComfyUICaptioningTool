@@ -100,6 +100,11 @@
   <data name="Main_PrependTagsLabel" xml:space="preserve"><value>Tags to prepend</value></data>
   <data name="Main_ExcludeTagsLabel" xml:space="preserve"><value>Tags to exclude</value></data>
   <data name="Main_TagsPlaceholder" xml:space="preserve"><value>tag1, tag2, ...</value></data>
+  <data name="Main_ImportConfigButtonTooltip" xml:space="preserve"><value>Import tags from another captioning_config.json</value></data>
+  <data name="Main_ImportConfigDialogTitle" xml:space="preserve"><value>Select the captioning_config.json to import</value></data>
+  <data name="Main_ImportConfigSuccessFormat" xml:space="preserve"><value>Imported tags from: {0}</value></data>
+  <data name="Main_ImportConfigParseErrorFormat" xml:space="preserve"><value>Failed to parse the import file (invalid JSON): {0}</value></data>
+  <data name="Main_ImportConfigReadErrorFormat" xml:space="preserve"><value>Failed to read the import file: {0}</value></data>
   <data name="Main_RunButton" xml:space="preserve"><value>Run</value></data>
   <data name="Main_LogHeader" xml:space="preserve"><value>Log</value></data>
   <data name="Main_SummaryFormat" xml:space="preserve"><value>Done: processed {0}, skipped {1}, errors {2}</value></data>

@@ -209,6 +209,73 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                 TargetDirectory = dialog.FolderName;
         }
 
+        // ── 別の captioning_config.json からのタグインポート ───────────────────
+
+        /// <summary>ファイル選択ダイアログを開いて、別の captioning_config.json から prepend/exclude タグをインポートする。</summary>
+        [RelayCommand]
+        private void ImportTagsFromConfig()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = LocalizationManager.Instance["Main_ImportConfigDialogTitle"],
+                Filter = "JSON (*.json)|*.json|All files (*.*)|*.*",
+            };
+
+            if (dialog.ShowDialog() == true)
+                ImportTagsFromFile(dialog.FileName);
+        }
+
+        /// <summary>
+        /// <paramref name="path"/> が指す captioning_config.json から prepend_tags/exclude_tags を読み込み、
+        /// 現在の入力欄（PrependTagsText/ExcludeTagsText）へ追記（大文字小文字無視で重複排除しつつマージ）する。
+        /// JSON 構文が不正な場合はエラー表示のみ行い入力欄は変更しない（簡易的なバリデーション）。
+        /// ファイルダイアログの操作を伴わずテストできるよう <see cref="ImportTagsFromConfigCommand"/> から分離した公開メソッド。
+        /// </summary>
+        public void ImportTagsFromFile(string path)
+        {
+            string json;
+            try
+            {
+                json = File.ReadAllText(path, Encoding.UTF8);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                ShowImportError(string.Format(LocalizationManager.Instance["Main_ImportConfigReadErrorFormat"], ex.Message));
+                return;
+            }
+
+            WorkflowConfig config;
+            try
+            {
+                config = JsonSerializer.Deserialize<WorkflowConfig>(json, ConfigReadOptions) ?? new WorkflowConfig();
+            }
+            catch (JsonException ex)
+            {
+                ShowImportError(string.Format(LocalizationManager.Instance["Main_ImportConfigParseErrorFormat"], ex.Message));
+                return;
+            }
+
+            var importedPrepend = config.PrependTags ?? new List<string>();
+            var importedExclude = config.ExcludeTags ?? new List<string>();
+
+            PrependTagsText = string.Join(", ", MergeTagLists(SplitTags(PrependTagsText), importedPrepend));
+            ExcludeTagsText = string.Join(", ", MergeTagLists(SplitTags(ExcludeTagsText), importedExclude));
+
+            _snackbarService.Show(
+                LocalizationManager.Instance["Common_Completed"],
+                string.Format(LocalizationManager.Instance["Main_ImportConfigSuccessFormat"], path),
+                ControlAppearance.Success,
+                new SymbolIcon(SymbolRegular.CheckmarkCircle24),
+                TimeSpan.FromSeconds(4.0));
+        }
+
+        private void ShowImportError(string message) => _snackbarService.Show(
+            LocalizationManager.Instance["Common_Error"],
+            message,
+            ControlAppearance.Danger,
+            new SymbolIcon(SymbolRegular.ErrorCircle24),
+            TimeSpan.FromSeconds(5.0));
+
         // ── バッチ実行 ────────────────────────────────────────────────────────
 
         private bool CanRun() => IsConfigLoaded && !IsRunning && !string.IsNullOrWhiteSpace(TargetDirectory);
@@ -399,10 +466,14 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         /// 同じタグが両方に指定された場合に、タグフィルタ適用後の出力へ二重に挿入されるのを防ぐ。
         /// </summary>
         private static List<string> MergeTags(IReadOnlyList<string> defaults, string extraText)
+            => MergeTagLists(defaults, SplitTags(extraText));
+
+        /// <summary>2 つのタグリストを順番通りに連結し、大文字小文字無視で重複排除する（先に現れた方を残す）。</summary>
+        private static List<string> MergeTagLists(IReadOnlyList<string> first, IReadOnlyList<string> second)
         {
             var merged = new List<string>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var tag in defaults.Concat(SplitTags(extraText)))
+            foreach (var tag in first.Concat(second))
             {
                 if (seen.Add(tag))
                     merged.Add(tag);
