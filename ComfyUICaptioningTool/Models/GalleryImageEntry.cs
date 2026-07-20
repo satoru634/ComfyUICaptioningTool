@@ -6,6 +6,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
+using System.Windows;
 using System.Windows.Media.Imaging;
 using ComfyUILibs.Models;
 
@@ -171,6 +172,26 @@ namespace ComfyUICaptioningTool.Models
             NewTagInput = "";
             if (added && _onTagsChangedAsync is not null)
                 await _onTagsChangedAsync();
+        }
+
+        /// <summary>
+        /// 現在の <see cref="Tags"/> をカンマ区切りでクリップボードへコピーする。タグが 0 件の場合は何もしない。
+        /// クリップボードアクセスに失敗した場合（他アプリによる一時的なロック等）は握りつぶす。
+        /// </summary>
+        [RelayCommand]
+        private void CopyTagsToClipboard()
+        {
+            if (Tags.Count == 0)
+                return;
+
+            try
+            {
+                Clipboard.SetText(string.Join(", ", Tags));
+            }
+            catch
+            {
+                // クリップボードアクセス失敗時は静かに無視する
+            }
         }
 
         /// <summary>

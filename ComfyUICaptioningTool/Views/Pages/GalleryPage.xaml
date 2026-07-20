@@ -351,13 +351,22 @@
                                     Grid.Row="1"
                                     Margin="0,8,0,0">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <ui:TextBox
+                                    <ui:Button
                                         Grid.Column="0"
+                                        Height="36"
+                                        Appearance="Secondary"
+                                        Command="{Binding CopyTagsToClipboardCommand}"
+                                        Icon="{ui:SymbolIcon Copy24}"
+                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_CopyTagsTooltip]}"/>
+                                    <ui:TextBox
+                                        Grid.Column="1"
+                                        Margin="8,0,0,0"
                                         Height="36"
                                         FontSize="12"
                                         PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagPlaceholder]}"
@@ -367,7 +376,7 @@
                                         </ui:TextBox.InputBindings>
                                     </ui:TextBox>
                                     <ui:Button
-                                        Grid.Column="1"
+                                        Grid.Column="2"
                                         Width="36"
                                         Height="36"
                                         Margin="8,0,0,0"
@@ -388,7 +397,7 @@
                                         </ui:Button.IsEnabled>
                                     </ui:Button>
                                     <ui:Button
-                                        Grid.Column="2"
+                                        Grid.Column="3"
                                         Width="36"
                                         Height="36"
                                         Margin="8,0,0,0"

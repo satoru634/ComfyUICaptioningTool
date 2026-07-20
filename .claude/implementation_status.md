@@ -1,8 +1,8 @@
 # 実装状況
 
-## 現在の状態（2026-07-16 時点）
+## 現在の状態（2026-07-20 時点）
 
-フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）・フェーズ17（`GalleryPage` の一括タグ操作入力欄を `ui:AutoSuggestBox` 化し、`TagReportGenerator` から取得したタグ一覧を候補表示する `TagList` を追加）・フェーズ18（`GalleryPage` カード単位のタグ追加入力欄に「先頭に追加」ボタンを追加）・フェーズ19（`GalleryPage` 一括タグ操作にも「先頭に追加」ボタンを追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
+フェーズ1（`ComfyUILibs` への `CaptioningService` 新設）・フェーズ2（`MainPage` のディレクトリ一括タグ付け実行ページへの置換）・フェーズ3（`SettingsPage` へのデフォルト prepend/exclude タグ追加、フェーズ6で廃止）・フェーズ4（`DataPage` の実行結果・タグ集計レポート表示ページへの置換）・フェーズ6（既定 prepend/exclude タグの保持先を `captioning_config.json` に一本化）・フェーズ8（`ConfigPage` による captioning_config.json 直接編集）・フェーズ9（`MainPage` 実行成功時の実行結果設定 JSON `captioning_config_result.json` 出力）・フェーズ10（`DataPage` を実行結果表示専用ページに簡素化し、タグ集計レポートを新規 `ReportPage` に分離）・フェーズ11（実行ログ + 使用した設定をマージした結果ログ `captioning_result_*.json` を `Results` フォルダへ出力）・フェーズ12（`DataPage` を `Results` フォルダの `captioning_result_*.json` 一覧表示に変更し、直近 1 件のみだった `CaptioningRunResultStore` 方式を廃止）・フェーズ13（画像とタグ一覧をカード表示する新規 `GalleryPage` の新設）・フェーズ14（`GalleryPage` へのタグ編集機能（追加・削除、カード単位＋一括操作）の追加）・フェーズ15（`GalleryPage` のタグ編集を `captioning_config_result.json` へ反映）・フェーズ16（`ReportViewModel` のタグ集計レポート生成ロジックを `Services/TagReportGenerator.cs` へ抽出）・フェーズ17（`GalleryPage` の一括タグ操作入力欄を `ui:AutoSuggestBox` 化し、`TagReportGenerator` から取得したタグ一覧を候補表示する `TagList` を追加）・フェーズ18（`GalleryPage` カード単位のタグ追加入力欄に「先頭に追加」ボタンを追加）・フェーズ19（`GalleryPage` 一括タグ操作にも「先頭に追加」ボタンを追加）・フェーズ20（`MainPage` タグフィルタへの他 captioning_config.json からのタグインポート機能追加）・フェーズ21（`GalleryPage` カード単位のタグ一覧をクリップボードへコピーするボタンを追加）が実装完了。テンプレート由来のサンプル実装は残っていない。
 
 `ComfyUILibs`（別リポジトリ）は Python版 `run_workflow` 相当のロジック（`WorkflowRunner` / `ConfigLoader` / `WorkflowBuilder` / `ComfyUIClient` / `Wd14TaggerRunner` / `PreviewImageCacheService` / `CaptioningService` 等）を実装済み・master マージ済み。詳細は `ComfyUILibs/.claude/implementation_status.md` を参照。
 
@@ -283,6 +283,16 @@
 - `Resources/Strings.resx`/`Strings.en.resx` に `Main_ImportConfigButtonTooltip`/`Main_ImportConfigDialogTitle`/`Main_ImportConfigSuccessFormat`/`Main_ImportConfigParseErrorFormat`/`Main_ImportConfigReadErrorFormat` を追加
 - `ComfyUICaptioningToolTests`: `ViewModels/Pages/MainPageViewModelTests.cs` に `ImportTagsFromFile` のテストを7件追加（空の入力欄への反映・既存入力欄への追記・大文字小文字無視の重複排除・prepend_tags/exclude_tags キー欠落時に入力欄が変化しないこと・成功時の成功スナックバー表示・JSON 構文不正時のエラースナックバー表示と入力欄が変化しないこと）。計220件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認）
   - **既知の事象**: 本フェーズの実装・テストとは無関係に、テストスイート全体を実行すると `GalleryViewModelTests`/`DataViewModelTests` 等の英語文言を検証するテストが低頻度で「日本語文言が返る」形で失敗することがある（`LocalizationManager.CurrentCulture` の setter が `CultureInfo.DefaultThreadCurrentUICulture`（プロセス全体の既定値、スレッドプールが新規スレッド生成時にのみ参照）を書き換える一方、既存のカルチャ切替テスト（`LocalizationManagerTests`/`SettingsViewModelTests`）は該当スレッド上でのみ `try/finally` で元に戻しているため、xUnit v3 の並列実行でスレッドプールのスレッドがまたがって再利用されると、別テストの実行中スレッドに一時的な言語設定が残留することがある）。ベースライン（本フェーズの変更前）でも複数回実行のうち発生することを確認しており、本フェーズで新設したテストが原因ではないテスト基盤側の既知の flaky な事象と判断した（本フェーズの対応範囲外）
+
+### フェーズ21: GalleryPage カード単位のタグをクリップボードへコピーするボタンの追加（実装完了）
+
+ユーザーが `GalleryPage.xaml` の各画像カードの「タグを追加」入力欄の左に、`Copy24` アイコンのボタン（コマンド未配線）を追加済みだったのを受けて、押下時にそのカードのタグ一覧をクリップボードへコピーする機能を実装した。
+
+- `Models/GalleryImageEntry.cs`: `[RelayCommand] CopyTagsToClipboard`（生成コマンド名 `CopyTagsToClipboardCommand`）を新設。`Tags` を `SaveTags()`/`AddTag` 系メソッドと同じ `", "` 区切りで連結し `System.Windows.Clipboard.SetText` へ渡す。`Tags.Count == 0` の場合は何もしない。クリップボードアクセスの失敗（他アプリによる一時的なロック等）は `catch { }` で握りつぶし、`UpdateConfigResult` と同じ「補助機能の失敗は主機能に影響させない」方針を踏襲した
+- `Views/Pages/GalleryPage.xaml`: 追加済みのコピーボタンに `Command="{Binding CopyTagsToClipboardCommand}"` と `ToolTip`（`Gallery_CopyTagsTooltip`）を配線した
+- `Resources/Strings.resx`/`Strings.en.resx` に `Gallery_CopyTagsTooltip`（「タグをコピー」/"Copy tags"）を追加
+- `ComfyUICaptioningToolTests`: `Models/GalleryImageEntryTests.cs` に2件追加。`Clipboard` 操作は STA スレッドが必要なため、`MainWindowViewModelTests.RunOnSta` と同じパターンの同期版 `RunOnSta` をテストクラス内に追加し、(1) タグがカンマ区切りでクリップボードへコピーされること、(2) タグ 0 件時はクリップボードの内容が変化しないこと、を検証した。計222件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認）
+- 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビュー（既存の `RemoveTagCommand`/`AddNewTagCommand` と同様の `[RelayCommand]` 実装パターンであること）で代替した
 
 ### 将来的な拡張
 

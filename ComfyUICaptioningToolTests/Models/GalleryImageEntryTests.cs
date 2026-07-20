@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using ComfyUICaptioningTool.Models;
 using ComfyUILibs.Models;
 
@@ -388,6 +389,61 @@ namespace ComfyUICaptioningToolTests.Models
             var config = ReadConfigResult();
             Assert.Equal(new[] { "other" }, config.PrependTags);
             Assert.Equal(new[] { "tag1" }, config.ExcludeTags);
+        }
+
+        // ── CopyTagsToClipboardCommand ───────────────────────────────────────────
+
+        /// <summary>
+        /// Clipboard 操作は STA スレッドが必要なため、専用スレッドで実行する
+        /// （MainWindowViewModelTests.RunOnSta と同じパターン）。
+        /// </summary>
+        private static void RunOnSta(Action action)
+        {
+            lock (ComfyUICaptioningToolTests.TestSupport.StaThreadGate.Lock)
+            {
+                Exception? caught = null;
+                var thread = new Thread(() =>
+                {
+                    try { action(); }
+                    catch (Exception ex) { caught = ex; }
+                });
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.Start();
+                thread.Join();
+                if (caught is not null)
+                    throw caught;
+            }
+        }
+
+        [Fact]
+        public void CopyTagsToClipboardCommand_Execute_CopiesCommaJoinedTags()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+
+            string? clipboardText = null;
+            RunOnSta(() =>
+            {
+                entry.CopyTagsToClipboardCommand.Execute(null);
+                clipboardText = System.Windows.Clipboard.GetText();
+            });
+
+            Assert.Equal("tag1, tag2", clipboardText);
+        }
+
+        [Fact]
+        public void CopyTagsToClipboardCommand_Execute_NoTags_DoesNotChangeClipboard()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), Array.Empty<string>(), null);
+
+            string? clipboardText = null;
+            RunOnSta(() =>
+            {
+                System.Windows.Clipboard.SetText("unchanged");
+                entry.CopyTagsToClipboardCommand.Execute(null);
+                clipboardText = System.Windows.Clipboard.GetText();
+            });
+
+            Assert.Equal("unchanged", clipboardText);
         }
     }
 }
