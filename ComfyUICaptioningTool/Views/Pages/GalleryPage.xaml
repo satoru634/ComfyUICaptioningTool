@@ -57,7 +57,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <TextBlock
@@ -89,17 +88,26 @@
                         Icon="{ui:SymbolIcon FolderOpen16}"
                         ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}" />
                 </Grid>
-                <CheckBox
+
+                <Grid
                     Grid.Row="2"
-                    Margin="0,0,0,8"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
-                    IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}" />
-                <ui:Button
-                    Grid.Row="3"
-                    Appearance="Primary"
-                    Command="{Binding ViewModel.LoadCommand}"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_LoadButtonContent]}"
-                    Icon="{ui:SymbolIcon ImageMultiple24}" />
+                    Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox
+                        Grid.Column="0"
+                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
+                        IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}" />
+                    <ui:Button
+                        Grid.Column="1"
+                        Appearance="Primary"
+                        Command="{Binding ViewModel.LoadCommand}"
+                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_LoadButtonContent]}"
+                        Icon="{ui:SymbolIcon ImageMultiple24}" />
+                </Grid>
             </Grid>
         </Border>
 
