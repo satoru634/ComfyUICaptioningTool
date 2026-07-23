@@ -50,7 +50,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
@@ -83,25 +82,34 @@
                         Icon="{ui:SymbolIcon FolderOpen16}"
                         ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}" />
                 </Grid>
-                <CheckBox
+
+                <Grid
                     Grid.Row="2"
-                    Margin="0,0,0,8"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
-                    IsChecked="{Binding ViewModel.ReportRecursive, Mode=TwoWay}" />
-                <ui:Button
-                    Grid.Row="3"
-                    Margin="0,0,0,8"
-                    Appearance="Primary"
-                    Command="{Binding ViewModel.GenerateReportCommand}"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Report_GenerateReportButton]}"
-                    Icon="{ui:SymbolIcon DataHistogram24}" />
+                    Margin="0,4,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox
+                        Grid.Column="0"
+                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
+                        IsChecked="{Binding ViewModel.ReportRecursive, Mode=TwoWay}" />
+                    <ui:Button
+                        Grid.Column="1"
+                        Appearance="Primary"
+                        Command="{Binding ViewModel.GenerateReportCommand}"
+                        Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Report_GenerateReportButton]}"
+                        Icon="{ui:SymbolIcon DataHistogram24}" />
+                </Grid>
+
                 <TextBlock
-                    Grid.Row="4"
+                    Grid.Row="3"
                     Margin="0,0,0,8"
                     FontSize="12"
                     Text="{Binding ViewModel.ReportStatusText, Mode=OneWay}"
                     Visibility="{Binding ViewModel.ReportStatusText, Converter={StaticResource StringToVisibilityConverter}}"/>
-                <Grid Grid.Row="5">
+                <Grid Grid.Row="4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="120"/>
@@ -123,7 +131,7 @@
                         FontWeight="Bold" />
                 </Grid>
                 <Border
-                    Grid.Row="6"
+                    Grid.Row="5"
                     Padding="0"
                     Background="{DynamicResource ApplicationBackgroundBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
