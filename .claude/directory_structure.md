@@ -49,13 +49,25 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 AddTag/RemoveTag を直接呼ぶためコールバックを経由しない）。
                                                 AddTag は prepend 引数（既定 false）を持ち、true の場合は
                                                 先頭に挿入する（フェーズ18で追加。AddNewTagToStartCommand が
-                                                これを利用してカード上の「先頭に追加」ボタンを実装する）
+                                                これを利用してカード上の「先頭に追加」ボタンを実装する）。
+                                                SelectedTags（ObservableCollection&lt;string&gt;、複数選択可）・
+                                                HasSelectedTags 派生プロパティ・ToggleTagSelectionCommand
+                                                （選択のトグル）・RemoveSelectedTagsCommand（選択中の全タグを
+                                                削除。CanExecute=HasSelectedTags）をフェーズ22で追加し、
+                                                カード単位のタグ表示をトグルボタン化した
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
       LocalizationManager.cs                <- 表示文言解決用シングルトン（ComfyUIRunWorkflow から移植）。
                                                 Strings.resx/.en.resx を CurrentCulture で参照し、
                                                 XAML からインデクサーバインディングで利用する
+      TagInCollectionConverter.cs           <- タグ文字列がコレクションに含まれるかどうかだけを判定する
+                                                IMultiValueConverter（フェーズ22で新設）。GalleryPage の
+                                                タグ選択トグルボタンの IsChecked 判定に使う。既存の
+                                                TagExistsToBoolean は対象リストが空の場合に isInversion を
+                                                反転した値を返す仕様のため、SelectedTags が空（初期状態）でも
+                                                true になってしまう不具合があり、単純な包含判定のみを行う
+                                                本クラスに差し替えて解決した
     Resources/
       Strings.resx                          <- 既定（日本語）の表示文言リソース
       Strings.en.resx                       <- 英語の表示文言リソース（culture=en の satellite resource）
@@ -144,9 +156,14 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 フェーズ19で追加）、WrapPanel によるカード折り返し
                                                 表示。各カードに
                                                 サムネイル（読み込み失敗時は SymbolIcon プレースホルダー）・
-                                                ファイル名・タグ一覧（チップ表示、削除ボタン付き、.txt 未存在時は
-                                                「タグ未生成」表示）・タグ追加入力欄（先頭に追加/末尾に追加の
-                                                2 ボタン、フェーズ18で先頭追加ボタンを追加）を表示する）。
+                                                ファイル名・タグ一覧（フェーズ22でタグ名+×削除ボタンの構成から、
+                                                タグ名を表記するトグルボタン（TagToggleButtonStyle、複数選択可、
+                                                選択中はアクセントカラーで強調表示）のみの構成に変更。
+                                                .txt 未存在時は「タグ未生成」表示）・タグ追加入力欄
+                                                （コピー/先頭に追加/末尾に追加/選択タグを削除の4ボタン。
+                                                先頭追加ボタンはフェーズ18、削除ボタン（RemoveSelectedTagsCommand、
+                                                選択中のタグが1件以上ある場合のみ活性化）はフェーズ22で追加）を
+                                                表示する）。
                                                 各カードのタグ一覧は独自にスクロール可能な入れ子 ScrollViewer
                                                 だが、素の入れ子のままだと画像・タグ一覧全体を包む外側の
                                                 ScrollViewer までマウスホイールイベントがバブルせず外側の
@@ -186,7 +203,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 AddTag(prepend: true) が先頭挿入・重複排除を行うこと、
                                                 AddNewTagToStartCommand 実行時の NewTagInput 反映・クリアと
                                                 onTagsChangedAsync コールバックの呼び出し条件を検証する
-                                                テストを追加）
+                                                テストを追加。フェーズ22で、ToggleTagSelectionCommand による
+                                                選択/解除・複数選択、RemoveSelectedTagsCommand の
+                                                CanExecute（選択の有無）・選択タグの一括削除と .txt への反映・
+                                                削除成功時のコールバック呼び出しを検証するテストを追加）
     Services/
       TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
                                                 ICaptioningService 呼び出し引数の検証・レポート行の解析
