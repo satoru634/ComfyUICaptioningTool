@@ -391,6 +391,98 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.Equal(new[] { "tag1" }, config.ExcludeTags);
         }
 
+        // ── ToggleTagSelectionCommand / SelectedTags ─────────────────────────────
+
+        [Fact]
+        public void ToggleTagSelectionCommand_Execute_NotSelected_SelectsTag()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            Assert.Equal(new[] { "tag1" }, entry.SelectedTags);
+            Assert.True(entry.HasSelectedTags);
+        }
+
+        [Fact]
+        public void ToggleTagSelectionCommand_Execute_AlreadySelected_DeselectsTag()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            Assert.Empty(entry.SelectedTags);
+            Assert.False(entry.HasSelectedTags);
+        }
+
+        [Fact]
+        public void ToggleTagSelectionCommand_Execute_MultipleTags_AllRemainSelected()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+
+            Assert.Equal(new[] { "tag1", "tag2" }, entry.SelectedTags);
+        }
+
+        // ── RemoveSelectedTagsCommand ─────────────────────────────────────────
+
+        [Fact]
+        public void RemoveSelectedTagsCommand_CanExecute_NoSelection_IsFalse()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            Assert.False(entry.RemoveSelectedTagsCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public void RemoveSelectedTagsCommand_CanExecute_HasSelection_IsTrue()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            Assert.True(entry.RemoveSelectedTagsCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task RemoveSelectedTagsCommand_Execute_RemovesAllSelectedTags_AndUpdatesTxt()
+        {
+            var path = CreateImagePath();
+            var entry = new GalleryImageEntry("a.jpg", path, new[] { "tag1", "tag2", "tag3" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+            entry.ToggleTagSelectionCommand.Execute("tag3");
+
+            await entry.RemoveSelectedTagsCommand.ExecuteAsync(null);
+
+            Assert.Equal(new[] { "tag2" }, entry.Tags);
+            Assert.Equal("tag2", File.ReadAllText(Path.ChangeExtension(path, ".txt")));
+        }
+
+        [Fact]
+        public async Task RemoveSelectedTagsCommand_Execute_TagsRemoved_InvokesCallback()
+        {
+            var callbackCount = 0;
+            var entry = new GalleryImageEntry(
+                "a.jpg", CreateImagePath(), new[] { "tag1" }, null,
+                onTagsChangedAsync: () => { callbackCount++; return Task.CompletedTask; });
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            await entry.RemoveSelectedTagsCommand.ExecuteAsync(null);
+
+            Assert.Equal(1, callbackCount);
+        }
+
+        [Fact]
+        public void RemoveSelectedTagsCommand_Execute_NoSelection_CannotExecute_TagsUnchanged()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            Assert.False(entry.RemoveSelectedTagsCommand.CanExecute(null));
+            Assert.Equal(new[] { "tag1" }, entry.Tags);
+        }
+
         // ── CopyTagsToClipboardCommand ───────────────────────────────────────────
 
         /// <summary>

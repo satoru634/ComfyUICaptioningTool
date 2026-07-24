@@ -56,6 +56,12 @@ namespace ComfyUICaptioningTool.Models
         /// <summary>タグが 1 つ以上存在するか。</summary>
         public bool HasTags => Tags.Count > 0;
 
+        /// <summary>タグ名ボタン（トグルボタン）で選択中のタグ一覧（複数選択可）。</summary>
+        public ObservableCollection<string> SelectedTags { get; } = new();
+
+        /// <summary>選択中のタグが 1 つ以上あるか（削除ボタンの活性制御用）。</summary>
+        public bool HasSelectedTags => SelectedTags.Count > 0;
+
         /// <summary>カード上の「タグを追加」用テキスト入力欄のバインド先。</summary>
         [ObservableProperty]
         private string _newTagInput = "";
@@ -77,7 +83,46 @@ namespace ComfyUICaptioningTool.Models
             Thumbnail = thumbnail;
             Tags = new ObservableCollection<string>(tags);
             Tags.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasTags));
+            SelectedTags.CollectionChanged += (_, _) =>
+            {
+                // SelectedTags 自体は get-only の固定インスタンスのため、内容変更時も
+                // OnPropertyChanged(nameof(SelectedTags)) を明示的に発火しないと、XAML 側の
+                // MultiBinding（各タグボタンの IsChecked、SelectedTags を参照）が再評価されない
+                OnPropertyChanged(nameof(SelectedTags));
+                OnPropertyChanged(nameof(HasSelectedTags));
+                RemoveSelectedTagsCommand.NotifyCanExecuteChanged();
+            };
             _onTagsChangedAsync = onTagsChangedAsync;
+        }
+
+        /// <summary>
+        /// タグ名ボタン（トグルボタン）のクリックで選択状態をトグルする。選択中なら解除し、
+        /// 未選択なら選択に加える（複数選択可）。
+        /// </summary>
+        [RelayCommand]
+        private void ToggleTagSelection(string tag)
+        {
+            if (!SelectedTags.Remove(tag))
+                SelectedTags.Add(tag);
+        }
+
+        /// <summary>
+        /// 選択中の全タグ（<see cref="SelectedTags"/>）を削除する。1 件以上実際に削除できた場合のみ
+        /// TagList 更新コールバックを呼び出す。削除後の選択状態は特に整理しない（削除されたタグは
+        /// 一覧から消えるため、トグルボタン自体が表示されなくなる）。
+        /// </summary>
+        [RelayCommand(CanExecute = nameof(HasSelectedTags))]
+        private async Task RemoveSelectedTagsAsync()
+        {
+            var anyRemoved = false;
+            foreach (var tag in SelectedTags.ToList())
+            {
+                if (RemoveTag(tag))
+                    anyRemoved = true;
+            }
+
+            if (anyRemoved && _onTagsChangedAsync is not null)
+                await _onTagsChangedAsync();
         }
 
         /// <summary>
@@ -124,6 +169,7 @@ namespace ComfyUICaptioningTool.Models
                 return false;
 
             SaveTags();
+            SelectedTags.Remove(tag);
 
             UpdateConfigResult(config =>
             {

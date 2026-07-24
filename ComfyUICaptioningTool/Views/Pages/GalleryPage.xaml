@@ -22,7 +22,39 @@
     <Page.Resources>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <helpers:TagExistsToBoolean x:Key="TagExistsToBoolean"/>
+        <helpers:TagInCollectionConverter x:Key="TagInCollectionConverter"/>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <!-- タグ名ボタン（トグルボタン）。選択中はアクセントカラーで強調表示する -->
+        <Style x:Key="TagToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Margin" Value="0,0,4,4" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Page.Resources>
 
     <Grid Margin="16,8,16,16">
@@ -292,6 +324,7 @@
 
                                 <!-- タグ一覧 -->
                                 <ScrollViewer
+                                    Padding="4,0"
                                     Grid.Column="1"
                                     Grid.Row="0"
                                     PreviewMouseWheel="TagsScrollViewer_PreviewMouseWheel"
@@ -306,30 +339,18 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border
-                                                    Margin="0,0,4,4"
-                                                    Padding="4,2"
-                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                                                    CornerRadius="8">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock
-                                                            FontSize="12"
-                                                            Text="{Binding}"
-                                                            TextWrapping="Wrap"
-                                                            VerticalAlignment="Center" />
-                                                        <ui:Button
-                                                            Width="18"
-                                                            Height="18"
-                                                            Margin="4,0,0,0"
-                                                            Padding="0"
-                                                            Appearance="Transparent"
-                                                            Command="{Binding DataContext.RemoveTagCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                            CommandParameter="{Binding}"
-                                                            Content="×"
-                                                            FontSize="12"
-                                                            ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_RemoveTagTooltip]}" />
-                                                    </StackPanel>
-                                                </Border>
+                                                <ToggleButton
+                                                    Content="{Binding}"
+                                                    Style="{StaticResource TagToggleButtonStyle}"
+                                                    Command="{Binding DataContext.ToggleTagSelectionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}">
+                                                    <ToggleButton.IsChecked>
+                                                        <MultiBinding Converter="{StaticResource TagInCollectionConverter}" Mode="OneWay">
+                                                            <Binding Path="." />
+                                                            <Binding Path="DataContext.SelectedTags" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                        </MultiBinding>
+                                                    </ToggleButton.IsChecked>
+                                                </ToggleButton>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
@@ -361,6 +382,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
@@ -425,6 +447,15 @@
                                             </MultiBinding>
                                         </ui:Button.IsEnabled>
                                     </ui:Button>
+                                    <ui:Button
+                                        Grid.Column="4"
+                                        Width="36"
+                                        Height="36"
+                                        Margin="8,0,0,0"
+                                        Appearance="Secondary"
+                                        Command="{Binding RemoveSelectedTagsCommand}"
+                                        Icon="{ui:SymbolIcon Delete24}"
+                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_RemoveTagTooltip]}" />
                                 </Grid>
                             </Grid>
                         </Border>
