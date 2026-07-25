@@ -140,6 +140,7 @@
   <data name="Gallery_AddTagToStartTooltip" xml:space="preserve"><value>Add to start</value></data>
   <data name="Gallery_AddTagToEndTooltip" xml:space="preserve"><value>Add to end</value></data>
   <data name="Gallery_CopyTagsTooltip" xml:space="preserve"><value>Copy tags</value></data>
+  <data name="Gallery_SelectImagePrompt" xml:space="preserve"><value>Select an image to view its tags</value></data>
 
   <!-- Report (tag frequency report page) -->
   <data name="Report_Title" xml:space="preserve"><value>Tag Frequency Report</value></data>

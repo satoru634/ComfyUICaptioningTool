@@ -140,6 +140,7 @@
   <data name="Gallery_AddTagToStartTooltip" xml:space="preserve"><value>先頭に追加</value></data>
   <data name="Gallery_AddTagToEndTooltip" xml:space="preserve"><value>末尾に追加</value></data>
   <data name="Gallery_CopyTagsTooltip" xml:space="preserve"><value>タグをコピー</value></data>
+  <data name="Gallery_SelectImagePrompt" xml:space="preserve"><value>画像を選択するとタグが表示されます</value></data>
 
   <!-- Report（タグ集計レポート表示ページ） -->
   <data name="Report_Title" xml:space="preserve"><value>タグ集計レポート</value></data>

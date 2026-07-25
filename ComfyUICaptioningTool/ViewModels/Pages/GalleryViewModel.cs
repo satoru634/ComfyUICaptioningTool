@@ -58,6 +58,10 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         [NotifyCanExecuteChangedFor(nameof(BulkRemoveTagCommand))]
         private ObservableCollection<GalleryImageEntry> _images = new();
 
+        /// <summary>タイル一覧で選択中の画像（右ペインにタグ一覧・編集 UI を表示する対象）。未選択時は null。</summary>
+        [ObservableProperty]
+        private GalleryImageEntry? _selectedImage;
+
         /// <summary>
         /// 一括タグ操作（<see cref="BulkAddTagCommand"/>/<see cref="BulkAddTagToStartCommand"/>/
         /// <see cref="BulkRemoveTagCommand"/>）の対象タグ入力欄。
@@ -173,6 +177,12 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                 TargetDirectory = dialog.FolderName;
         }
 
+        // ── タイル選択 ───────────────────────────────────────────────────────
+
+        /// <summary>画像タイル（ItemsControl の各項目）クリックで選択中の画像を切り替える。</summary>
+        [RelayCommand]
+        private void SelectImage(GalleryImageEntry entry) => SelectedImage = entry;
+
         // ── 画像・タグ読み込み ────────────────────────────────────────────────
 
         private bool CanLoad() => !IsLoading && !string.IsNullOrWhiteSpace(TargetDirectory);
@@ -184,6 +194,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             var directory = TargetDirectory!;
 
             Images = new ObservableCollection<GalleryImageEntry>();
+            SelectedImage = null;
             StatusMessage = "";
 
             if (!Directory.Exists(directory))

@@ -23,6 +23,7 @@
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <helpers:TagExistsToBoolean x:Key="TagExistsToBoolean"/>
         <helpers:TagInCollectionConverter x:Key="TagInCollectionConverter"/>
+        <helpers:ObjectEqualsConverter x:Key="ObjectEqualsConverter"/>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
         <!-- タグ名ボタン（トグルボタン）。選択中はアクセントカラーで強調表示する -->
@@ -52,6 +53,38 @@
                 <Trigger Property="IsChecked" Value="True">
                     <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
                     <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 画像タイル（トグルボタン）。選択中はボーダーをアクセントカラーで強調表示する -->
+        <Style x:Key="ImageTileToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Margin" Value="0,0,8,8" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <!-- BorderThickness はチェック状態にかかわらず常に固定値とする。トリガーで太さを変えると
+                 Border の外形サイズ（延いては WrapPanel 上の他タイルの位置）がずれてしまうため、
+                 選択の強調表示は色の変更のみで行う -->
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -242,226 +275,281 @@
             Text="{Binding ViewModel.StatusMessage, Mode=OneWay}"
             Visibility="{Binding ViewModel.StatusMessage, Converter={StaticResource StringToVisibilityConverter}}" />
 
-        <!-- 画像・タグ一覧 -->
-        <ScrollViewer
-            Grid.Row="5"
-            Margin="0,8,0,0"
-            VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding ViewModel.Images, Mode=OneWay}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Vertical" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type models:GalleryImageEntry}">
-                        <Border
-                            Margin="0,0,0,8"
-                            Padding="8"
-                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            ClipToBounds="True"
-                            CornerRadius="4">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+        <!-- 画像・タグ一覧（左: 画像タイル一覧 / 右: 選択画像のタグ一覧・編集） -->
+        <Grid Grid.Row="5" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="390" />
+            </Grid.ColumnDefinitions>
 
-                                <!-- サムネイル（読み込み失敗時はプレースホルダーアイコン） -->
-                                <Image
-                                    Grid.Column="0"
-                                    Grid.Row="0"
-                                    Width="192"
-                                    Height="192"
-                                    Source="{Binding Thumbnail}"
-                                    Stretch="Uniform">
-                                    <Image.Style>
-                                        <Style TargetType="Image">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
+            <!-- 左ペイン: 画像＋ファイル名のタイル一覧 -->
+            <ScrollViewer
+                Grid.Column="0"
+                Margin="0,0,8,0"
+                VerticalScrollBarVisibility="Auto">
+                <ItemsControl
+                    ItemsSource="{Binding ViewModel.Images, Mode=OneWay}"
+                    HorizontalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:GalleryImageEntry}">
+                            <ToggleButton
+                                Style="{StaticResource ImageTileToggleButtonStyle}"
+                                Command="{Binding DataContext.ViewModel.SelectImageCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}">
+                                <ToggleButton.IsChecked>
+                                    <MultiBinding Converter="{StaticResource ObjectEqualsConverter}" Mode="OneWay">
+                                        <Binding Path="." />
+                                        <Binding Path="DataContext.ViewModel.SelectedImage" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                    </MultiBinding>
+                                </ToggleButton.IsChecked>
+                                <StackPanel Width="140" Orientation="Vertical">
+                                    <Grid
+                                        Width="140"
+                                        Height="140"
+                                        ClipToBounds="True">
+                                        <!-- サムネイル（読み込み失敗時はプレースホルダーアイコン） -->
+                                        <Image Source="{Binding Thumbnail}" Stretch="Uniform">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+                                        <ui:SymbolIcon
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            FontSize="48"
+                                            Foreground="{DynamicResource TextFillColorDisabledBrush}"
+                                            Symbol="Image24">
+                                            <ui:SymbolIcon.Style>
+                                                <Style TargetType="ui:SymbolIcon">
                                                     <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Image.Style>
-                                </Image>
-                                <ui:SymbolIcon
-                                    Grid.Column="0"
-                                    Grid.Row="0"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    FontSize="48"
-                                    Foreground="{DynamicResource TextFillColorDisabledBrush}"
-                                    Symbol="Image24">
-                                    <ui:SymbolIcon.Style>
-                                        <Style TargetType="ui:SymbolIcon">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ui:SymbolIcon.Style>
-                                </ui:SymbolIcon>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:SymbolIcon.Style>
+                                        </ui:SymbolIcon>
+                                    </Grid>
 
-                                <!-- ファイル名 -->
-                                <TextBlock
-                                    Grid.Column="0"
-                                    Grid.Row="1"
-                                    Margin="0,8,0,4"
-                                    FontWeight="Medium"
-                                    Text="{Binding FileName}"
-                                    TextTrimming="CharacterEllipsis"
-                                    ToolTip="{Binding FileName}" />
+                                    <!-- ファイル名 -->
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontWeight="Medium"
+                                        Text="{Binding FileName}"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTip="{Binding FileName}" />
+                                </StackPanel>
+                            </ToggleButton>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
-                                <!-- タグ一覧 -->
-                                <ScrollViewer
-                                    Padding="4,0"
-                                    Grid.Column="1"
-                                    Grid.Row="0"
-                                    PreviewMouseWheel="TagsScrollViewer_PreviewMouseWheel"
-                                    VerticalScrollBarVisibility="Auto">
-                                    <ItemsControl
-                                        ItemsSource="{Binding Tags}"
-                                        Visibility="{Binding HasTags, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel Orientation="Horizontal" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <ToggleButton
-                                                    Content="{Binding}"
-                                                    Style="{StaticResource TagToggleButtonStyle}"
-                                                    Command="{Binding DataContext.ToggleTagSelectionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}">
-                                                    <ToggleButton.IsChecked>
-                                                        <MultiBinding Converter="{StaticResource TagInCollectionConverter}" Mode="OneWay">
-                                                            <Binding Path="." />
-                                                            <Binding Path="DataContext.SelectedTags" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
-                                                        </MultiBinding>
-                                                    </ToggleButton.IsChecked>
-                                                </ToggleButton>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                                <TextBlock
-                                    Grid.Column="1"
-                                    Grid.Row="0"
-                                    FontSize="12"
-                                    FontStyle="Italic"
-                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_NoTagsLabel]}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasTags}" Value="False">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+            <!-- 右ペイン: 選択中の画像のタグ一覧・編集 -->
+            <Border
+                Grid.Column="1"
+                Padding="12"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <Grid DataContext="{Binding ViewModel.SelectedImage}">
+                    <!-- 未選択時のプレースホルダー -->
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontStyle="Italic"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_SelectImagePrompt]}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
 
-                                <!-- タグ追加入力欄 -->
-                                <Grid
-                                    Grid.Column="1"
-                                    Grid.Row="1"
-                                    Margin="0,8,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                    <!-- 選択中の画像の詳細 -->
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                                    <ui:Button
-                                        Grid.Column="0"
-                                        Height="36"
-                                        Appearance="Secondary"
-                                        Command="{Binding CopyTagsToClipboardCommand}"
-                                        Icon="{ui:SymbolIcon Copy24}"
-                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_CopyTagsTooltip]}"/>
-                                    <ui:TextBox
-                                        Grid.Column="1"
-                                        Margin="8,0,0,0"
-                                        Height="36"
-                                        FontSize="12"
-                                        PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagPlaceholder]}"
-                                        Text="{Binding NewTagInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                        <ui:TextBox.InputBindings>
-                                            <KeyBinding Key="Return" Command="{Binding AddNewTagCommand}" />
-                                        </ui:TextBox.InputBindings>
-                                    </ui:TextBox>
-                                    <ui:Button
-                                        Grid.Column="2"
-                                        Width="36"
-                                        Height="36"
-                                        Margin="8,0,0,0"
-                                        Appearance="Secondary"
-                                        Command="{Binding AddNewTagToStartCommand}"
-                                        Icon="{ui:SymbolIcon ArrowUp24}"
-                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToStartTooltip]}">
-                                        <ui:Button.IsEnabled>
-                                            <MultiBinding Converter="{StaticResource TagExistsToBoolean}">
-                                                <Binding Path="NewTagInput" />
-                                                <Binding Path="Tags" />
-                                                <Binding>
-                                                    <Binding.Source>
-                                                        <sys:Boolean>True</sys:Boolean>
-                                                    </Binding.Source>
-                                                </Binding>
-                                            </MultiBinding>
-                                        </ui:Button.IsEnabled>
-                                    </ui:Button>
-                                    <ui:Button
-                                        Grid.Column="3"
-                                        Width="36"
-                                        Height="36"
-                                        Margin="8,0,0,0"
-                                        Appearance="Secondary"
-                                        Command="{Binding AddNewTagCommand}"
-                                        Icon="{ui:SymbolIcon AddCircle24}"
-                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToEndTooltip]}">
-                                        <ui:Button.IsEnabled>
-                                            <MultiBinding Converter="{StaticResource TagExistsToBoolean}">
-                                                <Binding Path="NewTagInput" />
-                                                <Binding Path="Tags" />
-                                                <Binding>
-                                                    <Binding.Source>
-                                                        <sys:Boolean>True</sys:Boolean>
-                                                    </Binding.Source>
-                                                </Binding>
-                                            </MultiBinding>
-                                        </ui:Button.IsEnabled>
-                                    </ui:Button>
-                                    <ui:Button
-                                        Grid.Column="4"
-                                        Width="36"
-                                        Height="36"
-                                        Margin="8,0,0,0"
-                                        Appearance="Secondary"
-                                        Command="{Binding RemoveSelectedTagsCommand}"
-                                        Icon="{ui:SymbolIcon Delete24}"
-                                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_RemoveTagTooltip]}" />
-                                </Grid>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                        <!-- ファイル名 -->
+                        <TextBlock
+                            Grid.Row="0"
+                            Margin="0,0,0,8"
+                            FontWeight="Medium"
+                            Text="{Binding FileName}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTip="{Binding FileName}" />
+
+                        <!-- タグ一覧 -->
+                        <ScrollViewer
+                            Grid.Row="1"
+                            PreviewMouseWheel="TagsScrollViewer_PreviewMouseWheel"
+                            VerticalScrollBarVisibility="Auto">
+                            <ItemsControl
+                                ItemsSource="{Binding Tags}"
+                                Visibility="{Binding HasTags, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <ToggleButton
+                                            Margin="0,0,4,4"
+                                            Padding="8,2"
+                                            Content="{Binding}"
+                                            Command="{Binding DataContext.ToggleTagSelectionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}">
+                                            <ToggleButton.IsChecked>
+                                                <MultiBinding Converter="{StaticResource TagInCollectionConverter}" Mode="OneWay">
+                                                    <Binding Path="." />
+                                                    <Binding Path="DataContext.SelectedTags" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                </MultiBinding>
+                                            </ToggleButton.IsChecked>
+                                        </ToggleButton>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock
+                            Grid.Row="1"
+                            FontSize="12"
+                            FontStyle="Italic"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_NoTagsLabel]}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasTags}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- タグ追加入力欄 -->
+                        <Grid
+                            Grid.Row="2"
+                            Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ui:Button
+                                Grid.Column="0"
+                                Height="36"
+                                Appearance="Secondary"
+                                Command="{Binding CopyTagsToClipboardCommand}"
+                                Icon="{ui:SymbolIcon Copy24}"
+                                ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_CopyTagsTooltip]}"/>
+                            <ui:TextBox
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                Height="36"
+                                FontSize="12"
+                                PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagPlaceholder]}"
+                                Text="{Binding NewTagInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <ui:TextBox.InputBindings>
+                                    <KeyBinding Key="Return" Command="{Binding AddNewTagCommand}" />
+                                </ui:TextBox.InputBindings>
+                            </ui:TextBox>
+                            <ui:Button
+                                Grid.Column="2"
+                                Width="36"
+                                Height="36"
+                                Margin="8,0,0,0"
+                                Appearance="Secondary"
+                                Command="{Binding AddNewTagToStartCommand}"
+                                Icon="{ui:SymbolIcon ArrowUp24}"
+                                ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToStartTooltip]}">
+                                <ui:Button.IsEnabled>
+                                    <MultiBinding Converter="{StaticResource TagExistsToBoolean}">
+                                        <Binding Path="NewTagInput" />
+                                        <Binding Path="Tags" />
+                                        <Binding>
+                                            <Binding.Source>
+                                                <sys:Boolean>True</sys:Boolean>
+                                            </Binding.Source>
+                                        </Binding>
+                                    </MultiBinding>
+                                </ui:Button.IsEnabled>
+                            </ui:Button>
+                            <ui:Button
+                                Grid.Column="3"
+                                Width="36"
+                                Height="36"
+                                Margin="8,0,0,0"
+                                Appearance="Secondary"
+                                Command="{Binding AddNewTagCommand}"
+                                Icon="{ui:SymbolIcon AddCircle24}"
+                                ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagToEndTooltip]}">
+                                <ui:Button.IsEnabled>
+                                    <MultiBinding Converter="{StaticResource TagExistsToBoolean}">
+                                        <Binding Path="NewTagInput" />
+                                        <Binding Path="Tags" />
+                                        <Binding>
+                                            <Binding.Source>
+                                                <sys:Boolean>True</sys:Boolean>
+                                            </Binding.Source>
+                                        </Binding>
+                                    </MultiBinding>
+                                </ui:Button.IsEnabled>
+                            </ui:Button>
+                            <ui:Button
+                                Grid.Column="4"
+                                Width="36"
+                                Height="36"
+                                Margin="8,0,0,0"
+                                Appearance="Secondary"
+                                Command="{Binding RemoveSelectedTagsCommand}"
+                                Icon="{ui:SymbolIcon Delete24}"
+                                ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_RemoveTagTooltip]}" />
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Page>
