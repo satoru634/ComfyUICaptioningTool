@@ -68,6 +68,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 反転した値を返す仕様のため、SelectedTags が空（初期状態）でも
                                                 true になってしまう不具合があり、単純な包含判定のみを行う
                                                 本クラスに差し替えて解決した
+      ObjectEqualsConverter.cs               <- 2値が等しいか（Equals）だけを判定する汎用
+                                                IMultiValueConverter（フェーズ23で新設）。GalleryPage の
+                                                画像タイル選択状態（ToggleButton.IsChecked、タイル自身と
+                                                GalleryViewModel.SelectedImage を比較）の判定に使う
     Resources/
       Strings.resx                          <- 既定（日本語）の表示文言リソース
       Strings.en.resx                       <- 英語の表示文言リソース（culture=en の satellite resource）
@@ -122,7 +126,12 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 フェーズ19で追加。実体は BulkAddTagAsync/
                                                 BulkAddTagToStartAsync/BulkRemoveTagAsync で完了後に一度
                                                 だけ TagList を再構築する）も持つ。LoadCommand 完了後・
-                                                カード単位のタグ編集完了後にも TagList を再構築する
+                                                カード単位のタグ編集完了後にも TagList を再構築する。
+                                                フェーズ23で、画像タイル一覧（左ペイン）で選択中の画像を
+                                                保持する SelectedImage（GalleryImageEntry?）・タイル
+                                                クリックで選択する SelectImageCommand（SelectedImage に
+                                                代入するだけ）を追加した。LoadCommand 実行時
+                                                （Images クリア時）に SelectedImage を null へリセットする
       ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath から
                                                 Wd14TaggerRunner を読み込み、対象ディレクトリを選択して
                                                 タグ集計レポート（tags_report.txt）を生成・一覧表示する
@@ -153,19 +162,38 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 変更し、OriginalItemsSource を ViewModel.TagList へバインド
                                                 してタグ候補を表示する。先頭に追加/末尾に追加/削除の
                                                 3 ボタンをアイコン+ToolTip 表示で並べる。先頭追加ボタンは
-                                                フェーズ19で追加）、WrapPanel によるカード折り返し
-                                                表示。各カードに
-                                                サムネイル（読み込み失敗時は SymbolIcon プレースホルダー）・
-                                                ファイル名・タグ一覧（フェーズ22でタグ名+×削除ボタンの構成から、
+                                                フェーズ19で追加））。
+                                                フェーズ23で、画像・タグ一覧表示領域を左右2ペインの
+                                                Grid に変更した。左ペインは ItemsControl
+                                                （ItemsPanel=WrapPanel）による画像タイル一覧で、各タイルは
+                                                サムネイル（読み込み失敗時は SymbolIcon プレースホルダー）＋
+                                                ファイル名のみを表示する（タグ本体・編集 UI は持たない）。
+                                                ListBox（SelectedItem バインド）は既定テンプレートの内部
+                                                ScrollViewer が WrapPanel に無限の水平幅を与えてしまい
+                                                タイルが折り返さず1列に並ぶ不具合があったため採用せず、
+                                                各タイルを ToggleButton（新設 ImageTileToggleButtonStyle）
+                                                にして選択を実現している。IsChecked は新設
+                                                Helpers/ObjectEqualsConverter.cs（2値の Equals 判定のみを
+                                                行う汎用 IMultiValueConverter）を使った MultiBinding
+                                                （タイル自身 + ViewModel.SelectedImage）でバインドし、
+                                                Command（GalleryViewModel.SelectImageCommand）でクリック時に
+                                                選択を切り替える（タグ選択トグルボタン＝
+                                                TagInCollectionConverter/ToggleTagSelectionCommand と同じ
+                                                パターン）。選択中のタイルは IsChecked=True トリガーで
+                                                ボーダーをアクセントカラー・太さ2pxに変更して強調表示する。
+                                                右ペインは DataContext を ViewModel.SelectedImage にバインド
+                                                したカードで、未選択時（null）は Gallery_SelectImagePrompt の
+                                                プレースホルダーメッセージを表示し、選択時は旧カードが
+                                                持っていたタグ一覧（フェーズ22でタグ名+×削除ボタンの構成から、
                                                 タグ名を表記するトグルボタン（TagToggleButtonStyle、複数選択可、
                                                 選択中はアクセントカラーで強調表示）のみの構成に変更。
                                                 .txt 未存在時は「タグ未生成」表示）・タグ追加入力欄
                                                 （コピー/先頭に追加/末尾に追加/選択タグを削除の4ボタン。
                                                 先頭追加ボタンはフェーズ18、削除ボタン（RemoveSelectedTagsCommand、
                                                 選択中のタグが1件以上ある場合のみ活性化）はフェーズ22で追加）を
-                                                表示する）。
-                                                各カードのタグ一覧は独自にスクロール可能な入れ子 ScrollViewer
-                                                だが、素の入れ子のままだと画像・タグ一覧全体を包む外側の
+                                                そのまま表示する。
+                                                右ペインのタグ一覧は独自にスクロール可能な ScrollViewer
+                                                だが、素のままだと画像・タグ一覧全体を包む外側の
                                                 ScrollViewer までマウスホイールイベントがバブルせず外側の
                                                 スクロールが機能しなくなるため、GalleryPage.xaml.cs に
                                                 TagsScrollViewer_PreviewMouseWheel（内側がスクロール端に
@@ -189,6 +217,12 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 それぞれ個別に例外を発生させられる）
     Helpers/
       LocalizationManagerTests.cs           <- LocalizationManager のカルチャ切替・フォールバック挙動のテスト
+      TagInCollectionConverterTests.cs      <- TagInCollectionConverter のテスト（フェーズ22で新設。
+                                                values null/要素数不正・tagList 空/null・tag 空文字・
+                                                含まれる/含まれない・大文字小文字無視・ConvertBack 未実装を検証）
+      ObjectEqualsConverterTests.cs         <- ObjectEqualsConverter のテスト（フェーズ23で新設。
+                                                values null/要素数不正・同一インスタンス/異なるインスタンス・
+                                                両方 null/片方のみ null・ConvertBack 未実装を検証）
     Models/
       AppConfigTests.cs                     <- AppConfig/WindowSettingData のデフォルト値・PropertyChanged のテスト
       GalleryImageEntryTests.cs             <- GalleryImageEntry のテスト（フェーズ14で新設。AddTag の
@@ -245,7 +279,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 ファイル配置・captioning_config.json 書き出しヘルパーを
                                                 CreateReadyVmAsync として追加した。フェーズ19で、
                                                 BulkAddTagToStartCommand の CanExecute・全画像の先頭への
-                                                一括追加・実行後の TagList 再構築を検証するテストを追加）
+                                                一括追加・実行後の TagList 再構築を検証するテストを追加。
+                                                フェーズ23で、SelectedImage の初期値が null であること・
+                                                LoadCommand の再実行で SelectedImage が null にリセットされる
+                                                こと・SelectImageCommand 実行で SelectedImage が更新される
+                                                ことを検証するテストを追加）
       ReportViewModelTests.cs               <- ReportViewModel のテスト（ConfigPath 読み込み成否・
                                                 GenerateReportCommand の CanExecute/実行・レポート行の解析
                                                 （コロンを含むタグ名を含む）・エラーハンドリング。

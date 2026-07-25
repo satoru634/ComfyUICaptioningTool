@@ -111,6 +111,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             Assert.Empty(vm.Images);
             Assert.Equal("", vm.StatusMessage);
             Assert.False(vm.IsLoading);
+            Assert.Null(vm.SelectedImage);
         }
 
         // ── LoadCommand.CanExecute ────────────────────────────────────────────
@@ -249,6 +250,35 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             var entry = Assert.Single(vm.Images);
             Assert.Null(entry.Thumbnail);
+        }
+
+        // ── SelectedImage（右ペインのタグ一覧表示対象） ───────────────────────────
+
+        [Fact]
+        public async Task LoadCommand_Execute_Reload_ResetsSelectedImageToNull()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            await vm.LoadCommand.ExecuteAsync(null);
+            vm.SelectedImage = vm.Images.Single();
+
+            await vm.LoadCommand.ExecuteAsync(null);
+
+            Assert.Null(vm.SelectedImage);
+        }
+
+        [Fact]
+        public async Task SelectImageCommand_Execute_SetsSelectedImage()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            File.WriteAllBytes(Path.Combine(_tempDir, "b.jpg"), new byte[] { 1 });
+            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            await vm.LoadCommand.ExecuteAsync(null);
+            var entryB = vm.Images.Single(i => i.FileName == "b.jpg");
+
+            vm.SelectImageCommand.Execute(entryB);
+
+            Assert.Same(entryB, vm.SelectedImage);
         }
 
         // ── 一括タグ操作 ──────────────────────────────────────────────────────
