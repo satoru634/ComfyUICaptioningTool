@@ -1,4 +1,3 @@
-﻿using System.Globalization;
 using ComfyUICaptioningTool.Helpers;
 using ComfyUICaptioningTool.Models;
 using ComfyUICaptioningTool.Views.Pages;
@@ -6,7 +5,9 @@ using ComfyUICaptioningTool.Views.Windows;
 using ComfyUILibs.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Globalization;
 using Wpf.Ui;
+using Wpf.Ui.Appearance;
 
 namespace ComfyUICaptioningTool.Services
 {
@@ -69,6 +70,10 @@ namespace ComfyUICaptioningTool.Services
                 _navigationWindow = (
                     _serviceProvider.GetService(typeof(INavigationWindow)) as INavigationWindow
                 )!;
+
+                // テーマを適用
+                ApplicationThemeManager.Apply(_config.Data.WindowSetting.Theme);
+
                 _navigationWindow!.ShowWindow();
 
                 _navigationWindow.Navigate(typeof(Views.Pages.MainPage));
