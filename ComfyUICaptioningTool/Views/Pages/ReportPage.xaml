@@ -50,6 +50,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
@@ -109,7 +110,21 @@
                     FontSize="12"
                     Text="{Binding ViewModel.ReportStatusText, Mode=OneWay}"
                     Visibility="{Binding ViewModel.ReportStatusText, Converter={StaticResource StringToVisibilityConverter}}"/>
-                <Grid Grid.Row="4">
+                <ui:AutoSuggestBox
+                    x:Name="SuggestFilterTag"
+                    Grid.Row="4"
+                    Height="36"
+                    Margin="0,0,0,8"
+                    PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Report_FilterPlaceholder]}"
+                    Text="{Binding ViewModel.FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    OriginalItemsSource="{Binding ViewModel.TagList}">
+                    <ui:AutoSuggestBox.Icon>
+                        <ui:IconSourceElement>
+                            <ui:SymbolIconSource Symbol="Search24" />
+                        </ui:IconSourceElement>
+                    </ui:AutoSuggestBox.Icon>
+                </ui:AutoSuggestBox>
+                <Grid Grid.Row="5">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="120"/>
@@ -131,7 +146,7 @@
                         FontWeight="Bold" />
                 </Grid>
                 <Border
-                    Grid.Row="5"
+                    Grid.Row="6"
                     Padding="0"
                     Background="{DynamicResource ApplicationBackgroundBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"

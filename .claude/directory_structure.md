@@ -136,7 +136,13 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 Wd14TaggerRunner を読み込み、対象ディレクトリを選択して
                                                 タグ集計レポート（tags_report.txt）を生成・一覧表示する
                                                 （旧 DataViewModel から分離）。レポート生成・解析本体は
-                                                Services/TagReportGenerator.cs へ抽出済み（フェーズ16）
+                                                Services/TagReportGenerator.cs へ抽出済み（フェーズ16）。
+                                                フェーズ24で、生成済みレポート全件を保持する
+                                                _allReportEntries と、タグ名でのフィルタ入力
+                                                FilterText（入力のたびに部分一致・大文字小文字無視で
+                                                ReportEntries を絞り込む ApplyFilter を呼び出す）、
+                                                ui:AutoSuggestBox のサジェスト候補用 TagList
+                                                （生成済みレポートのタグ名一覧）を追加した
       SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
                                                 パス選択（BrowseConfigPathCommand）、実行結果ログ出力先
                                                 ResultsFolder の選択（BrowseResultsFolderCommand）を実装済み
@@ -200,7 +206,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 達している場合のみイベントを親要素へ手動転送する）を実装し、
                                                 XAML 側から PreviewMouseWheel でアタッチしている
       ReportPage.xaml(.cs)                  <- タグ集計レポート表示画面（対象ディレクトリ選択・再帰
-                                                オプション・生成・タグ/出現回数の一覧表示。旧 DataPage から分離）
+                                                オプション・生成・タグ/出現回数の一覧表示。旧 DataPage から分離）。
+                                                フェーズ24で、列見出しの上に ui:AutoSuggestBox
+                                                （Text=ViewModel.FilterText、OriginalItemsSource=
+                                                ViewModel.TagList）を追加し、タグ名でのインタラクティブな
+                                                フィルタリングに対応した
       ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
                                                 しきい値・prepend/exclude タグ既定値の編集、保存ボタン）
       SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択、
@@ -291,7 +301,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 詳細な検証は Services/TagReportGeneratorTests.cs 側にも
                                                 持つ（フェーズ16でロジックを抽出したため重複気味だが、
                                                 ReportViewModel 側は「サービス呼び出し～画面表示」の
-                                                結合的な検証として残している）
+                                                結合的な検証として残している）。フェーズ24で、
+                                                GenerateReportCommand 実行後の TagList 反映・FilterText の
+                                                部分一致/大文字小文字無視でのフィルタリング・空文字に戻した
+                                                際の全件表示への復帰・一致なし時の空表示・レポート再生成時に
+                                                前回の FilterText がリセットされることを検証するテストを追加
       SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）
       ConfigViewModelTests.cs               <- ConfigViewModel のテスト（ConfigPath 読み込み成否・
                                                 ファイル未存在時の新規作成扱い・SaveCommand の CanExecute/実行・
