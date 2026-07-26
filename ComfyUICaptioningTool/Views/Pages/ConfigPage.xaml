@@ -159,7 +159,8 @@
                         Height="80"
                         Margin="0,0,0,12"
                         PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
-                        Text="{Binding ViewModel.PrependTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        Text="{Binding ViewModel.PrependTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap" />
                     <TextBlock
                         Margin="0,0,0,4"
                         FontSize="12"
@@ -167,7 +168,8 @@
                     <ui:TextBox
                         Height="74"
                         PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
-                        Text="{Binding ViewModel.ExcludeTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        Text="{Binding ViewModel.ExcludeTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
