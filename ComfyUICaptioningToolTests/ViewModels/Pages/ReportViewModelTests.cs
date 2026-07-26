@@ -270,5 +270,73 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             Assert.False(vm.IsGeneratingReport);
         }
+
+        // ── フィルタリング (FilterText / TagList) ─────────────────────────────
+
+        [Fact]
+        public async Task GenerateReportCommand_Execute_PopulatesTagListFromReportEntries()
+        {
+            var reportPath = Path.Combine(_tempDir, CaptioningService.ReportFileName);
+            File.WriteAllLines(reportPath, new[] { "1girl: 3", "solo: 2", "blue eyes: 1" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            Assert.Equal(new[] { "1girl", "solo", "blue eyes" }, vm.TagList);
+        }
+
+        [Fact]
+        public async Task FilterText_PartialMatch_FiltersReportEntriesCaseInsensitive()
+        {
+            var reportPath = Path.Combine(_tempDir, CaptioningService.ReportFileName);
+            File.WriteAllLines(reportPath, new[] { "1girl: 3", "solo: 2", "blue eyes: 1" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            vm.FilterText = "GIRL";
+
+            Assert.Equal(new TagCountEntry("1girl", 3), Assert.Single(vm.ReportEntries));
+        }
+
+        [Fact]
+        public async Task FilterText_ClearedToEmpty_RestoresAllReportEntries()
+        {
+            var reportPath = Path.Combine(_tempDir, CaptioningService.ReportFileName);
+            File.WriteAllLines(reportPath, new[] { "1girl: 3", "solo: 2", "blue eyes: 1" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+            vm.FilterText = "solo";
+
+            vm.FilterText = "";
+
+            Assert.Equal(3, vm.ReportEntries.Count);
+        }
+
+        [Fact]
+        public async Task FilterText_NoMatch_ReportEntriesEmpty()
+        {
+            var reportPath = Path.Combine(_tempDir, CaptioningService.ReportFileName);
+            File.WriteAllLines(reportPath, new[] { "1girl: 3", "solo: 2" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            vm.FilterText = "nonexistent";
+
+            Assert.Empty(vm.ReportEntries);
+        }
+
+        [Fact]
+        public async Task GenerateReportCommand_Execute_ResetsPreviousFilterText()
+        {
+            var reportPath = Path.Combine(_tempDir, CaptioningService.ReportFileName);
+            File.WriteAllLines(reportPath, new[] { "1girl: 3", "solo: 2" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+            vm.FilterText = "solo";
+
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            Assert.Equal("", vm.FilterText);
+            Assert.Equal(2, vm.ReportEntries.Count);
+        }
     }
 }

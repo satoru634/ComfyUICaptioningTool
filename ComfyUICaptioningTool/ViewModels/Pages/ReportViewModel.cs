@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using ComfyUICaptioningTool.Helpers;
 using ComfyUICaptioningTool.Models;
 using ComfyUICaptioningTool.Services;
@@ -55,8 +56,36 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         [ObservableProperty]
         private string _reportStatusText = "";
 
-        /// <summary>直近生成したタグ集計レポートの内容（出現回数の多い順）。</summary>
+        /// <summary>直近生成したタグ集計レポートの内容（<see cref="FilterText"/> によるフィルタ適用後、出現回数の多い順）。</summary>
         public ObservableCollection<TagCountEntry> ReportEntries { get; } = new();
+
+        /// <summary>直近生成したタグ集計レポートの全件（フィルタ適用前）。</summary>
+        private List<TagCountEntry> _allReportEntries = new();
+
+        /// <summary>フィルタ入力欄の AutoSuggestBox に表示する、直近生成したレポートのタグ名一覧。</summary>
+        public ObservableCollection<string> TagList { get; } = new();
+
+        /// <summary>タグ名でのフィルタ文字列。入力のたびに <see cref="ReportEntries"/> を絞り込む。</summary>
+        [ObservableProperty]
+        private string _filterText = "";
+
+        partial void OnFilterTextChanged(string value) => ApplyFilter();
+
+        /// <summary>
+        /// <see cref="_allReportEntries"/> のうち、<see cref="FilterText"/> をタグ名に含むもの（大文字小文字区別なし）のみを
+        /// <see cref="ReportEntries"/> へ反映する。
+        /// </summary>
+        private void ApplyFilter()
+        {
+            ReportEntries.Clear();
+
+            var filtered = string.IsNullOrWhiteSpace(FilterText)
+                ? _allReportEntries
+                : _allReportEntries.Where(e => e.Tag.Contains(FilterText, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var entry in filtered)
+                ReportEntries.Add(entry);
+        }
 
         /// <summary>
         /// DI コンテナから設定・スナックバーサービスを受け取って初期化する。
@@ -157,15 +186,20 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             var directory = ReportDirectory!;
 
             IsGeneratingReport = true;
+            _allReportEntries.Clear();
             ReportEntries.Clear();
+            TagList.Clear();
+            FilterText = "";
             ReportStatusText = "";
 
             try
             {
                 var service = _captioningServiceFactory(_taggerRunner!, Array.Empty<string>(), Array.Empty<string>());
                 var entries = await TagReportGenerator.GenerateAsync(service, directory, ReportRecursive);
+                _allReportEntries = entries;
+                ApplyFilter();
                 foreach (var entry in entries)
-                    ReportEntries.Add(entry);
+                    TagList.Add(entry.Tag);
 
                 var reportPath = Path.Combine(directory, ComfyUILibs.Services.CaptioningService.ReportFileName);
                 ReportStatusText = string.Format(
