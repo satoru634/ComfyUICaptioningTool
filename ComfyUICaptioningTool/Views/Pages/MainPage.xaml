@@ -173,7 +173,8 @@
                     Margin="0,0,0,4"
                     Height="80"
                     PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_TagsPlaceholder]}"
-                    Text="{Binding ViewModel.ExcludeTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    Text="{Binding ViewModel.ExcludeTagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    TextWrapping="Wrap" />
                 <ui:Button
                     Margin="0,8,0,0"
                     Height="36"
