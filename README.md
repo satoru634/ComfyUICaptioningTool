@@ -1,5 +1,7 @@
 # ComfyUICaptioningTool
 
+✨ [English](doc/README_english.md)
+
 ComfyUI（WD Timm Tagger）を使った画像キャプショニング（タグ付け）を GUI から操作するツール。[comfyui_tools](https://github.com/satoru634/comfyui_tools) の `captioning_tool`（Python 実装）の C# WPF 移植版。
 
 ![MainPage](./doc/images/main_page.png)
