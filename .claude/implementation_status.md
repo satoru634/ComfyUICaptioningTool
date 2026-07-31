@@ -338,6 +338,16 @@
 - `ComfyUICaptioningToolTests`: `ViewModels/Pages/ReportViewModelTests.cs` に5件追加（`GenerateReportCommand` 実行後に `TagList` がタグ名一覧で反映されること、`FilterText` の部分一致・大文字小文字無視でのフィルタリング、`FilterText` を空文字に戻すと全件表示に戻ること、一致なし時は `ReportEntries` が空になること、`GenerateReportCommand` 再実行時に前回の `FilterText` がリセットされること）。計253件、全件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認）
 - 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビュー（`GalleryPage.xaml` の `ui:AutoSuggestBox` 構成と同一パターンであること）で代替した
 
+### フェーズ25: publish 設定の整備（`feature/publish-settings` ブランチ、実装完了）
+
+「アプリ配布のための準備をしたい」というユーザー要望を受けて、`ComfyUIRunWorkflow` と比較し `publish`（`dotnet publish`）のために不足していた `csproj` のプロパティと発行プロファイルを整備した。`templates/` フォルダ・`captioning_config.json` の `Content` 配置・アイコン設定・`ComfyUILibs` のパッケージバージョン・`app.manifest` は既に `ComfyUIRunWorkflow` と同等の状態だったため対象外。
+
+- `ComfyUICaptioningTool.csproj` に `Version`（`1.0.0`。初回リリースとして設定、以降のバージョン管理はリリースのたびに更新する想定）・`RuntimeIdentifier`（`win-x64`）・`PublishSingleFile`（`true`）・`EnableCompressionInSingleFile`（`true`）を追加した。`SelfContained` は明示していない（`ComfyUIRunWorkflow` と同様、既定の `false`＝フレームワーク依存の単一 exe になる。実行環境に .NET 8 Desktop Runtime のインストールが前提）
+- `Properties/PublishProfiles/FolderProfile.pubxml`（新設）: `ComfyUIRunWorkflow` と同一内容（`Configuration=Release`・`PublishDir=bin\Release\net8.0-windows7.0\publish\`・`PublishProtocol=FileSystem`）。Visual Studio の発行ウィザードや `dotnet publish -p:PublishProfile=FolderProfile` から参照できる
+- `dotnet publish ComfyUICaptioningTool/ComfyUICaptioningTool.csproj -c Release` を実行し、`bin/Release/net8.0-windows7.0/win-x64/publish/` に単一 exe（`ComfyUICaptioningTool.exe`）・必要なネイティブ DLL（`D3DCompiler_47_cor3.dll` 等）・`templates/`・`captioning_config.json` が正しく出力されることを確認済み
+- 本フェーズはビルド設定のみの変更でありクラスの追加・変更を伴わないため、ユニットテストの追加・実行は対象外とした（`dotnet build ComfyUICaptioningTool.sln` の成功のみ確認）
+- **対象外とした点**: `ComfyUIRunWorkflow` 側の publish 出力には `.pdb`（デバッグシンボル）が含まれていなかったが、`csproj` に `DebugType` 等の明示的な設定は無く発行時のオプション差と推測されるため、本フェーズでは追随しなかった（配布時に気になる場合は `dotnet publish` に `-p:DebugType=none` を付与するか、`csproj` に追加で設定する）
+
 ### 将来的な拡張
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図）の整備
