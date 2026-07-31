@@ -10,6 +10,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
     AssemblyInfo.cs
     app.manifest
     wpfui-icon.ico
+    Properties/
+      PublishProfiles/
+        FolderProfile.pubxml                <- dotnet publish / Visual Studio 発行ウィザード用の
+                                                フォルダー発行プロファイル（ComfyUIRunWorkflow と同一設定。
+                                                フェーズ25で追加）
     Assets/
       wpfui-icon-256.png / wpfui-icon-1024.png
     Models/
