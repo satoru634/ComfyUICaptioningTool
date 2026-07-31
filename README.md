@@ -59,7 +59,7 @@ dotnet run --project ComfyUICaptioningTool
 
 ![ギャラリーページ](./doc/images/gallery_page.png)
 
-各ページの詳しい使い方は今後 `doc/usage.md` として整備予定です（現時点では未作成）。
+各ページの詳しい使い方は [doc/usage.md](doc/usage.md) を参照してください。
 
 ## 多言語対応
 
