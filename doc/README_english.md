@@ -59,7 +59,7 @@ dotnet run --project ComfyUICaptioningTool
 
 ![Gallery page](images/gallery_page_english.png)
 
-Detailed, page-by-page usage will be documented in `doc/usage.md` in the future (not yet written).
+See [usage.md](usage_english.md) for detailed, page-by-page usage instructions.
 
 ## Localization
 
