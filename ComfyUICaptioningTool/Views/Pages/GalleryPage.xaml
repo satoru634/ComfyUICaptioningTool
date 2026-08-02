@@ -34,11 +34,15 @@
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border
                             Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="4"
                             Padding="{TemplateBinding Padding}">
                             <ContentPresenter
@@ -53,6 +57,7 @@
                 <Trigger Property="IsChecked" Value="True">
                     <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
                     <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -431,8 +436,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <ToggleButton
-                                            Margin="0,0,4,4"
-                                            Padding="8,2"
+                                            Style="{StaticResource TagToggleButtonStyle}"
                                             Content="{Binding}"
                                             Command="{Binding DataContext.ToggleTagSelectionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding}">

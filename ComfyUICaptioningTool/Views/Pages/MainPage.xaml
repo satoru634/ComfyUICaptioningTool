@@ -181,7 +181,13 @@
                     Appearance="Secondary"
                     Command="{Binding ViewModel.ImportTagsFromConfigCommand}"
                     Icon="{ui:SymbolIcon ArrowImport24}"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ImportConfigButtonTooltip]}" />
+                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_ImportConfigButtonTooltip]}">
+                    <ui:Button.ContentTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" />
+                        </DataTemplate>
+                    </ui:Button.ContentTemplate>
+                </ui:Button>
             </StackPanel>
         </Border>
 
