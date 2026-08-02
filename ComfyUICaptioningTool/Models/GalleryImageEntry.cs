@@ -91,6 +91,10 @@ namespace ComfyUICaptioningTool.Models
                 OnPropertyChanged(nameof(SelectedTags));
                 OnPropertyChanged(nameof(HasSelectedTags));
                 RemoveSelectedTagsCommand.NotifyCanExecuteChanged();
+                MoveSelectedTagsToStartCommand.NotifyCanExecuteChanged();
+                MoveSelectedTagsToEndCommand.NotifyCanExecuteChanged();
+                MoveSelectedTagsUpCommand.NotifyCanExecuteChanged();
+                MoveSelectedTagsDownCommand.NotifyCanExecuteChanged();
             };
             _onTagsChangedAsync = onTagsChangedAsync;
         }
@@ -123,6 +127,76 @@ namespace ComfyUICaptioningTool.Models
 
             if (anyRemoved && _onTagsChangedAsync is not null)
                 await _onTagsChangedAsync();
+        }
+
+        /// <summary>
+        /// 選択中の全タグ（<see cref="SelectedTags"/>）を、相対順序を保ったまま先頭へまとめて移動する。
+        /// 同名 .txt へ即座に保存する。
+        /// </summary>
+        [RelayCommand(CanExecute = nameof(HasSelectedTags))]
+        private void MoveSelectedTagsToStart()
+        {
+            var selected = Tags.Where(t => SelectedTags.Contains(t)).ToList();
+            if (selected.Count == 0)
+                return;
+
+            foreach (var tag in selected)
+                Tags.Remove(tag);
+            for (var i = 0; i < selected.Count; i++)
+                Tags.Insert(i, selected[i]);
+
+            SaveTags();
+        }
+
+        /// <summary>
+        /// 選択中の全タグ（<see cref="SelectedTags"/>）を、相対順序を保ったまま末尾へまとめて移動する。
+        /// 同名 .txt へ即座に保存する。
+        /// </summary>
+        [RelayCommand(CanExecute = nameof(HasSelectedTags))]
+        private void MoveSelectedTagsToEnd()
+        {
+            var selected = Tags.Where(t => SelectedTags.Contains(t)).ToList();
+            if (selected.Count == 0)
+                return;
+
+            foreach (var tag in selected)
+                Tags.Remove(tag);
+            foreach (var tag in selected)
+                Tags.Add(tag);
+
+            SaveTags();
+        }
+
+        /// <summary>
+        /// 選択中の各タグを、直前の要素が非選択タグの場合に限り 1 つ前へ移動する（先頭から順に処理することで、
+        /// 連続して選択されたタグのまとまりはブロックとして一緒に 1 つ前へ移動する）。同名 .txt へ即座に保存する。
+        /// </summary>
+        [RelayCommand(CanExecute = nameof(HasSelectedTags))]
+        private void MoveSelectedTagsUp()
+        {
+            for (var i = 1; i < Tags.Count; i++)
+            {
+                if (SelectedTags.Contains(Tags[i]) && !SelectedTags.Contains(Tags[i - 1]))
+                    Tags.Move(i, i - 1);
+            }
+
+            SaveTags();
+        }
+
+        /// <summary>
+        /// 選択中の各タグを、直後の要素が非選択タグの場合に限り 1 つ後ろへ移動する（末尾から順に処理することで、
+        /// 連続して選択されたタグのまとまりはブロックとして一緒に 1 つ後ろへ移動する）。同名 .txt へ即座に保存する。
+        /// </summary>
+        [RelayCommand(CanExecute = nameof(HasSelectedTags))]
+        private void MoveSelectedTagsDown()
+        {
+            for (var i = Tags.Count - 2; i >= 0; i--)
+            {
+                if (SelectedTags.Contains(Tags[i]) && !SelectedTags.Contains(Tags[i + 1]))
+                    Tags.Move(i, i + 1);
+            }
+
+            SaveTags();
         }
 
         /// <summary>

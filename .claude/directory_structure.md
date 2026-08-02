@@ -59,7 +59,21 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 HasSelectedTags 派生プロパティ・ToggleTagSelectionCommand
                                                 （選択のトグル）・RemoveSelectedTagsCommand（選択中の全タグを
                                                 削除。CanExecute=HasSelectedTags）をフェーズ22で追加し、
-                                                カード単位のタグ表示をトグルボタン化した
+                                                カード単位のタグ表示をトグルボタン化した。フェーズ26で、
+                                                選択中のタグの並び替えコマンド
+                                                MoveSelectedTagsToStartCommand/MoveSelectedTagsUpCommand/
+                                                MoveSelectedTagsDownCommand/MoveSelectedTagsToEndCommand
+                                                （いずれも CanExecute=HasSelectedTags）を追加した。
+                                                ToStart/ToEnd は選択タグを相対順序を保ったまま抽出して
+                                                Remove→先頭/末尾へ再挿入、Up/Down は Tags を先頭/末尾から
+                                                走査し「自身が選択中かつ隣接要素が非選択」の場合のみ
+                                                ObservableCollection&lt;T&gt;.Move で1つ移動する（隣接判定は
+                                                走査時点のライブな SelectedTags.Contains によるため、
+                                                連続選択タグはブロックとして一体で移動する）。いずれも
+                                                順序変更のみで .txt への即時保存（SaveTags）は行うが、
+                                                タグの追加・削除を伴わないため captioning_config_result.json
+                                                （UpdateConfigResult）・TagList 更新コールバック
+                                                （onTagsChangedAsync）は呼び出さない
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
@@ -201,8 +215,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 .txt 未存在時は「タグ未生成」表示）・タグ追加入力欄
                                                 （コピー/先頭に追加/末尾に追加/選択タグを削除の4ボタン。
                                                 先頭追加ボタンはフェーズ18、削除ボタン（RemoveSelectedTagsCommand、
-                                                選択中のタグが1件以上ある場合のみ活性化）はフェーズ22で追加）を
-                                                そのまま表示する。
+                                                選択中のタグが1件以上ある場合のみ活性化）はフェーズ22で追加）と、
+                                                選択タグの並び替え4ボタン（先頭へ/1つ前へ/1つ後ろへ/最後尾へ、
+                                                MoveSelectedTagsToStart/Up/Down/ToEndCommand にバインド。
+                                                フェーズ26で追加）を表示する。
                                                 右ペインのタグ一覧は独自にスクロール可能な ScrollViewer
                                                 だが、素のままだと画像・タグ一覧全体を包む外側の
                                                 ScrollViewer までマウスホイールイベントがバブルせず外側の
@@ -255,7 +271,11 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 テストを追加。フェーズ22で、ToggleTagSelectionCommand による
                                                 選択/解除・複数選択、RemoveSelectedTagsCommand の
                                                 CanExecute（選択の有無）・選択タグの一括削除と .txt への反映・
-                                                削除成功時のコールバック呼び出しを検証するテストを追加）
+                                                削除成功時のコールバック呼び出しを検証するテストを追加。
+                                                フェーズ26で、MoveSelectedTagsToStart/ToEnd/Up/Down 各
+                                                コマンドの CanExecute・相対順序を保った移動と .txt への反映・
+                                                境界（先頭/末尾）到達時は変化しないこと・連続選択タグが
+                                                ブロックとして一体で移動することを検証するテストを追加）
     Services/
       TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
                                                 ICaptioningService 呼び出し引数の検証・レポート行の解析

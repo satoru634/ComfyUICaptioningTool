@@ -141,6 +141,10 @@
   <data name="Gallery_AddTagToEndTooltip" xml:space="preserve"><value>末尾に追加</value></data>
   <data name="Gallery_CopyTagsTooltip" xml:space="preserve"><value>タグをコピー</value></data>
   <data name="Gallery_SelectImagePrompt" xml:space="preserve"><value>画像を選択するとタグが表示されます</value></data>
+  <data name="Gallery_MoveTagsToStartTooltip" xml:space="preserve"><value>選択したタグを先頭に移動</value></data>
+  <data name="Gallery_MoveTagsUpTooltip" xml:space="preserve"><value>選択したタグを1つ前に移動</value></data>
+  <data name="Gallery_MoveTagsDownTooltip" xml:space="preserve"><value>選択したタグを1つ後ろに移動</value></data>
+  <data name="Gallery_MoveTagsToEndTooltip" xml:space="preserve"><value>選択したタグを最後尾に移動</value></data>
 
   <!-- Report（タグ集計レポート表示ページ） -->
   <data name="Report_Title" xml:space="preserve"><value>タグ集計レポート</value></data>
