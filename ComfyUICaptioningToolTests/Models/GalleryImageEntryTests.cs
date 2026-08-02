@@ -483,6 +483,161 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.Equal(new[] { "tag1" }, entry.Tags);
         }
 
+        // ── SelectedTags 変更時の CanExecuteChanged 通知 ─────────────────────────
+        // WPF のボタンは CanExecuteChanged イベントが発火して初めて IsEnabled を再評価するため、
+        // CanExecute(null) を直接呼ぶだけのテストでは「選択してもボタンが有効化されない」不具合を
+        // 検出できない（ToggleTagSelectionCommand の SelectedTags.CollectionChanged ハンドラー内で
+        // 各コマンドの NotifyCanExecuteChanged() 呼び出しが漏れていた実際の不具合を踏まえ追加）。
+
+        [Theory]
+        [InlineData(nameof(GalleryImageEntry.RemoveSelectedTagsCommand))]
+        [InlineData(nameof(GalleryImageEntry.MoveSelectedTagsToStartCommand))]
+        [InlineData(nameof(GalleryImageEntry.MoveSelectedTagsToEndCommand))]
+        [InlineData(nameof(GalleryImageEntry.MoveSelectedTagsUpCommand))]
+        [InlineData(nameof(GalleryImageEntry.MoveSelectedTagsDownCommand))]
+        public void SelectionCommands_ToggleTagSelection_RaisesCanExecuteChanged(string commandPropertyName)
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+            var command = (System.Windows.Input.ICommand)typeof(GalleryImageEntry)
+                .GetProperty(commandPropertyName)!.GetValue(entry)!;
+
+            var raised = false;
+            command.CanExecuteChanged += (_, _) => raised = true;
+
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            Assert.True(raised);
+        }
+
+        // ── MoveSelectedTagsToStartCommand / MoveSelectedTagsToEndCommand ────────
+
+        [Fact]
+        public void MoveSelectedTagsToStartCommand_CanExecute_NoSelection_IsFalse()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            Assert.False(entry.MoveSelectedTagsToStartCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsToStartCommand_Execute_MovesSelectedTagsToStart_PreservingRelativeOrder_AndUpdatesTxt()
+        {
+            var path = CreateImagePath();
+            var entry = new GalleryImageEntry("a.jpg", path, new[] { "tag1", "tag2", "tag3", "tag4" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+            entry.ToggleTagSelectionCommand.Execute("tag4");
+
+            entry.MoveSelectedTagsToStartCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag2", "tag4", "tag1", "tag3" }, entry.Tags);
+            Assert.Equal("tag2, tag4, tag1, tag3", File.ReadAllText(Path.ChangeExtension(path, ".txt")));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsToEndCommand_Execute_MovesSelectedTagsToEnd_PreservingRelativeOrder_AndUpdatesTxt()
+        {
+            var path = CreateImagePath();
+            var entry = new GalleryImageEntry("a.jpg", path, new[] { "tag1", "tag2", "tag3", "tag4" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+            entry.ToggleTagSelectionCommand.Execute("tag3");
+
+            entry.MoveSelectedTagsToEndCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag2", "tag4", "tag1", "tag3" }, entry.Tags);
+            Assert.Equal("tag2, tag4, tag1, tag3", File.ReadAllText(Path.ChangeExtension(path, ".txt")));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsToStartCommand_Execute_NoSelection_TagsUnchanged()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+
+            Assert.False(entry.MoveSelectedTagsToStartCommand.CanExecute(null));
+            Assert.Equal(new[] { "tag1", "tag2" }, entry.Tags);
+        }
+
+        // ── MoveSelectedTagsUpCommand / MoveSelectedTagsDownCommand ──────────────
+
+        [Fact]
+        public void MoveSelectedTagsUpCommand_CanExecute_NoSelection_IsFalse()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            Assert.False(entry.MoveSelectedTagsUpCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsUpCommand_Execute_SingleSelectedTag_SwapsWithPrevious_AndUpdatesTxt()
+        {
+            var path = CreateImagePath();
+            var entry = new GalleryImageEntry("a.jpg", path, new[] { "tag1", "tag2", "tag3" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+
+            entry.MoveSelectedTagsUpCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag2", "tag1", "tag3" }, entry.Tags);
+            Assert.Equal("tag2, tag1, tag3", File.ReadAllText(Path.ChangeExtension(path, ".txt")));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsUpCommand_Execute_TagAlreadyAtStart_NoChange()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            entry.MoveSelectedTagsUpCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag1", "tag2" }, entry.Tags);
+        }
+
+        [Fact]
+        public void MoveSelectedTagsUpCommand_Execute_ContiguousBlock_MovesTogetherAsBlock()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2", "tag3", "tag4" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+            entry.ToggleTagSelectionCommand.Execute("tag3");
+
+            entry.MoveSelectedTagsUpCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag2", "tag3", "tag1", "tag4" }, entry.Tags);
+        }
+
+        [Fact]
+        public void MoveSelectedTagsDownCommand_Execute_SingleSelectedTag_SwapsWithNext_AndUpdatesTxt()
+        {
+            var path = CreateImagePath();
+            var entry = new GalleryImageEntry("a.jpg", path, new[] { "tag1", "tag2", "tag3" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+
+            entry.MoveSelectedTagsDownCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag1", "tag3", "tag2" }, entry.Tags);
+            Assert.Equal("tag1, tag3, tag2", File.ReadAllText(Path.ChangeExtension(path, ".txt")));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsDownCommand_Execute_TagAlreadyAtEnd_NoChange()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+
+            entry.MoveSelectedTagsDownCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag1", "tag2" }, entry.Tags);
+        }
+
+        [Fact]
+        public void MoveSelectedTagsDownCommand_Execute_ContiguousBlock_MovesTogetherAsBlock()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2", "tag3", "tag4" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+            entry.ToggleTagSelectionCommand.Execute("tag3");
+
+            entry.MoveSelectedTagsDownCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag1", "tag4", "tag2", "tag3" }, entry.Tags);
+        }
+
         // ── CopyTagsToClipboardCommand ───────────────────────────────────────────
 
         /// <summary>
