@@ -18,11 +18,16 @@ namespace ComfyUICaptioningTool.Models
     /// 併せて、画像と同じディレクトリの captioning_config_result.json（次回タグ付け実行時に使用する
     /// 記録ファイル）へも、追加したタグは prepend_tags に・削除したタグは exclude_tags に反映する
     /// （MainPageViewModel が実行成功時に出力するのと同じファイル名・JSON フォーマット）。
+    /// さらに、追加・削除・並び替え（実際に変更が生じた場合のみ）のたびに、画像と同じディレクトリの
+    /// gallery_edit_log.jsonl へ作業ログを 1 行追記する。
     /// </summary>
     public partial class GalleryImageEntry : ObservableObject
     {
         /// <summary>captioning_config_result.json のファイル名（画像と同じディレクトリ直下）。</summary>
         private const string ConfigResultFileName = "captioning_config_result.json";
+
+        /// <summary>タグ操作の作業ログファイル名（画像と同じディレクトリ直下、JSON Lines 形式）。</summary>
+        private const string EditLogFileName = "gallery_edit_log.jsonl";
 
         /// <summary>captioning_config_result.json 読み込み時のオプション。プロパティ名の大文字/小文字を区別しない。</summary>
         private static readonly JsonSerializerOptions ConfigReadOptions = new()
@@ -39,6 +44,12 @@ namespace ComfyUICaptioningTool.Models
             WriteIndented = true,
             Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
+
+        /// <summary>gallery_edit_log.jsonl の書き込みオプション。1 行 1 エントリのため改行を含めない。</summary>
+        private static readonly JsonSerializerOptions EditLogWriteOptions = new()
+        {
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
         };
 
         /// <summary>画像ファイル名（拡張子込み）。</summary>
@@ -140,12 +151,15 @@ namespace ComfyUICaptioningTool.Models
             if (selected.Count == 0)
                 return;
 
+            var before = Tags.ToList();
             foreach (var tag in selected)
                 Tags.Remove(tag);
             for (var i = 0; i < selected.Count; i++)
                 Tags.Insert(i, selected[i]);
 
             SaveTags();
+            if (!Tags.SequenceEqual(before))
+                LogEdit("reorder_to_start", selected);
         }
 
         /// <summary>
@@ -159,12 +173,15 @@ namespace ComfyUICaptioningTool.Models
             if (selected.Count == 0)
                 return;
 
+            var before = Tags.ToList();
             foreach (var tag in selected)
                 Tags.Remove(tag);
             foreach (var tag in selected)
                 Tags.Add(tag);
 
             SaveTags();
+            if (!Tags.SequenceEqual(before))
+                LogEdit("reorder_to_end", selected);
         }
 
         /// <summary>
@@ -174,6 +191,7 @@ namespace ComfyUICaptioningTool.Models
         [RelayCommand(CanExecute = nameof(HasSelectedTags))]
         private void MoveSelectedTagsUp()
         {
+            var before = Tags.ToList();
             for (var i = 1; i < Tags.Count; i++)
             {
                 if (SelectedTags.Contains(Tags[i]) && !SelectedTags.Contains(Tags[i - 1]))
@@ -181,6 +199,8 @@ namespace ComfyUICaptioningTool.Models
             }
 
             SaveTags();
+            if (!Tags.SequenceEqual(before))
+                LogEdit("reorder_up", Tags.Where(t => SelectedTags.Contains(t)).ToList());
         }
 
         /// <summary>
@@ -190,6 +210,7 @@ namespace ComfyUICaptioningTool.Models
         [RelayCommand(CanExecute = nameof(HasSelectedTags))]
         private void MoveSelectedTagsDown()
         {
+            var before = Tags.ToList();
             for (var i = Tags.Count - 2; i >= 0; i--)
             {
                 if (SelectedTags.Contains(Tags[i]) && !SelectedTags.Contains(Tags[i + 1]))
@@ -197,6 +218,8 @@ namespace ComfyUICaptioningTool.Models
             }
 
             SaveTags();
+            if (!Tags.SequenceEqual(before))
+                LogEdit("reorder_down", Tags.Where(t => SelectedTags.Contains(t)).ToList());
         }
 
         /// <summary>
@@ -229,6 +252,8 @@ namespace ComfyUICaptioningTool.Models
                 config.ExcludeTags?.RemoveAll(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase));
             });
 
+            LogEdit(prepend ? "add_start" : "add_end", new[] { trimmed });
+
             return true;
         }
 
@@ -253,6 +278,8 @@ namespace ComfyUICaptioningTool.Models
 
                 config.PrependTags?.RemoveAll(t => string.Equals(t, tag, StringComparison.OrdinalIgnoreCase));
             });
+
+            LogEdit("remove", new[] { tag });
 
             return true;
         }
@@ -329,6 +356,29 @@ namespace ComfyUICaptioningTool.Models
             else
             {
                 File.WriteAllText(txtPath, string.Join(", ", Tags), Encoding.UTF8);
+            }
+        }
+
+        /// <summary>
+        /// 画像と同じディレクトリの gallery_edit_log.jsonl へ、タグ操作 1 件分のログを 1 行追記する。
+        /// 書き込みに失敗した場合は握りつぶす（タグ本体の .txt 保存・captioning_config_result.json への
+        /// 反映はすでに完了しているため、この記録ファイルへの反映失敗でタグ編集自体を失敗扱いにはしない）。
+        /// </summary>
+        private void LogEdit(string operation, IReadOnlyList<string> tags)
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(FullPath);
+                if (string.IsNullOrEmpty(directory))
+                    return;
+
+                var entry = new GalleryEditLogEntry(DateTimeOffset.Now, FileName, operation, tags);
+                var line = JsonSerializer.Serialize(entry, EditLogWriteOptions);
+                File.AppendAllText(Path.Combine(directory, EditLogFileName), line + Environment.NewLine, Encoding.UTF8);
+            }
+            catch
+            {
+                // 作業ログの記録失敗はタグ編集自体には影響させない
             }
         }
 

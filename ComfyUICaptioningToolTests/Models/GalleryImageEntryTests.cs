@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using ComfyUICaptioningTool.Models;
@@ -636,6 +637,199 @@ namespace ComfyUICaptioningToolTests.Models
             entry.MoveSelectedTagsDownCommand.Execute(null);
 
             Assert.Equal(new[] { "tag1", "tag4", "tag2", "tag3" }, entry.Tags);
+        }
+
+        // ── gallery_edit_log.jsonl への作業ログ記録 ──────────────────────────────
+
+        private string EditLogPath => Path.Combine(_tempDir, "gallery_edit_log.jsonl");
+
+        private List<GalleryEditLogEntry> ReadEditLog()
+            => File.Exists(EditLogPath)
+                ? File.ReadAllLines(EditLogPath)
+                    .Where(line => line.Length > 0)
+                    .Select(line => JsonSerializer.Deserialize<GalleryEditLogEntry>(line)!)
+                    .ToList()
+                : new List<GalleryEditLogEntry>();
+
+        [Fact]
+        public void AddTag_End_AppendsEditLogEntry()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), Array.Empty<string>(), null);
+
+            entry.AddTag("new_tag");
+
+            var log = ReadEditLog();
+            var logEntry = Assert.Single(log);
+            Assert.Equal("a.jpg", logEntry.FileName);
+            Assert.Equal("add_end", logEntry.Operation);
+            Assert.Equal(new[] { "new_tag" }, logEntry.Tags);
+        }
+
+        [Fact]
+        public void AddTag_Prepend_AppendsEditLogEntry_WithAddStartOperation()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), Array.Empty<string>(), null);
+
+            entry.AddTag("new_tag", prepend: true);
+
+            var logEntry = Assert.Single(ReadEditLog());
+            Assert.Equal("add_start", logEntry.Operation);
+            Assert.Equal(new[] { "new_tag" }, logEntry.Tags);
+        }
+
+        [Fact]
+        public void AddTag_EmptyOrWhitespace_DoesNotAppendEditLog()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), Array.Empty<string>(), null);
+
+            entry.AddTag("   ");
+
+            Assert.False(File.Exists(EditLogPath));
+        }
+
+        [Fact]
+        public void AddTag_DuplicateIgnoringCase_DoesNotAppendEditLog()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "Tag_A" }, null);
+
+            entry.AddTag("tag_a");
+
+            Assert.False(File.Exists(EditLogPath));
+        }
+
+        [Fact]
+        public void RemoveTag_ExistingTag_AppendsEditLogEntry()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            entry.RemoveTag("tag1");
+
+            var logEntry = Assert.Single(ReadEditLog());
+            Assert.Equal("a.jpg", logEntry.FileName);
+            Assert.Equal("remove", logEntry.Operation);
+            Assert.Equal(new[] { "tag1" }, logEntry.Tags);
+        }
+
+        [Fact]
+        public void RemoveTag_NotExisting_DoesNotAppendEditLog()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            entry.RemoveTag("nonexistent");
+
+            Assert.False(File.Exists(EditLogPath));
+        }
+
+        [Fact]
+        public void MultipleOperations_AppendEditLogEntries_InOrder()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), Array.Empty<string>(), null);
+
+            entry.AddTag("tag1");
+            entry.AddTag("tag2", prepend: true);
+            entry.RemoveTag("tag1");
+
+            var log = ReadEditLog();
+            Assert.Equal(3, log.Count);
+            Assert.Equal("add_end", log[0].Operation);
+            Assert.Equal("add_start", log[1].Operation);
+            Assert.Equal("remove", log[2].Operation);
+        }
+
+        [Fact]
+        public void MoveSelectedTagsToStartCommand_Execute_AppendsReorderToStartEntry()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2", "tag3" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag3");
+
+            entry.MoveSelectedTagsToStartCommand.Execute(null);
+
+            var logEntry = Assert.Single(ReadEditLog());
+            Assert.Equal("reorder_to_start", logEntry.Operation);
+            Assert.Equal(new[] { "tag3" }, logEntry.Tags);
+        }
+
+        [Fact]
+        public void MoveSelectedTagsToStartCommand_Execute_AlreadyAtStart_DoesNotAppendEditLog()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            entry.MoveSelectedTagsToStartCommand.Execute(null);
+
+            Assert.False(File.Exists(EditLogPath));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsToEndCommand_Execute_AppendsReorderToEndEntry()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2", "tag3" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            entry.MoveSelectedTagsToEndCommand.Execute(null);
+
+            var logEntry = Assert.Single(ReadEditLog());
+            Assert.Equal("reorder_to_end", logEntry.Operation);
+            Assert.Equal(new[] { "tag1" }, logEntry.Tags);
+        }
+
+        [Fact]
+        public void MoveSelectedTagsToEndCommand_Execute_AlreadyAtEnd_DoesNotAppendEditLog()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+
+            entry.MoveSelectedTagsToEndCommand.Execute(null);
+
+            Assert.False(File.Exists(EditLogPath));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsUpCommand_Execute_AppendsReorderUpEntry()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+
+            entry.MoveSelectedTagsUpCommand.Execute(null);
+
+            var logEntry = Assert.Single(ReadEditLog());
+            Assert.Equal("reorder_up", logEntry.Operation);
+            Assert.Equal(new[] { "tag2" }, logEntry.Tags);
+        }
+
+        [Fact]
+        public void MoveSelectedTagsUpCommand_Execute_TagAlreadyAtStart_DoesNotAppendEditLog()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            entry.MoveSelectedTagsUpCommand.Execute(null);
+
+            Assert.False(File.Exists(EditLogPath));
+        }
+
+        [Fact]
+        public void MoveSelectedTagsDownCommand_Execute_AppendsReorderDownEntry()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            entry.MoveSelectedTagsDownCommand.Execute(null);
+
+            var logEntry = Assert.Single(ReadEditLog());
+            Assert.Equal("reorder_down", logEntry.Operation);
+            Assert.Equal(new[] { "tag1" }, logEntry.Tags);
+        }
+
+        [Fact]
+        public void MoveSelectedTagsDownCommand_Execute_TagAlreadyAtEnd_DoesNotAppendEditLog()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag2");
+
+            entry.MoveSelectedTagsDownCommand.Execute(null);
+
+            Assert.False(File.Exists(EditLogPath));
         }
 
         // ── CopyTagsToClipboardCommand ───────────────────────────────────────────
