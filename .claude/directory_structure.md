@@ -33,6 +33,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       CaptioningResultLogPreview.cs         <- DataPage の一覧表示用に CaptioningResultLog と整形済み表示文字列
                                                 （日時・サマリ/エラーメッセージ）をまとめた positional record
       TagCountEntry.cs                      <- tags_report.txt の 1 行（Tag/Count）を表す positional record
+      GalleryEditLogEntry.cs                <- GalleryPage でのタグ操作（追加・削除・並び替え）1 件分の
+                                                作業ログエントリ（positional record、JSON プロパティ名は
+                                                snake_case）。画像と同じディレクトリの gallery_edit_log.jsonl
+                                                へ 1 行 1 エントリの JSON Lines 形式で追記される（フェーズ27）
       GalleryImageEntry.cs                  <- GalleryPage の一覧表示用に、画像 1 枚とその同名 .txt から
                                                 読み込んだタグ・サムネイル（BitmapImage?）をまとめた
                                                 ObservableObject（HasTags 派生プロパティを持つ）。
@@ -73,7 +77,13 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 順序変更のみで .txt への即時保存（SaveTags）は行うが、
                                                 タグの追加・削除を伴わないため captioning_config_result.json
                                                 （UpdateConfigResult）・TagList 更新コールバック
-                                                （onTagsChangedAsync）は呼び出さない
+                                                （onTagsChangedAsync）は呼び出さない。
+                                                フェーズ27で、AddTag/RemoveTag/MoveSelectedTagsToStart/
+                                                ToEnd/Up/Down の各操作（実際に変更が生じた場合のみ）で
+                                                LogEdit を呼び出し、画像と同じディレクトリの
+                                                gallery_edit_log.jsonl（GalleryEditLogEntry を JSON Lines
+                                                形式で1行追記）へ作業ログを記録するようにした。書き込み
+                                                失敗時は握りつぶし、タグ編集本体には影響させない
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
@@ -275,7 +285,13 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 フェーズ26で、MoveSelectedTagsToStart/ToEnd/Up/Down 各
                                                 コマンドの CanExecute・相対順序を保った移動と .txt への反映・
                                                 境界（先頭/末尾）到達時は変化しないこと・連続選択タグが
-                                                ブロックとして一体で移動することを検証するテストを追加）
+                                                ブロックとして一体で移動することを検証するテストを追加。
+                                                フェーズ27で、gallery_edit_log.jsonl への作業ログ記録
+                                                （AddTag/RemoveTag の add_start/add_end/remove 記録、
+                                                MoveSelectedTagsToStart/ToEnd/Up/Down の reorder_*
+                                                記録・実際に変化がない場合は記録しないこと・空文字/重複/
+                                                存在しないタグ指定時は記録しないこと・複数回の操作が
+                                                順番通り追記されること）を検証するテストを追加）
     Services/
       TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
                                                 ICaptioningService 呼び出し引数の検証・レポート行の解析
