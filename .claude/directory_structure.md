@@ -171,7 +171,21 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 FilterText（入力のたびに部分一致・大文字小文字無視で
                                                 ReportEntries を絞り込む ApplyFilter を呼び出す）、
                                                 ui:AutoSuggestBox のサジェスト候補用 TagList
-                                                （生成済みレポートのタグ名一覧）を追加した
+                                                （生成済みレポートのタグ名一覧）を追加した。フェーズ28で、
+                                                ListView で選択中のタグ SelectedTag（TagCountEntry?）と、
+                                                それを使用している画像のファイル名一覧 TagUsageImages
+                                                （ObservableCollection&lt;string&gt;、ファイル名昇順）を
+                                                追加した。SelectedTag の変更は partial void
+                                                OnSelectedTagChanged から LoadTagUsageImagesAsync を
+                                                fire-and-forget で起動し、対象ディレクトリ内の画像
+                                                （対応拡張子は GalleryViewModel と同じ .jpg/.jpeg/.png/.webp）
+                                                の同名 .txt を読み、選択タグを含む（大文字小文字無視）
+                                                画像のファイル名を収集する（画像収集ロジックは
+                                                GalleryViewModel.CollectEntries/SplitTags と同内容を複製）。
+                                                起動したタスクは TagUsageLoadTask（public Task）へ保持し、
+                                                テストから完了を await で待てるようにしている。
+                                                GenerateReportCommand 実行時は SelectedTag/TagUsageImages
+                                                もリセットする
       SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
                                                 パス選択（BrowseConfigPathCommand）、実行結果ログ出力先
                                                 ResultsFolder の選択（BrowseResultsFolderCommand）を実装済み
@@ -241,7 +255,16 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 フェーズ24で、列見出しの上に ui:AutoSuggestBox
                                                 （Text=ViewModel.FilterText、OriginalItemsSource=
                                                 ViewModel.TagList）を追加し、タグ名でのインタラクティブな
-                                                フィルタリングに対応した
+                                                フィルタリングに対応した。フェーズ28で、ui:ListView に
+                                                SelectedItem=ViewModel.SelectedTag（TwoWay）を配線し、
+                                                独立したカード（見出し Report_ImageUsageImagesColumnHeader
+                                                + 内側の Border、従来は空のプレースホルダーだった箇所）に、
+                                                選択中のタグを使用している画像のファイル名一覧を
+                                                ItemsControl（ItemsPanel=WrapPanel、水平方向に折り返し）で
+                                                表示するようにした。未選択時（SelectedTag が null）は
+                                                Report_TagUsageImagesPrompt のプレースホルダー文言を表示する
+                                                （GalleryPage.xaml の Gallery_SelectImagePrompt と同じ
+                                                DataTrigger パターン）
       ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
                                                 しきい値・prepend/exclude タグ既定値の編集、保存ボタン）
       SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択、
@@ -346,7 +369,15 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 GenerateReportCommand 実行後の TagList 反映・FilterText の
                                                 部分一致/大文字小文字無視でのフィルタリング・空文字に戻した
                                                 際の全件表示への復帰・一致なし時の空表示・レポート再生成時に
-                                                前回の FilterText がリセットされることを検証するテストを追加
+                                                前回の FilterText がリセットされることを検証するテストを追加。
+                                                フェーズ28で、SelectedTag 設定時に TagUsageImages が
+                                                ファイル名昇順で反映されること・null 設定で空になること・
+                                                タグ一致が大文字小文字無視であること・該当画像なし時は
+                                                空のままであること・SelectedTag 変更で前回の一覧が
+                                                置き換わること・GenerateReportCommand 再実行時に
+                                                SelectedTag/TagUsageImages がリセットされることを検証する
+                                                テストを追加（非同期処理の完了は ReportViewModel.
+                                                TagUsageLoadTask を await して待つ）
       SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）
       ConfigViewModelTests.cs               <- ConfigViewModel のテスト（ConfigPath 読み込み成否・
                                                 ファイル未存在時の新規作成扱い・SaveCommand の CanExecute/実行・

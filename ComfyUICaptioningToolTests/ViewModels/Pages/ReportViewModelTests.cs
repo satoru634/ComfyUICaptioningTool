@@ -338,5 +338,100 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             Assert.Equal("", vm.FilterText);
             Assert.Equal(2, vm.ReportEntries.Count);
         }
+
+        // ── 選択タグの使用画像一覧 (SelectedTag / TagUsageImages) ─────────────
+
+        [Fact]
+        public async Task SelectedTag_SetToTagUsedByImages_PopulatesTagUsageImagesSortedByFileName()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, "b.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "b.txt"), "1girl, solo");
+            File.WriteAllText(Path.Combine(_tempDir, "a.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "1girl");
+            File.WriteAllText(Path.Combine(_tempDir, "c.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "c.txt"), "solo");
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+
+            vm.SelectedTag = new TagCountEntry("1girl", 2);
+            await vm.TagUsageLoadTask;
+
+            Assert.Equal(new[] { "a.png", "b.png" }, vm.TagUsageImages);
+        }
+
+        [Fact]
+        public async Task SelectedTag_SetToNull_ClearsTagUsageImages()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, "a.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "1girl");
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+            vm.SelectedTag = new TagCountEntry("1girl", 1);
+            await vm.TagUsageLoadTask;
+
+            vm.SelectedTag = null;
+            await vm.TagUsageLoadTask;
+
+            Assert.Empty(vm.TagUsageImages);
+        }
+
+        [Fact]
+        public async Task SelectedTag_TagMatchIsCaseInsensitive()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, "a.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "1Girl");
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+
+            vm.SelectedTag = new TagCountEntry("1girl", 1);
+            await vm.TagUsageLoadTask;
+
+            Assert.Equal(new[] { "a.png" }, vm.TagUsageImages);
+        }
+
+        [Fact]
+        public async Task SelectedTag_NoImageUsesTag_TagUsageImagesEmpty()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, "a.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "solo");
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+
+            vm.SelectedTag = new TagCountEntry("1girl", 1);
+            await vm.TagUsageLoadTask;
+
+            Assert.Empty(vm.TagUsageImages);
+        }
+
+        [Fact]
+        public async Task SelectedTag_Changed_ReplacesPreviousTagUsageImages()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, "a.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "1girl");
+            File.WriteAllText(Path.Combine(_tempDir, "b.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "b.txt"), "solo");
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+            vm.SelectedTag = new TagCountEntry("1girl", 1);
+            await vm.TagUsageLoadTask;
+
+            vm.SelectedTag = new TagCountEntry("solo", 1);
+            await vm.TagUsageLoadTask;
+
+            Assert.Equal(new[] { "b.png" }, vm.TagUsageImages);
+        }
+
+        [Fact]
+        public async Task GenerateReportCommand_Execute_ResetsSelectedTagAndTagUsageImages()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, "a.png"), "");
+            File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "1girl");
+            var reportPath = Path.Combine(_tempDir, CaptioningService.ReportFileName);
+            File.WriteAllLines(reportPath, new[] { "1girl: 1" });
+            var vm = await CreateReadyVmAsync(new FakeCaptioningService());
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+            vm.SelectedTag = new TagCountEntry("1girl", 1);
+            await vm.TagUsageLoadTask;
+
+            RunOnSta(async () => await vm.GenerateReportCommand.ExecuteAsync(null));
+
+            Assert.Null(vm.SelectedTag);
+            Assert.Empty(vm.TagUsageImages);
+        }
     }
 }
