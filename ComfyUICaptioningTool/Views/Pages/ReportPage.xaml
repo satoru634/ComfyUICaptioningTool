@@ -25,7 +25,9 @@
     <Grid Margin="16,8,16,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- タイトル -->
@@ -38,6 +40,7 @@
 
         <Border
             Grid.Row="1"
+            Margin="0,0,0,12"
             Padding="12"
             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -49,9 +52,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <TextBlock
@@ -61,7 +61,7 @@
                     Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_DirectoryLabel]}" />
                 <Grid
                     Grid.Row="1"
-                    Margin="0,0,0,8">
+                    Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -85,8 +85,7 @@
                 </Grid>
 
                 <Grid
-                    Grid.Row="2"
-                    Margin="0,4,0,8">
+                    Grid.Row="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -110,9 +109,28 @@
                     FontSize="12"
                     Text="{Binding ViewModel.ReportStatusText, Mode=OneWay}"
                     Visibility="{Binding ViewModel.ReportStatusText, Converter={StaticResource StringToVisibilityConverter}}"/>
+            </Grid>
+        </Border>
+
+        <Border
+            Grid.Row="2"
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
                 <ui:AutoSuggestBox
                     x:Name="SuggestFilterTag"
-                    Grid.Row="4"
+                    Grid.Row="0"
                     Height="36"
                     Margin="0,0,0,8"
                     PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Report_FilterPlaceholder]}"
@@ -124,7 +142,7 @@
                         </ui:IconSourceElement>
                     </ui:AutoSuggestBox.Icon>
                 </ui:AutoSuggestBox>
-                <Grid Grid.Row="5">
+                <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="120"/>
@@ -146,7 +164,7 @@
                         FontWeight="Bold" />
                 </Grid>
                 <Border
-                    Grid.Row="6"
+                    Grid.Row="2"
                     Padding="0"
                     Background="{DynamicResource ApplicationBackgroundBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
@@ -155,6 +173,7 @@
                     <ui:ListView
                         BorderThickness="0"
                         ItemsSource="{Binding ViewModel.ReportEntries, Mode=OneWay}"
+                        SelectedItem="{Binding ViewModel.SelectedTag, Mode=TwoWay}"
                         SelectionMode="Single"
                         ScrollViewer.VerticalScrollBarVisibility="Auto"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -180,6 +199,76 @@
                             </DataTemplate>
                         </ui:ListView.ItemTemplate>
                     </ui:ListView>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border
+            Grid.Row="3"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Grid.Row="0"
+                    Margin="0,0,0,4"
+                    FontSize="12"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Report_ImageUsageImagesColumnHeader]}" />
+                <Border
+                    Grid.Row="1"
+                    Padding="8"
+                    Background="{DynamicResource ApplicationBackgroundBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                    <Grid>
+                        <TextBlock
+                            FontStyle="Italic"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Report_TagUsageImagesPrompt]}"
+                            TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ViewModel.SelectedTag}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <ScrollViewer
+                            MaxHeight="60"
+                            VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ViewModel.TagUsageImages}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Margin="0,0,4,4"
+                                            Padding="4,2"
+                                            Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                            CornerRadius="4">
+                                            <TextBlock FontSize="12" Text="{Binding}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
                 </Border>
             </Grid>
         </Border>

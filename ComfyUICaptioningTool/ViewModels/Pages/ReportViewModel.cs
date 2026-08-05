@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text;
 using ComfyUICaptioningTool.Helpers;
 using ComfyUICaptioningTool.Models;
 using ComfyUICaptioningTool.Services;
@@ -18,6 +19,11 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
     /// </summary>
     public partial class ReportViewModel : ObservableObject, INavigationAware
     {
+        /// <summary>タグ付け対象とみなす画像ファイルの拡張子（大文字小文字は無視）。
+        /// ComfyUILibs.Services.CaptioningService の同名一覧と揃えているが internal のため参照できず、
+        /// GUI 側の表示専用ロジックとしてここに複製している（GalleryViewModel と同じ方針）。</summary>
+        private static readonly string[] SupportedExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
+
         /// <summary>アプリケーション設定。</summary>
         public Setting<AppConfig> Config { get; }
 
@@ -70,6 +76,21 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         private string _filterText = "";
 
         partial void OnFilterTextChanged(string value) => ApplyFilter();
+
+        /// <summary>ListView で選択中のタグ。選択が変わるたびに <see cref="TagUsageImages"/> を再読み込みする。</summary>
+        [ObservableProperty]
+        private TagCountEntry? _selectedTag;
+
+        partial void OnSelectedTagChanged(TagCountEntry? value) => TagUsageLoadTask = LoadTagUsageImagesAsync(value);
+
+        /// <summary>
+        /// 直近の <see cref="TagUsageImages"/> 読み込みタスク。<see cref="SelectedTag"/> の変更は
+        /// fire-and-forget で処理されるため、テストから完了を待てるようこのプロパティを公開している。
+        /// </summary>
+        public Task TagUsageLoadTask { get; private set; } = Task.CompletedTask;
+
+        /// <summary><see cref="SelectedTag"/> を使用している画像のファイル名一覧（ファイル名昇順）。</summary>
+        public ObservableCollection<string> TagUsageImages { get; } = new();
 
         /// <summary>
         /// <see cref="_allReportEntries"/> のうち、<see cref="FilterText"/> をタグ名に含むもの（大文字小文字区別なし）のみを
@@ -191,6 +212,8 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             TagList.Clear();
             FilterText = "";
             ReportStatusText = "";
+            TagUsageImages.Clear();
+            SelectedTag = null;
 
             try
             {
@@ -226,5 +249,68 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                 IsGeneratingReport = false;
             }
         }
+
+        // ── 選択タグの使用画像一覧 ─────────────────────────────────────────────
+
+        /// <summary>
+        /// <paramref name="tag"/> を使用している画像のファイル名を <see cref="ReportDirectory"/> から収集し、
+        /// <see cref="TagUsageImages"/> へ反映する。選択解除時（null）や対象ディレクトリ未存在時は空にする。
+        /// </summary>
+        private async Task LoadTagUsageImagesAsync(TagCountEntry? tag)
+        {
+            TagUsageImages.Clear();
+
+            if (tag is null || string.IsNullOrWhiteSpace(ReportDirectory) || !Directory.Exists(ReportDirectory))
+                return;
+
+            var directory = ReportDirectory;
+            var recursive = ReportRecursive;
+            var tagName = tag.Tag;
+
+            List<string> fileNames;
+            try
+            {
+                fileNames = await Task.Run(() => CollectImagesUsingTag(directory, recursive, tagName));
+            }
+            catch
+            {
+                // 選択タグの使用画像一覧の更新失敗は、レポート本体の表示には影響させない
+                return;
+            }
+
+            foreach (var fileName in fileNames)
+                TagUsageImages.Add(fileName);
+        }
+
+        /// <summary>対象ディレクトリ内の画像のうち、同名 .txt に <paramref name="tagName"/>（大文字小文字無視）を
+        /// 含むもののファイル名を、ファイル名昇順で返す。</summary>
+        private static List<string> CollectImagesUsingTag(string directory, bool recursive, string tagName)
+        {
+            var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            var imagePaths = Directory.EnumerateFiles(directory, "*", option)
+                .Where(f => SupportedExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+
+            var result = new List<string>();
+            foreach (var imagePath in imagePaths)
+            {
+                var txtPath = Path.ChangeExtension(imagePath, ".txt");
+                if (!File.Exists(txtPath))
+                    continue;
+
+                var tags = SplitTags(File.ReadAllText(txtPath, Encoding.UTF8));
+                if (tags.Any(t => string.Equals(t, tagName, StringComparison.OrdinalIgnoreCase)))
+                    result.Add(Path.GetFileName(imagePath));
+            }
+
+            return result;
+        }
+
+        /// <summary>カンマ区切りタグ文字列を trim・空要素除去したリストに分割する。</summary>
+        private static List<string> SplitTags(string text)
+            => text.Split(',')
+                .Select(t => t.Trim())
+                .Where(t => t.Length > 0)
+                .ToList();
     }
 }
