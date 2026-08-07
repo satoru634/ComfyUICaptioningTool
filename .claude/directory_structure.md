@@ -83,7 +83,21 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 LogEdit を呼び出し、画像と同じディレクトリの
                                                 gallery_edit_log.jsonl（GalleryEditLogEntry を JSON Lines
                                                 形式で1行追記）へ作業ログを記録するようにした。書き込み
-                                                失敗時は握りつぶし、タグ編集本体には影響させない
+                                                失敗時は握りつぶし、タグ編集本体には影響させない。
+                                                フェーズ29で、AddNewTagAsync/AddNewTagToStartAsync
+                                                （AddNewTagCommand/AddNewTagToStartCommand の実体）の冒頭に
+                                                private bool SelectExistingTag(string input) の呼び出しを
+                                                追加した。入力（trim 済み）が Tags と大文字小文字無視で
+                                                一致する場合、AddTag は呼ばず（.txt/
+                                                captioning_config_result.json/gallery_edit_log.jsonl への
+                                                書き込みは発生しない）、代わりに一致した既存タグを
+                                                SelectedTags へ追加する（既に選択済みなら何もしない、
+                                                ToggleTagSelection のようなトグルではなく冪等な「選択オン」）。
+                                                削除・並び替えボタン（RemoveSelectedTagsCommand/
+                                                MoveSelectedTags*Command、いずれも CanExecute=HasSelectedTags）
+                                                は SelectedTags.CollectionChanged 経由で既に
+                                                NotifyCanExecuteChanged される実装（フェーズ22/26）のため、
+                                                この変更のみで自動的に活性化する
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
@@ -314,7 +328,13 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 MoveSelectedTagsToStart/ToEnd/Up/Down の reorder_*
                                                 記録・実際に変化がない場合は記録しないこと・空文字/重複/
                                                 存在しないタグ指定時は記録しないこと・複数回の操作が
-                                                順番通り追記されること）を検証するテストを追加）
+                                                順番通り追記されること）を検証するテストを追加。フェーズ29で、
+                                                AddNewTagCommand/AddNewTagToStartCommand に既存タグ名を
+                                                入力した場合に追加ではなく選択状態への切り替えになること
+                                                （SelectedTags への反映・入力欄のクリア・.txt を書き換えない
+                                                こと・既に選択済みの場合は変化しないこと・TagList 更新
+                                                コールバックが呼ばれないこと・RemoveSelectedTagsCommand の
+                                                CanExecute が有効になること）を検証するテストを追加）
     Services/
       TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
                                                 ICaptioningService 呼び出し引数の検証・レポート行の解析

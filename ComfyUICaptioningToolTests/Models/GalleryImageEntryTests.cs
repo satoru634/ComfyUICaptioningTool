@@ -191,6 +191,95 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.Equal("", entry.NewTagInput);
         }
 
+        // ── 既存タグ入力時の選択への切替（SelectExistingTag） ─────────────────
+
+        [Fact]
+        public void AddNewTagCommand_Execute_ExistingTagIgnoringCase_SelectsInsteadOfAdding()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "Tag_A" }, null)
+            {
+                NewTagInput = "  tag_a  ",
+            };
+
+            entry.AddNewTagCommand.Execute(null);
+
+            Assert.Equal(new[] { "Tag_A" }, entry.Tags);
+            Assert.Equal(new[] { "Tag_A" }, entry.SelectedTags);
+            Assert.Equal("", entry.NewTagInput);
+        }
+
+        [Fact]
+        public void AddNewTagCommand_Execute_ExistingTag_DoesNotRewriteTxt()
+        {
+            var path = CreateImagePath();
+            var txtPath = Path.ChangeExtension(path, ".txt");
+            var entry = new GalleryImageEntry("a.jpg", path, new[] { "tag1" }, null)
+            {
+                NewTagInput = "tag1",
+            };
+
+            entry.AddNewTagCommand.Execute(null);
+
+            Assert.False(File.Exists(txtPath));
+        }
+
+        [Fact]
+        public void AddNewTagToStartCommand_Execute_ExistingTagIgnoringCase_SelectsInsteadOfAdding()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "existing", "Tag_A" }, null)
+            {
+                NewTagInput = "tag_a",
+            };
+
+            entry.AddNewTagToStartCommand.Execute(null);
+
+            Assert.Equal(new[] { "existing", "Tag_A" }, entry.Tags);
+            Assert.Equal(new[] { "Tag_A" }, entry.SelectedTags);
+            Assert.Equal("", entry.NewTagInput);
+        }
+
+        [Fact]
+        public void AddNewTagCommand_Execute_ExistingTagAlreadySelected_StaysSelected()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+            entry.ToggleTagSelectionCommand.Execute("tag1");
+
+            entry.NewTagInput = "tag1";
+            entry.AddNewTagCommand.Execute(null);
+
+            Assert.Equal(new[] { "tag1" }, entry.SelectedTags);
+        }
+
+        [Fact]
+        public async Task AddNewTagCommand_Execute_ExistingTag_DoesNotInvokeCallback()
+        {
+            var callbackCount = 0;
+            var entry = new GalleryImageEntry(
+                "a.jpg", CreateImagePath(), new[] { "tag1" }, null,
+                onTagsChangedAsync: () => { callbackCount++; return Task.CompletedTask; })
+            {
+                NewTagInput = "tag1",
+            };
+
+            await entry.AddNewTagCommand.ExecuteAsync(null);
+
+            Assert.Equal(0, callbackCount);
+        }
+
+        [Fact]
+        public void AddNewTagCommand_Execute_ExistingTag_EnablesRemoveSelectedTagsCommand()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null)
+            {
+                NewTagInput = "tag1",
+            };
+            Assert.False(entry.RemoveSelectedTagsCommand.CanExecute(null));
+
+            entry.AddNewTagCommand.Execute(null);
+
+            Assert.True(entry.RemoveSelectedTagsCommand.CanExecute(null));
+        }
+
         // ── TagList 更新コールバック（GalleryViewModel.RefreshTagListAsync 相当） ────
 
         [Fact]
