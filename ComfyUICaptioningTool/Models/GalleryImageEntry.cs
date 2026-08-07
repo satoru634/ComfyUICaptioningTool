@@ -297,28 +297,64 @@ namespace ComfyUICaptioningTool.Models
 
         /// <summary>
         /// カード上の「タグを追加」入力欄（<see cref="NewTagInput"/>）の内容をタグとして末尾に追加し、
-        /// 実際に追加できた場合のみ TagList 更新コールバックを呼び出す。
+        /// 実際に追加できた場合のみ TagList 更新コールバックを呼び出す。入力内容が既存タグと
+        /// 大文字小文字無視で一致する場合は追加を行わず、代わりに <see cref="SelectExistingTag"/> で
+        /// そのタグを選択状態にする（トグルボタンを有効にする）。
         /// </summary>
         [RelayCommand]
         private async Task AddNewTagAsync()
         {
-            var added = AddTag(NewTagInput);
+            var input = NewTagInput;
             NewTagInput = "";
+
+            if (SelectExistingTag(input))
+                return;
+
+            var added = AddTag(input);
             if (added && _onTagsChangedAsync is not null)
                 await _onTagsChangedAsync();
         }
 
         /// <summary>
         /// カード上の「タグを追加」入力欄（<see cref="NewTagInput"/>）の内容をタグとして先頭に追加し、
-        /// 実際に追加できた場合のみ TagList 更新コールバックを呼び出す。
+        /// 実際に追加できた場合のみ TagList 更新コールバックを呼び出す。入力内容が既存タグと
+        /// 大文字小文字無視で一致する場合は追加を行わず、代わりに <see cref="SelectExistingTag"/> で
+        /// そのタグを選択状態にする（トグルボタンを有効にする）。
         /// </summary>
         [RelayCommand]
         private async Task AddNewTagToStartAsync()
         {
-            var added = AddTag(NewTagInput, prepend: true);
+            var input = NewTagInput;
             NewTagInput = "";
+
+            if (SelectExistingTag(input))
+                return;
+
+            var added = AddTag(input, prepend: true);
             if (added && _onTagsChangedAsync is not null)
                 await _onTagsChangedAsync();
+        }
+
+        /// <summary>
+        /// 入力内容（trim 済み）が既存の <see cref="Tags"/> と大文字小文字無視で一致する場合、そのタグを
+        /// <see cref="SelectedTags"/> へ選択状態として加える（トグルボタンを有効にする）。既に選択済みの
+        /// 場合は何もしない。選択状態が変わると <see cref="RemoveSelectedTagsCommand"/>/並び替え系コマンドの
+        /// CanExecute も自動的に再評価される（SelectedTags.CollectionChanged 経由）。一致した場合は true を返す。
+        /// </summary>
+        private bool SelectExistingTag(string input)
+        {
+            var trimmed = input.Trim();
+            if (trimmed.Length == 0)
+                return false;
+
+            var existing = Tags.FirstOrDefault(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+                return false;
+
+            if (!SelectedTags.Contains(existing))
+                SelectedTags.Add(existing);
+
+            return true;
         }
 
         /// <summary>
