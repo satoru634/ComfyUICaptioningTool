@@ -256,7 +256,13 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 選択中のタグが1件以上ある場合のみ活性化）はフェーズ22で追加）と、
                                                 選択タグの並び替え4ボタン（先頭へ/1つ前へ/1つ後ろへ/最後尾へ、
                                                 MoveSelectedTagsToStart/Up/Down/ToEndCommand にバインド。
-                                                フェーズ26で追加）を表示する。
+                                                フェーズ26で追加）を表示する。タグ追加入力欄はフェーズ30で
+                                                ui:TextBox から ui:AutoSuggestBox へ変更し、
+                                                OriginalItemsSource を Tags（DataContext である選択中の
+                                                GalleryImageEntry 自身の Tags、= 選択中の画像に既に存在する
+                                                タグ一覧）へバインドして候補表示する（一括タグ操作カードの
+                                                ui:AutoSuggestBox が ViewModel.TagList を候補に使うのとは異なり、
+                                                こちらは「選択中の画像 1 枚の既存タグ」のみが候補になる）。
                                                 右ペインのタグ一覧は独自にスクロール可能な ScrollViewer
                                                 だが、素のままだと画像・タグ一覧全体を包む外側の
                                                 ScrollViewer までマウスホイールイベントがバブルせず外側の

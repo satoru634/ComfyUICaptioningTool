@@ -555,17 +555,18 @@
                                     Command="{Binding CopyTagsToClipboardCommand}"
                                     Icon="{ui:SymbolIcon Copy24}"
                                     ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_CopyTagsTooltip]}"/>
-                                <ui:TextBox
+                                <ui:AutoSuggestBox
                                     Grid.Column="1"
                                     Margin="8,0,0,0"
                                     Height="36"
                                     FontSize="12"
                                     PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_AddTagPlaceholder]}"
-                                    Text="{Binding NewTagInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                    <ui:TextBox.InputBindings>
+                                    Text="{Binding NewTagInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    OriginalItemsSource="{Binding Tags}">
+                                    <ui:AutoSuggestBox.InputBindings>
                                         <KeyBinding Key="Return" Command="{Binding AddNewTagCommand}" />
-                                    </ui:TextBox.InputBindings>
-                                </ui:TextBox>
+                                    </ui:AutoSuggestBox.InputBindings>
+                                </ui:AutoSuggestBox>
                                 <ui:Button
                                     Grid.Column="2"
                                     Width="36"
