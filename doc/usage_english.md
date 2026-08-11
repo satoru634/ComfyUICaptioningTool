@@ -162,12 +162,16 @@ Use the input field and buttons below the tag list to edit tags.
 | ↑ (Add to start) | Adds the input field's content to the start of the tag list |
 | ＋ (Add to end) | Adds the input field's content to the end of the tag list (Enter key also works) |
 | 🗑 (Remove selected) | Removes all currently selected (toggled) tags at once. Disabled when nothing is selected |
+| ⬆ (Move selected to start) | Moves all selected tags to the start of the tag list, preserving their relative order. Disabled when nothing is selected |
+| ↑ (Move up) | Moves each selected tag one position earlier. Consecutively selected tags move together as one block |
+| ↓ (Move down) | Moves each selected tag one position later |
+| ⬇ (Move selected to end) | Moves all selected tags to the end of the tag list, preserving their relative order |
 
-Every add/remove is saved immediately to the image's same-named `.txt` file — there's no separate save button. If a tag list becomes empty, the `.txt` file itself is deleted.
+Every add/remove is saved immediately to the image's same-named `.txt` file — there's no separate save button. If a tag list becomes empty, the `.txt` file itself is deleted. Reordering is saved immediately the same way.
 
-Adding a tag checks for duplicates case-insensitively, so the same tag can't be added twice.
+Adding a tag checks for duplicates case-insensitively, so the same tag can't be added twice. The input field offers suggestions (`ui:AutoSuggestBox`) drawn from **the tags already on the selected image** (unlike the bulk-operations input in 5.3, which suggests from the whole target directory's `tags_report.txt`). Typing the name of a tag that's already on the image and clicking either add button selects that tag (as a toggle) instead of adding a duplicate — no files are written in that case.
 
-Tag add/remove operations are also reflected in the `captioning_config_result.json` file in the target directory (see [3.2](#32-files-produced-by-a-run)): added tags are appended to `prepend_tags`, removed tags to `exclude_tags`, so the next batch-tagging run can pick them up.
+Tag add/remove operations are also reflected in the `captioning_config_result.json` file in the target directory (see [3.2](#32-files-produced-by-a-run)): added tags are appended to `prepend_tags`, removed tags to `exclude_tags`, so the next batch-tagging run can pick them up. (Reorder-only operations are not reflected here.)
 
 ### 5.3 Bulk Tag Operations
 
@@ -181,6 +185,19 @@ The **Bulk Tag Operations** card, below the directory selection card, lets you a
 
 The input field offers suggestions (via `ui:AutoSuggestBox`), populated from the target directory's `tags_report.txt` (the suggestion list refreshes automatically after loading images and after each tag edit; if `captioning_config.json`'s path isn't set, suggestions simply won't appear — nothing else is affected).
 
+### 5.4 Edit Log (gallery_edit_log.jsonl)
+
+Every time you add, remove, or reorder a tag — whether per-card or in bulk — an entry is appended to `gallery_edit_log.jsonl` (JSON Lines format, one operation per line) in the same folder as the image. There's no in-app viewer for this file, but you can open it in a text editor later to track what was edited and when.
+
+| operation | Meaning |
+|---|---|
+| `add_start` | Tag added to the start |
+| `add_end` | Tag added to the end |
+| `remove` | Tag removed |
+| `reorder_to_start` / `reorder_to_end` / `reorder_up` / `reorder_down` | Selected tags reordered |
+
+Operations with no actual effect (e.g. trying to move a tag that's already at the start/end) are not logged. If writing the log fails, it does not affect the tag edit itself (the `.txt` file is still saved).
+
 ---
 
 ## 6. Tag Report
@@ -193,6 +210,7 @@ The input field offers suggestions (via `ui:AutoSuggestBox`), populated from the
 2. Check **Process subdirectories too** if needed.
 3. Click **Generate / Refresh** — this writes `tags_report.txt` directly under the target directory and lists its contents (tag name and count).
 4. Type into the search box above the list to filter it down to tags containing that text (case-insensitive substring match). The search box offers suggestions from the generated report's tag list. Clear it to show all tags again.
+5. Click a tag row in the list to show the filenames of every image using that tag in the card below (sorted alphabetically). A prompt message is shown when nothing is selected. Regenerating the report resets the selection.
 
 ---
 

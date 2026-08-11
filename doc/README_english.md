@@ -12,8 +12,8 @@ A tool for image captioning (tagging) using ComfyUI (WD Timm Tagger), operated f
 - Tag filtering via prepend tags and exclude tags (merges the defaults from `captioning_config.json` with the tags entered at run time)
 - Import prepend/exclude tags from another `captioning_config.json`
 - List of execution results (success/failure, processed count, per-file log)
-- Gallery view showing images alongside their tags, with editing (add/remove tags per card or in bulk, copy a tag list to the clipboard)
-- Generate and view a tag count report (with interactive filtering by tag name)
+- Gallery view showing images alongside their tags, with editing (two-pane layout: image tiles + tag editor for the selected image; tag selection and reordering, bulk add/remove, copy a tag list to the clipboard, and an edit history log)
+- Generate and view a tag count report (with interactive filtering by tag name, and a list of images using the selected tag)
 - Edit `captioning_config.json` (ComfyUI URL, WD14 model name, thresholds, default prepend/exclude tags) directly from the GUI
 - Theme switching and persisted connection settings
 - Japanese/English display language switching (Settings page, applies immediately, no restart required)
