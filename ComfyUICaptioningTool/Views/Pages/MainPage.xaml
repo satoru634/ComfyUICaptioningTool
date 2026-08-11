@@ -127,6 +127,7 @@
                 <CheckBox
                     Grid.Column="0"
                     Margin="0,0,8,0"
+                    VerticalAlignment="Top"
                     IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}"
                     FontSize="13">
                     <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}" TextWrapping="Wrap" />
@@ -134,12 +135,14 @@
                 <CheckBox
                     Grid.Column="1"
                     Margin="0,0,8,0"
+                    VerticalAlignment="Top"
                     IsChecked="{Binding ViewModel.Overwrite, Mode=TwoWay}"
                     FontSize="13">
                     <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OverwriteLabel]}" TextWrapping="Wrap" />
                 </CheckBox>
                 <CheckBox
                     Grid.Column="2"
+                    VerticalAlignment="Top"
                     IsChecked="{Binding ViewModel.GenerateReport, Mode=TwoWay}"
                     FontSize="13">
                     <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_GenerateReportLabel]}" TextWrapping="Wrap" />
