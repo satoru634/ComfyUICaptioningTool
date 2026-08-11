@@ -124,29 +124,66 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <CheckBox
-                    Grid.Column="0"
-                    Margin="0,0,8,0"
-                    VerticalAlignment="Top"
-                    IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}"
-                    FontSize="13">
-                    <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}" TextWrapping="Wrap" />
-                </CheckBox>
-                <CheckBox
-                    Grid.Column="1"
-                    Margin="0,0,8,0"
-                    VerticalAlignment="Top"
-                    IsChecked="{Binding ViewModel.Overwrite, Mode=TwoWay}"
-                    FontSize="13">
-                    <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OverwriteLabel]}" TextWrapping="Wrap" />
-                </CheckBox>
-                <CheckBox
-                    Grid.Column="2"
-                    VerticalAlignment="Top"
-                    IsChecked="{Binding ViewModel.GenerateReport, Mode=TwoWay}"
-                    FontSize="13">
-                    <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_GenerateReportLabel]}" TextWrapping="Wrap" />
-                </CheckBox>
+                <Grid Grid.Column="0" Margin="0,0,8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <CheckBox
+                        x:Name="RecursiveCheckBox"
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}" />
+                    <TextBlock
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        Cursor="Hand"
+                        FontSize="13"
+                        MouseLeftButtonUp="RecursiveLabel_MouseLeftButtonUp"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
+                        TextWrapping="Wrap" />
+                </Grid>
+                <Grid Grid.Column="1" Margin="0,0,8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <CheckBox
+                        x:Name="OverwriteCheckBox"
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        IsChecked="{Binding ViewModel.Overwrite, Mode=TwoWay}" />
+                    <TextBlock
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        Cursor="Hand"
+                        FontSize="13"
+                        MouseLeftButtonUp="OverwriteLabel_MouseLeftButtonUp"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OverwriteLabel]}"
+                        TextWrapping="Wrap" />
+                </Grid>
+                <Grid Grid.Column="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <CheckBox
+                        x:Name="GenerateReportCheckBox"
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        IsChecked="{Binding ViewModel.GenerateReport, Mode=TwoWay}" />
+                    <TextBlock
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        Cursor="Hand"
+                        FontSize="13"
+                        MouseLeftButtonUp="GenerateReportLabel_MouseLeftButtonUp"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_GenerateReportLabel]}"
+                        TextWrapping="Wrap" />
+                </Grid>
             </Grid>
         </Border>
 
