@@ -126,16 +126,24 @@
 
                 <CheckBox
                     Grid.Column="0"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}"
-                    IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}" FontSize="13" />
+                    Margin="0,0,8,0"
+                    IsChecked="{Binding ViewModel.Recursive, Mode=TwoWay}"
+                    FontSize="13">
+                    <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_RecursiveLabel]}" TextWrapping="Wrap" />
+                </CheckBox>
                 <CheckBox
                     Grid.Column="1"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OverwriteLabel]}"
-                    IsChecked="{Binding ViewModel.Overwrite, Mode=TwoWay}" FontSize="13" />
+                    Margin="0,0,8,0"
+                    IsChecked="{Binding ViewModel.Overwrite, Mode=TwoWay}"
+                    FontSize="13">
+                    <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_OverwriteLabel]}" TextWrapping="Wrap" />
+                </CheckBox>
                 <CheckBox
                     Grid.Column="2"
-                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_GenerateReportLabel]}"
-                    IsChecked="{Binding ViewModel.GenerateReport, Mode=TwoWay}" FontSize="13" />
+                    IsChecked="{Binding ViewModel.GenerateReport, Mode=TwoWay}"
+                    FontSize="13">
+                    <TextBlock Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Main_GenerateReportLabel]}" TextWrapping="Wrap" />
+                </CheckBox>
             </Grid>
         </Border>
 
