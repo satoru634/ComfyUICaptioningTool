@@ -1,4 +1,5 @@
-﻿using ComfyUICaptioningTool.ViewModels.Pages;
+﻿using System.Windows.Input;
+using ComfyUICaptioningTool.ViewModels.Pages;
 using Wpf.Ui.Abstractions.Controls;
 
 namespace ComfyUICaptioningTool.Views.Pages
@@ -17,5 +18,15 @@ namespace ComfyUICaptioningTool.Views.Pages
 
             InitializeComponent();
         }
+
+        /// <summary>オプション行のラベルクリックでもチェックボックスをトグルできるようにする（グリフとラベルを別要素にしたため）。</summary>
+        private void RecursiveLabel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) =>
+            RecursiveCheckBox.IsChecked = !(RecursiveCheckBox.IsChecked ?? false);
+
+        private void OverwriteLabel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) =>
+            OverwriteCheckBox.IsChecked = !(OverwriteCheckBox.IsChecked ?? false);
+
+        private void GenerateReportLabel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) =>
+            GenerateReportCheckBox.IsChecked = !(GenerateReportCheckBox.IsChecked ?? false);
     }
 }
