@@ -1,3 +1,6 @@
 [submodule "ComfyUILibs"]
 	path = ComfyUILibs
 	url = git@github-satoru:satoru634/ComfyUILibs.git
+[submodule "wdv3-timm"]
+	path = wdv3-timm
+	url = git@github-satoru:satoru634/wdv3-timm.git
