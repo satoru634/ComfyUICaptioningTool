@@ -3,8 +3,19 @@
 ```
 ComfyUICaptioningTool/                      <- ソリューションルート
   ComfyUILibs/                              <- Git submodule（.gitmodules 参照）。
-                                                ただしビルドで実際に使われる実体ではない
-                                                （CLAUDE.md の「ComfyUILibs の参照経路に注意」を参照）
+                                                ComfyUICaptioningTool.csproj の ProjectReference が
+                                                実際に参照する実体（フェーズ7で参照パスを修正済み。
+                                                詳細は CLAUDE.md の「ComfyUILibs の参照経路に注意」を参照）
+  wdv3-timm/                                 <- Git submodule（.gitmodules 参照、satoru634/wdv3-timm）。
+                                                timm ライブラリで WD Tagger V3 を実行する単一スクリプト
+                                                （wdv3_timm.py）のリポジトリ。`--serve` 常駐サーバーモードを
+                                                持ち、ComfyUILibs.Services.WdV3TimmTaggerRunner から
+                                                サブプロセスとして起動される想定（プロトコル契約は
+                                                wdv3-timm リポジトリ側 .claude/usage.md の「サーバーモード」
+                                                節、および ComfyUILibs 側 IWdV3TimmProcessClient.cs の
+                                                XML ドキュメントコメントを参照）。C# プロジェクトからの
+                                                直接参照（ProjectReference）はなく、実行時にランタイム
+                                                パス（実行ファイル配下の想定）として利用する
   ComfyUICaptioningTool/                    <- メイン WPF プロジェクト（GUI のみ）
     App.xaml / App.xaml.cs                  <- DI・ホスト設定（ComfyUIRunWorkflow から流用）
     AssemblyInfo.cs

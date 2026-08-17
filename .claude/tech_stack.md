@@ -22,6 +22,13 @@
 - 本リポジトリは `ComfyUILibs` を Git submodule として `ComfyUICaptioningTool/ComfyUILibs/` 配下に持つ（`.gitmodules` 参照）。
 - `ComfyUILibs` 自体の開発ルール・技術スタック・クラス図は本 CLAUDE.md ではなく `ComfyUILibs/CLAUDE.md` および `ComfyUILibs/.claude/` 配下（`comfyuilibs_common.md` / `directory_structure.md` / `implementation_status.md` / `tech_stack.md`）に従う。
 
+### wdv3-timm サブモジュール
+
+- 本リポジトリは `wdv3-timm`（[satoru634/wdv3-timm](https://github.com/satoru634/wdv3-timm)、`timm` ライブラリで WD Tagger V3 を実行する単一スクリプトのリポジトリ）を Git submodule としてルート直下 `wdv3-timm/` に持つ（`.gitmodules` 参照）。ComfyUILibs の `WdV3TimmTaggerRunner` が ComfyUI を経由せずローカルでタグ付けを行う際に、この `wdv3-timm/wdv3_timm.exe`（`--serve` 常駐サーバーモード）をサブプロセスとして起動する想定
+- C# プロジェクトからの `ProjectReference` は無い（Python スクリプトのため）。`WdV3TimmConfig.ExePath`（`captioning_config.json`）に実行ファイルパスを設定して利用する
+- `wdv3-timm` 自体の開発ルール・使い方・アーキテクチャは `wdv3-timm/CLAUDE.md` および `wdv3-timm/.claude/`（`setup.md` / `usage.md` / `architecture.md`）に従う
+- 本フェーズ（サブモジュール追加）の時点では GUI 側の配線（`ConfigPage` でのバックエンド選択・`wdv3_timm` セクション編集等）は未実装。GUI 配線は別タスクで行う想定
+
 ### 責務の分離
 
 | プロジェクト | 責務 |

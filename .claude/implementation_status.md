@@ -411,6 +411,17 @@
 - 本フェーズは XAML の表示部分のみの変更（新規クラスの追加・既存クラスの振る舞い変更を伴わない）のため、ユニットテストの追加は対象外とした。`dotnet build ComfyUICaptioningTool.sln` の成功と、既存テストスイート（296件、既知のクリップボード関連2件を除き回帰なし）を確認した
 - 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、コードレビュー（一括タグ操作カードの `ui:AutoSuggestBox` と同じ `OriginalItemsSource` バインディングパターンであること）で代替した
 
+### フェーズ31: ComfyUILibsサブモジュールの最新化・wdv3-timmサブモジュールの追加（`chore/update-comfyuilibs-submodule`／`feature/add-wdv3-timm-submodule` ブランチ、実装完了）
+
+「ComfyUI を使わずローカルスクリプト wdv3-timm を直接使う別ツールを検討している」というユーザー相談を受け、`ComfyUILibs`（別リポジトリ）側に ComfyUI を経由しないタグ付けバックエンド `WdV3TimmTaggerRunner`（`ITaggerRunner` 実装）を新設した（詳細は `ComfyUILibs/.claude/implementation_status.md` のフェーズ7を参照）。あわせて `wdv3-timm`（Python 側、`E:\Python_project\wdv3-timm`＝[satoru634/wdv3-timm](https://github.com/satoru634/wdv3-timm)）に `WdV3TimmTaggerRunner` と対になる `--serve` 常駐サーバーモードを実装した（詳細は wdv3-timm リポジトリ側 `.claude/architecture.md`/`.claude/usage.md` を参照）。本フェーズはこれらを本プロジェクトへ反映する作業。
+
+- [x] `ComfyUILibs` サブモジュールのポインタを `f3e9a8c` → `d176539`（`ITaggerRunner` 抽象化・`WdV3TimmTaggerRunner` 追加・`WorkflowBuilder`/`WorkflowRunner` の filename_prefix 上書き機能を含む）に更新（`chore/update-comfyuilibs-submodule` ブランチ）。`dotnet build ComfyUICaptioningTool.sln` 成功、`ComfyUICaptioningToolTests` に回帰なし（クリップボード関連の既知の失敗3件を除く）を確認済み
+- [x] `wdv3-timm` を新規 Git submodule としてリポジトリルート直下 `wdv3-timm/` に追加（`.gitmodules` に `[submodule "wdv3-timm"]` を追加、`feature/add-wdv3-timm-submodule` ブランチ）。追加時点でのコミットは `70196e9`（`--serve` 常駐サーバーモード実装済み）
+  - C# プロジェクトからの `ProjectReference` は無い（Python スクリプトのため）。`WdV3TimmTaggerRunner` は `WdV3TimmConfig.ExePath`（`captioning_config.json`）で指定された実行ファイルパスをサブプロセスとして起動する設計であり、本サブモジュールはその実行ファイル一式をリポジトリ内に同梱する目的で追加した
+- [x] `.claude/directory_structure.md`・`.claude/tech_stack.md` を更新（`wdv3-timm/` ディレクトリの説明、参照経路の注意点を追記）。あわせて `.claude/directory_structure.md` の `ComfyUILibs/` の説明に残っていた「ビルドで実際に使われる実体ではない」という記述（フェーズ7の参照パス修正より前の古い記述）を、実態（`ProjectReference` が実際に参照する実体）に合わせて修正した
+- **本フェーズのスコープ外**: GUI 側の配線（`MainPage`/`ConfigPage` 等でのタグ付けバックエンド選択 UI、`wdv3_timm` セクション編集画面の追加等）は別タスク。`WdV3TimmTaggerRunner` を実際に GUI から呼び出す配線はまだ行われていない
+
 ### 将来的な拡張
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図）の整備
+- `MainPage`/`ConfigPage` 等での ComfyUI 経由（`Wd14TaggerRunner`）／ローカル wdv3-timm 経由（`WdV3TimmTaggerRunner`）のタグ付けバックエンド選択 UI（フェーズ31で追加した `wdv3-timm` サブモジュール・`ComfyUILibs` 側の `WdV3TimmTaggerRunner` を実際に GUI から利用可能にする）
