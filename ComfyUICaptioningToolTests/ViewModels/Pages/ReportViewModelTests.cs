@@ -90,7 +90,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
         private ReportViewModel CreateVm(
             Setting<AppConfig>? setting = null,
-            Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? factory = null)
+            Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? factory = null)
             => new ReportViewModel(setting ?? CreateSetting(), _fakeSnackbar, factory);
 
         /// <summary>有効な ConfigPath を設定した Setting で ViewModel を作成し、OnNavigatedToAsync まで済ませる。</summary>
