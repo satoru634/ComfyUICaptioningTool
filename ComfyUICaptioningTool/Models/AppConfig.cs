@@ -75,6 +75,14 @@ namespace ComfyUICaptioningTool.Models
         private string _resultsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Results");
 
         /// <summary>
+        /// タグ付けに使用するバックエンド。既定は <see cref="TaggerBackend.ComfyUI"/>（既存の挙動を維持）。
+        /// SettingsPage で切り替える（<see cref="ComfyUICaptioningTool.Services.TaggerRunnerFactory"/> がこの値に応じて
+        /// Wd14TaggerRunner/WdV3TimmTaggerRunner のどちらを構築するかを決定する）。
+        /// </summary>
+        [ObservableProperty]
+        private TaggerBackend _taggerBackend = TaggerBackend.ComfyUI;
+
+        /// <summary>
         /// 初回起動時のデフォルト値を設定する。
         /// 設定ファイルが存在する場合は JSON デシリアライズ後に上書きされる。
         /// </summary>

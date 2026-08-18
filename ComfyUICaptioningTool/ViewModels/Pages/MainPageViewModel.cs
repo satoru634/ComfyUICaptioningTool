@@ -54,13 +54,16 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         private readonly ISnackbarService _snackbarService;
 
         /// <summary>
-        /// <see cref="Wd14TaggerRunner"/> と prepend/exclude タグから <see cref="ICaptioningService"/> を生成するファクトリー。
+        /// <see cref="ITaggerRunner"/> と prepend/exclude タグから <see cref="ICaptioningService"/> を生成するファクトリー。
         /// 既定はネットワーク通信を伴う実装。テスト時はフェイクに差し替える。
         /// </summary>
-        private readonly Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService> _captioningServiceFactory;
+        private readonly Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService> _captioningServiceFactory;
 
-        /// <summary>Config.Data.ConfigPath から読み込んだ Wd14TaggerRunner。読み込み失敗時は null。</summary>
-        private Wd14TaggerRunner? _taggerRunner;
+        /// <summary>
+        /// Config.Data.ConfigPath と Config.Data.TaggerBackend から読み込んだ ITaggerRunner
+        /// （Wd14TaggerRunner または WdV3TimmTaggerRunner）。読み込み失敗時は null。
+        /// </summary>
+        private ITaggerRunner? _taggerRunner;
 
         /// <summary>ConfigPath の読み込みに成功し、実行可能な状態かどうか。</summary>
         [ObservableProperty]
@@ -131,7 +134,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         public MainPageViewModel(
             Setting<AppConfig> config,
             ISnackbarService snackbarService,
-            Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? captioningServiceFactory = null)
+            Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? captioningServiceFactory = null)
         {
             Config = config;
             _snackbarService = snackbarService;
@@ -142,39 +145,47 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         // ── INavigationAware ─────────────────────────────────────────────────
 
         /// <summary>ページへ遷移するたびに captioning_config.json を再読み込みし、Runner を初期化する。</summary>
-        public Task OnNavigatedToAsync()
-        {
-            TryLoadRunner();
-            return Task.CompletedTask;
-        }
+        public Task OnNavigatedToAsync() => TryLoadRunnerAsync();
 
         /// <summary>ページから離れるときは何もしない。</summary>
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
 
         /// <summary>
-        /// 設定ページで指定された ConfigPath から Wd14TaggerRunner を初期化する。
-        /// 失敗した場合はスナックバーでエラーメッセージを表示し、実行ボタンを無効化する。
+        /// 設定ページで指定された ConfigPath・TaggerBackend から ITaggerRunner
+        /// （Wd14TaggerRunner または WdV3TimmTaggerRunner）を初期化する。
+        /// 既存の Runner が <see cref="IAsyncDisposable"/>（WdV3TimmTaggerRunner）の場合、
+        /// 常駐プロセスを起動したままリークしないよう再構築前に破棄する。
         /// </summary>
-        private void TryLoadRunner()
+        /// <param name="showErrorSnackbar">
+        /// 失敗時にスナックバーでエラーメッセージを表示するか。ページ遷移時（<see cref="OnNavigatedToAsync"/>）は
+        /// true、<see cref="RunAsync"/> 完了後の内部的な再構築時は false（今回の実行結果の通知と重複させないため）。
+        /// </param>
+        private async Task TryLoadRunnerAsync(bool showErrorSnackbar = true)
         {
+            if (_taggerRunner is IAsyncDisposable disposableRunner)
+                await disposableRunner.DisposeAsync();
+
             var path = Config.Data.ConfigPath;
             if (string.IsNullOrWhiteSpace(path))
             {
                 _taggerRunner = null;
                 IsConfigLoaded = false;
 
-                _snackbarService.Show(
-                    LocalizationManager.Instance["Common_Error"],
-                    LocalizationManager.Instance["Common_ConfigPathNotSet"],
-                    ControlAppearance.Danger,
-                    new SymbolIcon(SymbolRegular.ErrorCircle24),
-                    TimeSpan.FromSeconds(3.0));
+                if (showErrorSnackbar)
+                {
+                    _snackbarService.Show(
+                        LocalizationManager.Instance["Common_Error"],
+                        LocalizationManager.Instance["Common_ConfigPathNotSet"],
+                        ControlAppearance.Danger,
+                        new SymbolIcon(SymbolRegular.ErrorCircle24),
+                        TimeSpan.FromSeconds(3.0));
+                }
                 return;
             }
 
             try
             {
-                _taggerRunner = new Wd14TaggerRunner(path);
+                _taggerRunner = TaggerRunnerFactory.Create(path, Config.Data.TaggerBackend);
                 IsConfigLoaded = true;
             }
             catch (ComfyUIException ex)
@@ -182,12 +193,15 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
                 _taggerRunner = null;
                 IsConfigLoaded = false;
 
-                _snackbarService.Show(
-                    LocalizationManager.Instance["Common_Error"],
-                    string.Format(LocalizationManager.Instance["Main_ConfigLoadErrorFormat"], ex.Message),
-                    ControlAppearance.Danger,
-                    new SymbolIcon(SymbolRegular.ErrorCircle24),
-                    TimeSpan.FromSeconds(3.0));
+                if (showErrorSnackbar)
+                {
+                    _snackbarService.Show(
+                        LocalizationManager.Instance["Common_Error"],
+                        string.Format(LocalizationManager.Instance["Main_ConfigLoadErrorFormat"], ex.Message),
+                        ControlAppearance.Danger,
+                        new SymbolIcon(SymbolRegular.ErrorCircle24),
+                        TimeSpan.FromSeconds(3.0));
+                }
             }
         }
 
@@ -355,6 +369,14 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
             finally
             {
                 await SaveResultLogAsync(directory, status, processed, skipped, errors, errorMessage, usedConfig);
+
+                // WdV3Timm バックエンド使用時、_taggerRunner は実行のたびに常駐サーバープロセスを
+                // 起動している。ページを再訪しない限り TryLoadRunnerAsync が呼ばれず、次回実行時に
+                // 破棄済みのプロセスへリクエストを送ってしまう（かつプロセス自体が残り続ける）ため、
+                // 実行完了のたびに破棄・再構築しておく。ComfyUI バックエンド（Wd14TaggerRunner）は
+                // IAsyncDisposable ではないため実質的な影響はない。
+                await TryLoadRunnerAsync(showErrorSnackbar: false);
+
                 IsRunning = false;
             }
         }

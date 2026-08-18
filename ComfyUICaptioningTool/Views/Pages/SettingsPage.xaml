@@ -16,197 +16,349 @@
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     mc:Ignorable="d">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="16,8,16,16">
+    <!-- ui:NavigationView は、ホストしている Page 自体を包む ScrollViewer を内部に持っている
+         （Wpf.Ui.Controls.NavigationView.NavigationViewContentPresenter が
+         ScrollViewer.CanContentScrollProperty の既定値を Page 型に対して True へ上書きし、その値を
+         自身の内部 ScrollViewer に反映する。既知の未修正の挙動: https://github.com/lepoco/wpfui/issues/1041）。
+         このページでさらに独自の ScrollViewer を用意すると、NavigationView 側の ScrollViewer と
+         二重の入れ子構造になり、内側（このページの ScrollViewer）が常にマウスホイールを消費してしまい
+         外側（NavigationView 側、実際にスクロールバーが表示される方）まで届かなくなる
+         （https://github.com/dotnet/wpf/issues/8353 と同じ既知の WPF の挙動）。そのため本ページでは
+         独自の ScrollViewer は持たせず、NavigationView 側の ScrollViewer にスクロールを一任する。
+         上記の ScrollViewer.CanContentScroll="False"（Page 自身への添付プロパティ）は、NavigationView が
+         それを読み取って自身の内部 ScrollViewer へ反映するための指定で、直下の StackPanel が
+         IScrollInfo を実装しない（＝既定の True のままだとホイールでもスクロールバーでもスクロールできなく
+         なる）ことに対応するために必要 -->
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Page.Resources>
 
-            <!-- タイトル -->
-            <TextBlock
-                Margin="0,0,0,12"
-                FontSize="20"
-                FontWeight="SemiBold"
-                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_Title]}" />
+    <StackPanel Margin="16,8,16,16">
 
-            <!-- 表示 -->
-            <TextBlock
-                Margin="0,0,0,4"
-                FontSize="14"
-                FontWeight="Medium"
-                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_DisplaySectionLabel]}" />
-            <Border
-                Margin="0,0,0,4"
-                Padding="12"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon
-                        Grid.Column="0"
-                        Margin="0,0,8,0"
-                        VerticalAlignment="Center"
-                        Symbol="DarkTheme24" />
-                    <TextBlock
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        FontSize="14"
-                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ThemeLabel]}" />
-                    <ComboBox
-                        Grid.Column="2"
-                        Width="200"
-                        ItemsSource="{Binding ViewModel.ThemeList, Mode=OneWay}"
-                        SelectedItem="{Binding ViewModel.SelectedTheme, Mode=TwoWay}" />
-                </Grid>
-            </Border>
+        <!-- タイトル -->
+        <TextBlock
+            Margin="0,0,0,12"
+            FontSize="20"
+            FontWeight="SemiBold"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_Title]}" />
 
-            <!-- 言語 -->
-            <Border
-                Margin="0,0,0,12"
-                Padding="12"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon
-                        Grid.Column="0"
-                        Margin="0,0,8,0"
-                        VerticalAlignment="Center"
-                        Symbol="LocalLanguage24" />
-                    <TextBlock
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        FontSize="14"
-                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_LanguageLabel]}" />
-                    <ComboBox
-                        Grid.Column="2"
-                        Width="200"
-                        DisplayMemberPath="Label"
-                        ItemsSource="{Binding ViewModel.LanguageList}"
-                        SelectedValue="{Binding ViewModel.SelectedLanguage, Mode=TwoWay}"
-                        SelectedValuePath="Key" />
-                </Grid>
-            </Border>
+        <!-- 表示 -->
+        <TextBlock
+            Margin="0,0,0,4"
+            FontSize="14"
+            FontWeight="Medium"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_DisplaySectionLabel]}" />
+        <Border
+            Margin="0,0,0,4"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Symbol="DarkTheme24" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ThemeLabel]}" />
+                <ComboBox
+                    Grid.Column="2"
+                    Width="200"
+                    ItemsSource="{Binding ViewModel.ThemeList, Mode=OneWay}"
+                    SelectedItem="{Binding ViewModel.SelectedTheme, Mode=TwoWay}" />
+            </Grid>
+        </Border>
 
-            <!-- ComfyUI 接続設定 -->
-            <TextBlock
-                Margin="0,0,0,4"
-                FontSize="14"
-                FontWeight="Medium"
-                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ComfyUISectionLabel]}" />
-            <Border
-                Margin="0,0,0,12"
-                Padding="12"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="550" />
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon
-                        Grid.Column="0"
-                        Margin="0,0,8,0"
-                        VerticalAlignment="Center"
-                        Symbol="DocumentSettings20" />
-                    <TextBlock
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        FontSize="14"
-                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ConfigPathLabel]}" />
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <ui:TextBox
-                            Width="506"
-                            Height="36"
-                            Margin="0,0,4,0"
-                            PlaceholderText="C:\...\captioning_config.json"
-                            IsReadOnly="True"
-                            Text="{Binding ViewModel.Config.Data.ConfigPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <ui:Button
-                            Command="{Binding ViewModel.BrowseConfigPathCommand}"
-                            Icon="{ui:SymbolIcon FolderOpen16}"
-                            Width="36"
-                            Height="36"
-                            Margin="4,0,0,0"
-                            ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}"
-                            Appearance="Secondary" />
-                    </StackPanel>
-                </Grid>
-            </Border>
+        <!-- 言語 -->
+        <Border
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Symbol="LocalLanguage24" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_LanguageLabel]}" />
+                <ComboBox
+                    Grid.Column="2"
+                    Width="200"
+                    DisplayMemberPath="Label"
+                    ItemsSource="{Binding ViewModel.LanguageList}"
+                    SelectedValue="{Binding ViewModel.SelectedLanguage, Mode=TwoWay}"
+                    SelectedValuePath="Key" />
+            </Grid>
+        </Border>
 
-            <!-- 出力 -->
-            <TextBlock
-                Margin="0,0,0,4"
-                FontSize="14"
-                FontWeight="Medium"
-                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_OutputSectionLabel]}" />
-            <Border
-                Margin="0,0,0,12"
-                Padding="12"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="550" />
-                    </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon
-                        Grid.Column="0"
-                        Margin="0,0,8,0"
-                        VerticalAlignment="Center"
-                        Symbol="Folder24" />
-                    <TextBlock
-                        Grid.Column="1"
-                        VerticalAlignment="Center"
-                        FontSize="14"
-                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ResultsFolderLabel]}" />
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <ui:TextBox
-                            Width="506"
-                            Height="36"
-                            Margin="0,0,4,0"
-                            PlaceholderText="C:\...\Results"
-                            IsReadOnly="True"
-                            Text="{Binding ViewModel.Config.Data.ResultsFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <ui:Button
-                            Command="{Binding ViewModel.BrowseResultsFolderCommand}"
-                            Icon="{ui:SymbolIcon FolderOpen16}"
-                            Width="36"
-                            Height="36"
-                            Margin="4,0,0,0"
-                            ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}"
-                            Appearance="Secondary" />
-                    </StackPanel>
-                </Grid>
-            </Border>
+        <!-- タグ付けバックエンド -->
+        <TextBlock
+            Margin="0,0,0,4"
+            FontSize="14"
+            FontWeight="Medium"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_TaggerBackendSectionLabel]}" />
+        <Border
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Symbol="ArrowSwap24" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_TaggerBackendLabel]}" />
+                <ComboBox
+                    Grid.Column="2"
+                    Width="200"
+                    ItemsSource="{Binding ViewModel.TaggerBackendList, Mode=OneWay}"
+                    SelectedItem="{Binding ViewModel.SelectedTaggerBackend, Mode=TwoWay}" />
+            </Grid>
+        </Border>
 
-            <!-- バージョン -->
-            <TextBlock Margin="8,4,8,4" FontSize="16" FontWeight="Medium" Text="About" />
-            <TextBlock Margin="8,4,8,4" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
-            <ui:ImageIcon
-                Margin="8,4,8,4"
-                Width="128"
-                Height="128"
-                Source="pack://application:,,,/Assets/ComfyUICaptioningTool_icon_256.png" HorizontalAlignment="Left"/>
+        <!-- wdv3-timm 実行環境（ローカルプロセス版） -->
+        <TextBlock
+            Margin="0,0,0,4"
+            FontSize="14"
+            FontWeight="Medium"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_WdV3TimmSectionLabel]}" />
+        <Border
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        </StackPanel>
-    </ScrollViewer>
+                <ui:SymbolIcon
+                    Grid.Column="0"
+                    Grid.Row="0"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Symbol="DeviceEq24" />
+                <TextBlock
+                    Grid.Column="1"
+                    Grid.Row="0"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Text="{Binding ViewModel.WdV3TimmStatusText, Mode=OneWay}" />
+                <ui:ProgressRing
+                    Grid.Column="2"
+                    Grid.Row="0"
+                    Width="20"
+                    Height="20"
+                    Margin="0,0,8,0"
+                    IsIndeterminate="True"
+                    Visibility="{Binding ViewModel.IsBuildingWdV3Timm, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ui:Button
+                    Grid.Column="3"
+                    Grid.Row="0"
+                    Command="{Binding ViewModel.BuildWdV3TimmCommand}"
+                    Content="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_WdV3TimmBuildButtonContent]}"
+                    Icon="{ui:SymbolIcon ArrowDownload24}"
+                    Appearance="Secondary" />
+                <TextBlock
+                    Grid.Column="0"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="4"
+                    Margin="0,8,0,0"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_WdV3TimmBuildDescription]}"
+                    TextWrapping="Wrap" />
+                <Border
+                    Grid.Column="0"
+                    Grid.Row="2"
+                    Grid.ColumnSpan="4"
+                    Margin="0,8,0,0"
+                    Padding="4"
+                    MaxHeight="200"
+                    Background="{DynamicResource ApplicationBackgroundBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                    <!-- 入れ子の ScrollViewer は既定でマウスホイールを自身が常に消費してしまい、NavigationView
+                         側の ScrollViewer までイベントがバブルせずページ全体のスクロールができなくなるため、
+                         GalleryPage.xaml.cs の TagsScrollViewer_PreviewMouseWheel と同じ手動転送処理を適用する -->
+                    <ScrollViewer
+                        x:Name="WdV3TimmLogScrollViewer"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto"
+                        PreviewMouseWheel="WdV3TimmLogScrollViewer_PreviewMouseWheel">
+                        <ItemsControl ItemsSource="{Binding ViewModel.WdV3TimmBuildLogEntries}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock
+                                        Margin="4,-2,0,-2"
+                                        FontFamily="Consolas"
+                                        FontSize="12"
+                                        Text="{Binding}"
+                                        TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ComfyUI 接続設定 -->
+        <TextBlock
+            Margin="0,0,0,4"
+            FontSize="14"
+            FontWeight="Medium"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ComfyUISectionLabel]}" />
+        <Border
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="550" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Symbol="DocumentSettings20" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ConfigPathLabel]}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <ui:TextBox
+                        Width="506"
+                        Height="36"
+                        Margin="0,0,4,0"
+                        PlaceholderText="C:\...\captioning_config.json"
+                        IsReadOnly="True"
+                        Text="{Binding ViewModel.Config.Data.ConfigPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <ui:Button
+                        Command="{Binding ViewModel.BrowseConfigPathCommand}"
+                        Icon="{ui:SymbolIcon FolderOpen16}"
+                        Width="36"
+                        Height="36"
+                        Margin="4,0,0,0"
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}"
+                        Appearance="Secondary" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 出力 -->
+        <TextBlock
+            Margin="0,0,0,4"
+            FontSize="14"
+            FontWeight="Medium"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_OutputSectionLabel]}" />
+        <Border
+            Margin="0,0,0,12"
+            Padding="12"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="550" />
+                </Grid.ColumnDefinitions>
+                <ui:SymbolIcon
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Symbol="Folder24" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Settings_ResultsFolderLabel]}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <ui:TextBox
+                        Width="506"
+                        Height="36"
+                        Margin="0,0,4,0"
+                        PlaceholderText="C:\...\Results"
+                        IsReadOnly="True"
+                        Text="{Binding ViewModel.Config.Data.ResultsFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <ui:Button
+                        Command="{Binding ViewModel.BrowseResultsFolderCommand}"
+                        Icon="{ui:SymbolIcon FolderOpen16}"
+                        Width="36"
+                        Height="36"
+                        Margin="4,0,0,0"
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Common_BrowseButtonTooltip]}"
+                        Appearance="Secondary" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- バージョン -->
+        <TextBlock Margin="8,4,8,4" FontSize="16" FontWeight="Medium" Text="About" />
+        <TextBlock Margin="8,4,8,4" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+        <ui:ImageIcon
+            Margin="8,4,8,4"
+            Width="128"
+            Height="128"
+            Source="pack://application:,,,/Assets/ComfyUICaptioningTool_icon_256.png" HorizontalAlignment="Left"/>
+
+    </StackPanel>
 </Page>

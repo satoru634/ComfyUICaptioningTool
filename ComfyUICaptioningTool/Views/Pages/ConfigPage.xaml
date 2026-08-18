@@ -73,67 +73,79 @@
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="4">
-                <StackPanel>
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                        <TextBlock
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_ModelNameLabel]}" />
-                        <ui:TextBox
-                            Height="36"
-                            Grid.Column="1"
-                            PlaceholderText="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_ModelNamePlaceholder]}"
-                            Text="{Binding ViewModel.ModelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </Grid>
+                    <TextBlock
+                        Grid.Column="0"
+                        Grid.Row="0"
+                        Margin="0,0,0,12"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_ModelNameLabel]}" />
+                    <ComboBox
+                        Grid.Column="1"
+                        Grid.Row="0"
+                        Margin="0,0,0,12"
+                        Width="300"
+                        HorizontalAlignment="Left"
+                        ItemsSource="{Binding ViewModel.ModelNameList, Mode=OneWay}"
+                        SelectedItem="{Binding ViewModel.ModelName, Mode=TwoWay}" />
 
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <TextBlock
+                        Grid.Column="0"
+                        Grid.Row="1"
+                        Margin="0,0,0,12"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_GeneralThresholdLabel]}" />
+                    <ui:NumberBox
+                        Grid.Column="1"
+                        Grid.Row="1"
+                        Margin="0,0,0,12"
+                        Width="200"
+                        Maximum="1"
+                        Minimum="0"
+                        HorizontalAlignment="Left"
+                        SpinButtonPlacementMode="Compact"
+                        Value="{Binding ViewModel.GeneralThreshold, Mode=TwoWay}" />
 
-                        <TextBlock
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_GeneralThresholdLabel]}" />
-                        <ui:NumberBox
-                            Grid.Column="1"
-                            Width="200"
-                            Maximum="1"
-                            Minimum="0"
-                            HorizontalAlignment="Left"
-                            SpinButtonPlacementMode="Compact"
-                            Value="{Binding ViewModel.GeneralThreshold, Mode=TwoWay}" />
-                    </Grid>
+                    <TextBlock
+                        Grid.Column="0"
+                        Grid.Row="2"
+                        Margin="0,0,0,12"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_CharacterThresholdLabel]}" />
+                    <ui:NumberBox
+                        Grid.Column="1"
+                        Grid.Row="2"
+                        Margin="0,0,0,12"
+                        Width="200"
+                        Maximum="1"
+                        Minimum="0"
+                        HorizontalAlignment="Left"
+                        SpinButtonPlacementMode="Compact"
+                        Value="{Binding ViewModel.CharacterThreshold, Mode=TwoWay}" />
 
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_CharacterThresholdLabel]}" />
-                        <ui:NumberBox
-                            Grid.Column="1"
-                            Width="200"
-                            Maximum="1"
-                            Minimum="0"
-                            HorizontalAlignment="Left"
-                            SpinButtonPlacementMode="Compact"
-                            Value="{Binding ViewModel.CharacterThreshold, Mode=TwoWay}" />
-                    </Grid>
-                </StackPanel>
+                    <TextBlock
+                        Grid.Column="0"
+                        Grid.Row="3"
+                        Grid.ColumnSpan="2"
+                        FontSize="12"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Config_WdV3TimmSharesWd14Notice]}"
+                        TextWrapping="Wrap" />
+                </Grid>
             </Border>
 
             <!-- タグフィルタの既定値 -->
