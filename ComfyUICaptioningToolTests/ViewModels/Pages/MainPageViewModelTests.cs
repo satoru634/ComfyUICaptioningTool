@@ -111,6 +111,27 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             return path;
         }
 
+        /// <summary>
+        /// wdv3-timm はモデル名・しきい値・実行ファイルパスを独自に持たず、モデル名・しきい値は
+        /// wd14_tagger セクションを共用し、実行ファイルは WdV3TimmPaths の固定パスを使う
+        /// （captioning_config.json では扱わない）ため、有効な設定は WdV3TimmModelMap で
+        /// 変換可能な model_name を持つ wd14_tagger セクションのみで足りる。
+        /// </summary>
+        private string WriteWdV3TimmConfigFile()
+        {
+            var path = Path.Combine(_tempDir, "captioning_config.json");
+            File.WriteAllText(path, """
+                {
+                  "wd14_tagger": {
+                    "model_name": "wd-vit-tagger-v3",
+                    "general_threshold": 0.35,
+                    "character_threshold": 0.75
+                  }
+                }
+                """);
+            return path;
+        }
+
         private string WriteInvalidConfigFile()
         {
             var path = Path.Combine(_tempDir, "invalid_config.json");
@@ -120,7 +141,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
         private MainPageViewModel CreateVm(
             Setting<AppConfig>? setting = null,
-            Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? factory = null)
+            Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? factory = null)
             => new MainPageViewModel(setting ?? CreateSetting(), _fakeSnackbar, factory);
 
         /// <summary>有効な ConfigPath を設定した Setting で ViewModel を作成し、OnNavigatedToAsync まで済ませる。</summary>
@@ -241,6 +262,56 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             Assert.True(vm.IsConfigLoaded);
         }
 
+        // ── TaggerBackend ─────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task OnNavigatedToAsync_WdV3TimmBackend_ValidConfig_SetsIsConfigLoadedTrue()
+        {
+            var setting = CreateSetting();
+            setting.Data.TaggerBackend = TaggerBackend.WdV3Timm;
+            setting.Data.ConfigPath = WriteWdV3TimmConfigFile();
+            var vm = CreateVm(setting);
+
+            await vm.OnNavigatedToAsync();
+
+            Assert.True(vm.IsConfigLoaded);
+        }
+
+        [Fact]
+        public void OnNavigatedToAsync_WdV3TimmBackend_MissingWd14TaggerSection_SetsIsConfigLoadedFalse()
+        {
+            // wdv3-timm はモデル名・しきい値を wd14_tagger セクションと共用するため、
+            // それが無い（WriteInvalidConfigFile は comfyui_url のみ）と読み込みに失敗する
+            var setting = CreateSetting();
+            setting.Data.TaggerBackend = TaggerBackend.WdV3Timm;
+            setting.Data.ConfigPath = WriteInvalidConfigFile();
+            var vm = CreateVm(setting);
+
+            RunOnSta(async () => await vm.OnNavigatedToAsync());
+
+            Assert.False(vm.IsConfigLoaded);
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_WdV3TimmBackend_PassesWdV3TimmTaggerRunnerToFactory()
+        {
+            var setting = CreateSetting();
+            setting.Data.TaggerBackend = TaggerBackend.WdV3Timm;
+            setting.Data.ConfigPath = WriteWdV3TimmConfigFile();
+            ITaggerRunner? capturedRunner = null;
+            var vm = CreateVm(setting, (runner, _, _) =>
+            {
+                capturedRunner = runner;
+                return new FakeCaptioningService();
+            });
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            Assert.IsType<WdV3TimmTaggerRunner>(capturedRunner);
+        }
+
         [Fact]
         public async Task OnNavigatedFromAsync_ReturnsCompletedTask()
         {
@@ -357,6 +428,28 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
 
             Assert.False(vm.IsRunning);
+        }
+
+        [Fact]
+        public async Task RunCommand_Execute_ReloadsRunnerAfterCompletion_CanExecuteAgainWithoutRenavigating()
+        {
+            // WdV3Timm バックエンド使用時、実行完了後に ITaggerRunner が破棄・再構築されても
+            // （ページを再訪しなくても）続けて RunCommand を実行できることを確認する
+            // （実行完了後の再構築ロジック（MainPageViewModel.RunAsync の finally）の回帰防止）。
+            var setting = CreateSetting();
+            setting.Data.TaggerBackend = TaggerBackend.WdV3Timm;
+            setting.Data.ConfigPath = WriteWdV3TimmConfigFile();
+            var fake = new FakeCaptioningService { Result = (1, 0, 0) };
+            var vm = CreateVm(setting, (_, _, _) => fake);
+            await vm.OnNavigatedToAsync();
+            vm.TargetDirectory = _tempDir;
+
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+            var canExecuteAfterFirstRun = vm.RunCommand.CanExecute(null);
+            RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
+
+            Assert.True(canExecuteAfterFirstRun);
+            Assert.True(vm.IsConfigLoaded);
         }
 
         [Fact]

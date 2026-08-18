@@ -86,7 +86,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             setting.Data.ConfigPath = WriteValidConfigFile();
             var vm = new GalleryViewModel(
                 setting,
-                (Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>)((_, _, _) => fake));
+                (Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>)((_, _, _) => fake));
             await vm.OnNavigatedToAsync();
             return vm;
         }

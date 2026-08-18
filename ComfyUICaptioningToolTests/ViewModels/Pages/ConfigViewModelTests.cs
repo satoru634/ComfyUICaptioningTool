@@ -70,6 +70,21 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             Assert.Same(setting, vm.Config);
         }
 
+        // ── ModelNameList ─────────────────────────────────────────────────────
+
+        [Fact]
+        public void ModelNameList_ContainsAllFiveWd14Models()
+        {
+            var vm = CreateVm();
+
+            Assert.Equal(5, vm.ModelNameList.Count);
+            Assert.Contains("wd-vit-tagger-v3", vm.ModelNameList);
+            Assert.Contains("wd-swinv2-tagger-v3", vm.ModelNameList);
+            Assert.Contains("wd-convnext-tagger-v3", vm.ModelNameList);
+            Assert.Contains("wd-eva02-large-tagger-v3", vm.ModelNameList);
+            Assert.Contains("wd-vit-large-tagger-v3", vm.ModelNameList);
+        }
+
         // ── OnNavigatedToAsync / LoadFromFile ─────────────────────────────────
 
         [Fact]
@@ -305,6 +320,75 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             var json = File.ReadAllText(ConfigPath);
             Assert.Contains("\"prepend_tags\": []", json);
             Assert.Contains("\"exclude_tags\": []", json);
+        }
+
+        // ── SaveCommand 実行（TaggerBackend.WdV3Timm） ─────────────────────────
+        // wdv3-timm はモデル名・しきい値・実行ファイルパスを独自に持たず wd14_tagger（ModelName/
+        // GeneralThreshold/CharacterThreshold）を共用し、実行ファイルは WdV3TimmPaths の固定パスを使う
+        // （captioning_config.json では扱わない）ため、Save() は wd14_tagger セクションのみを検証する。
+
+        [Fact]
+        public async Task SaveCommand_Execute_WdV3TimmBackend_ValidModelName_WritesFile_DoesNotRequireComfyUiUrl()
+        {
+            var setting = CreateSetting();
+            setting.Data.TaggerBackend = TaggerBackend.WdV3Timm;
+            var vm = CreateVm(setting);
+            await vm.OnNavigatedToAsync();
+            vm.ComfyUiUrl = "";
+            vm.ModelName = "wd-vit-tagger-v3";
+
+            RunOnSta(() => vm.SaveCommand.Execute(null));
+
+            Assert.Contains(_fakeSnackbar.Calls, c => c.Appearance == ControlAppearance.Success);
+            var json = File.ReadAllText(ConfigPath);
+            Assert.DoesNotContain("comfyui_url", json);
+            Assert.Contains("wd14_tagger", json);
+        }
+
+        [Fact]
+        public async Task SaveCommand_Execute_WdV3TimmBackend_MissingModelName_ShowsDangerSnackbar_DoesNotWriteFile()
+        {
+            var setting = CreateSetting();
+            setting.Data.TaggerBackend = TaggerBackend.WdV3Timm;
+            var vm = CreateVm(setting);
+            await vm.OnNavigatedToAsync();
+            vm.ModelName = "";
+
+            RunOnSta(() => vm.SaveCommand.Execute(null));
+
+            Assert.Contains(_fakeSnackbar.Calls, c => c.Appearance == ControlAppearance.Danger);
+            Assert.False(File.Exists(ConfigPath));
+        }
+
+        [Fact]
+        public async Task SaveCommand_Execute_WdV3TimmBackend_UnmappedModelName_ShowsDangerSnackbar_DoesNotWriteFile()
+        {
+            var setting = CreateSetting();
+            setting.Data.TaggerBackend = TaggerBackend.WdV3Timm;
+            var vm = CreateVm(setting);
+            await vm.OnNavigatedToAsync();
+            vm.ModelName = "wd-v1-4-moat-tagger-v2";
+
+            RunOnSta(() => vm.SaveCommand.Execute(null));
+
+            Assert.Contains(_fakeSnackbar.Calls, c => c.Appearance == ControlAppearance.Danger);
+            Assert.False(File.Exists(ConfigPath));
+        }
+
+        [Fact]
+        public async Task SaveCommand_Execute_WdV3TimmBackend_ThresholdOutOfRange_ShowsDangerSnackbar_DoesNotWriteFile()
+        {
+            var setting = CreateSetting();
+            setting.Data.TaggerBackend = TaggerBackend.WdV3Timm;
+            var vm = CreateVm(setting);
+            await vm.OnNavigatedToAsync();
+            vm.ModelName = "wd-vit-tagger-v3";
+            vm.GeneralThreshold = 1.5;
+
+            RunOnSta(() => vm.SaveCommand.Execute(null));
+
+            Assert.Contains(_fakeSnackbar.Calls, c => c.Appearance == ControlAppearance.Danger);
+            Assert.False(File.Exists(ConfigPath));
         }
     }
 }

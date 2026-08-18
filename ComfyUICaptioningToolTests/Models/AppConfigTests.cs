@@ -247,5 +247,27 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.Contains("ResultsFolder", changed);
         }
 
+        // ── AppConfig TaggerBackend ────────────────────────────────────────────
+
+        [Fact]
+        public void AppConfig_TaggerBackend_DefaultValue_IsComfyUI()
+        {
+            var config = new AppConfig();
+
+            Assert.Equal(TaggerBackend.ComfyUI, config.TaggerBackend);
+        }
+
+        [Fact]
+        public void AppConfig_TaggerBackend_Set_RaisesPropertyChanged()
+        {
+            var config = new AppConfig();
+            var changed = new List<string?>();
+            ((INotifyPropertyChanged)config).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+            config.TaggerBackend = TaggerBackend.WdV3Timm;
+
+            Assert.Contains("TaggerBackend", changed);
+        }
+
     }
 }
