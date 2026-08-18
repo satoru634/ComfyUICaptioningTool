@@ -79,6 +79,19 @@
   <data name="Settings_DisplaySectionLabel" xml:space="preserve"><value>Display</value></data>
   <data name="Settings_ThemeLabel" xml:space="preserve"><value>Theme</value></data>
   <data name="Settings_LanguageLabel" xml:space="preserve"><value>Language</value></data>
+  <data name="Settings_TaggerBackendSectionLabel" xml:space="preserve"><value>Tagging Backend</value></data>
+  <data name="Settings_TaggerBackendLabel" xml:space="preserve"><value>Backend</value></data>
+  <data name="Settings_WdV3TimmSectionLabel" xml:space="preserve"><value>wdv3-timm Environment (Local Process)</value></data>
+  <data name="Settings_WdV3TimmReady" xml:space="preserve"><value>Ready</value></data>
+  <data name="Settings_WdV3TimmNotReady" xml:space="preserve"><value>Not built</value></data>
+  <data name="Settings_WdV3TimmBuildButtonContent" xml:space="preserve"><value>Build</value></data>
+  <data name="Settings_WdV3TimmBuildDescription" xml:space="preserve"><value>Runs the wdv3-timm scripts (setup.bat then build_exe.bat) bundled next to the app to build .venv and wdv3_timm.exe. Requires Python 3.10. May take several minutes depending on your network.</value></data>
+  <data name="Settings_WdV3TimmBuildSuccess" xml:space="preserve"><value>wdv3-timm build completed.</value></data>
+  <data name="Settings_WdV3TimmBuildFailure" xml:space="preserve"><value>wdv3-timm build failed. Check the log.</value></data>
+  <data name="Settings_WdV3TimmBuildRootNotFoundFormat" xml:space="preserve"><value>wdv3-timm folder not found: {0}</value></data>
+  <data name="Settings_WdV3TimmBuildScriptNotFoundFormat" xml:space="preserve"><value>Script not found: {0}</value></data>
+  <data name="Settings_WdV3TimmBuildScriptStartingFormat" xml:space="preserve"><value>Running {0}...</value></data>
+  <data name="Settings_WdV3TimmBuildScriptFailedFormat" xml:space="preserve"><value>{0} failed with exit code {1}.</value></data>
   <data name="Settings_ComfyUISectionLabel" xml:space="preserve"><value>ComfyUI Connection</value></data>
   <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>captioning_config.json Path</value></data>
   <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>Select captioning_config.json</value></data>
@@ -162,7 +175,6 @@
   <data name="Config_ComfyUiUrlPlaceholder" xml:space="preserve"><value>http://127.0.0.1:8188</value></data>
   <data name="Config_ModelConfigLabel" xml:space="preserve"><value>WD14 Model Settings</value></data>
   <data name="Config_ModelNameLabel" xml:space="preserve"><value>Model Name</value></data>
-  <data name="Config_ModelNamePlaceholder" xml:space="preserve"><value>wd-eva02-large-tagger-v3</value></data>
   <data name="Config_GeneralThresholdLabel" xml:space="preserve"><value>General Threshold</value></data>
   <data name="Config_CharacterThresholdLabel" xml:space="preserve"><value>Character Threshold</value></data>
   <data name="Config_SaveButton" xml:space="preserve"><value>Save</value></data>
@@ -170,4 +182,5 @@
   <data name="Config_LoadErrorFormat" xml:space="preserve"><value>Failed to load captioning_config.json: {0}</value></data>
   <data name="Config_NewFileNotice" xml:space="preserve"><value>captioning_config.json was not found; it will be created when you save.</value></data>
   <data name="Config_ComfyUiUrlEmptyError" xml:space="preserve"><value>Please enter the ComfyUI URL.</value></data>
+  <data name="Config_WdV3TimmSharesWd14Notice" xml:space="preserve"><value>These model name and thresholds are also used by wdv3-timm (local process). Set up the wdv3_timm.exe environment on the Settings page.</value></data>
 </root>

@@ -77,13 +77,14 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         private ObservableCollection<string> _tagList = new();
 
         /// <summary>
-        /// <see cref="Wd14TaggerRunner"/> と prepend/exclude タグから <see cref="ICaptioningService"/> を生成するファクトリー。
+        /// <see cref="ITaggerRunner"/> と prepend/exclude タグから <see cref="ICaptioningService"/> を生成するファクトリー。
         /// TagList 更新（<see cref="TagReportGenerator"/> 呼び出し）のみに使うため prepend/exclude タグは常に空リストで呼び出す。
         /// </summary>
-        private readonly Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService> _captioningServiceFactory;
+        private readonly Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService> _captioningServiceFactory;
 
-        /// <summary>Config.Data.ConfigPath から読み込んだ Wd14TaggerRunner。読み込み失敗・未設定時は null。</summary>
-        private Wd14TaggerRunner? _taggerRunner;
+        /// <summary>Config.Data.ConfigPath と Config.Data.TaggerBackend から読み込んだ ITaggerRunner。
+        /// 読み込み失敗・未設定時は null。</summary>
+        private ITaggerRunner? _taggerRunner;
 
         /// <summary>
         /// DI コンテナから設定を受け取って初期化する。
@@ -91,7 +92,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         /// </summary>
         public GalleryViewModel(
             Setting<AppConfig> config,
-            Func<Wd14TaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? captioningServiceFactory = null)
+            Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? captioningServiceFactory = null)
         {
             Config = config;
             _captioningServiceFactory = captioningServiceFactory
@@ -101,21 +102,23 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         // ── INavigationAware ─────────────────────────────────────────────────
 
         /// <summary>ページへ遷移するたびに captioning_config.json を再読み込みし、Runner を初期化する。</summary>
-        public Task OnNavigatedToAsync()
-        {
-            TryLoadRunner();
-            return Task.CompletedTask;
-        }
+        public Task OnNavigatedToAsync() => TryLoadRunnerAsync();
 
         /// <summary>ページから離れるときは何もしない。</summary>
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
 
         /// <summary>
-        /// 設定ページで指定された ConfigPath から Wd14TaggerRunner を初期化する。TagList の取得にのみ使うため、
-        /// 失敗しても画像・タグ一覧本体の表示には影響させない（スナックバー等のエラー表示は行わない）。
+        /// 設定ページで指定された ConfigPath・TaggerBackend から ITaggerRunner を初期化する。TagList の取得にのみ
+        /// 使うため、失敗しても画像・タグ一覧本体の表示には影響させない（スナックバー等のエラー表示は行わない）。
+        /// 既存の Runner が <see cref="IAsyncDisposable"/>（WdV3TimmTaggerRunner）の場合、常駐プロセスを
+        /// 起動したままリークしないよう再構築前に破棄する（ReportViewModel と同じ理由、実際には
+        /// TagAsync を呼ばないため常駐プロセスが起動することは無い）。
         /// </summary>
-        private void TryLoadRunner()
+        private async Task TryLoadRunnerAsync()
         {
+            if (_taggerRunner is IAsyncDisposable disposableRunner)
+                await disposableRunner.DisposeAsync();
+
             var path = Config.Data.ConfigPath;
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -125,7 +128,7 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
             try
             {
-                _taggerRunner = new Wd14TaggerRunner(path);
+                _taggerRunner = TaggerRunnerFactory.Create(path, Config.Data.TaggerBackend);
             }
             catch (ComfyUIException)
             {

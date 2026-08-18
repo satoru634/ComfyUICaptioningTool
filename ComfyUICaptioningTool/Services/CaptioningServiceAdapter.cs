@@ -10,9 +10,10 @@ namespace ComfyUICaptioningTool.Services
     {
         private readonly CaptioningService _inner;
 
-        /// <summary>実体となる <see cref="Wd14TaggerRunner"/> と prepend/exclude タグを受け取って初期化する。</summary>
+        /// <summary>実体となる <see cref="ITaggerRunner"/>（Wd14TaggerRunner/WdV3TimmTaggerRunner）と
+        /// prepend/exclude タグを受け取って初期化する。</summary>
         public CaptioningServiceAdapter(
-            Wd14TaggerRunner taggerRunner,
+            ITaggerRunner taggerRunner,
             IReadOnlyList<string>? prependTags = null,
             IReadOnlyList<string>? excludeTags = null)
         {

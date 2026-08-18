@@ -50,6 +50,9 @@ namespace ComfyUICaptioningTool
                 // スナックバー通知サービス
                 services.AddSingleton<ISnackbarService, SnackbarService>();
 
+                // wdv3-timm 実行環境（.venv・wdv3_timm.exe）のビルドサービス
+                services.AddSingleton<IWdV3TimmBuildService, WdV3TimmBuildService>();
+
                 // ナビゲーションサービス（ウィンドウを持たない画面遷移制御）
                 services.AddSingleton<INavigationService, NavigationService>();
 

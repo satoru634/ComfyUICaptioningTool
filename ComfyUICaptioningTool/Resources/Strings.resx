@@ -79,6 +79,19 @@
   <data name="Settings_DisplaySectionLabel" xml:space="preserve"><value>表示</value></data>
   <data name="Settings_ThemeLabel" xml:space="preserve"><value>テーマ</value></data>
   <data name="Settings_LanguageLabel" xml:space="preserve"><value>言語</value></data>
+  <data name="Settings_TaggerBackendSectionLabel" xml:space="preserve"><value>タグ付けバックエンド</value></data>
+  <data name="Settings_TaggerBackendLabel" xml:space="preserve"><value>使用するバックエンド</value></data>
+  <data name="Settings_WdV3TimmSectionLabel" xml:space="preserve"><value>wdv3-timm 実行環境（ローカルプロセス版）</value></data>
+  <data name="Settings_WdV3TimmReady" xml:space="preserve"><value>準備完了</value></data>
+  <data name="Settings_WdV3TimmNotReady" xml:space="preserve"><value>未構築</value></data>
+  <data name="Settings_WdV3TimmBuildButtonContent" xml:space="preserve"><value>ビルド</value></data>
+  <data name="Settings_WdV3TimmBuildDescription" xml:space="preserve"><value>アプリと同じフォルダの wdv3-timm 同梱スクリプト（setup.bat → build_exe.bat）を実行し、.venv・wdv3_timm.exe を構築します。Python 3.10 系が必要です。ネットワーク環境によっては数分〜数十分かかります。</value></data>
+  <data name="Settings_WdV3TimmBuildSuccess" xml:space="preserve"><value>wdv3-timm のビルドが完了しました。</value></data>
+  <data name="Settings_WdV3TimmBuildFailure" xml:space="preserve"><value>wdv3-timm のビルドに失敗しました。ログを確認してください。</value></data>
+  <data name="Settings_WdV3TimmBuildRootNotFoundFormat" xml:space="preserve"><value>wdv3-timm フォルダが見つかりません: {0}</value></data>
+  <data name="Settings_WdV3TimmBuildScriptNotFoundFormat" xml:space="preserve"><value>スクリプトが見つかりません: {0}</value></data>
+  <data name="Settings_WdV3TimmBuildScriptStartingFormat" xml:space="preserve"><value>{0} を実行しています...</value></data>
+  <data name="Settings_WdV3TimmBuildScriptFailedFormat" xml:space="preserve"><value>{0} が終了コード {1} で失敗しました。</value></data>
   <data name="Settings_ComfyUISectionLabel" xml:space="preserve"><value>ComfyUI 接続</value></data>
   <data name="Settings_ConfigPathLabel" xml:space="preserve"><value>captioning_config.json パス</value></data>
   <data name="Settings_ConfigFileDialogTitle" xml:space="preserve"><value>captioning_config.json を選択</value></data>
@@ -162,7 +175,6 @@
   <data name="Config_ComfyUiUrlPlaceholder" xml:space="preserve"><value>http://127.0.0.1:8188</value></data>
   <data name="Config_ModelConfigLabel" xml:space="preserve"><value>WD14 モデル設定</value></data>
   <data name="Config_ModelNameLabel" xml:space="preserve"><value>モデル名</value></data>
-  <data name="Config_ModelNamePlaceholder" xml:space="preserve"><value>wd-eva02-large-tagger-v3</value></data>
   <data name="Config_GeneralThresholdLabel" xml:space="preserve"><value>一般タグしきい値</value></data>
   <data name="Config_CharacterThresholdLabel" xml:space="preserve"><value>キャラクタータグしきい値</value></data>
   <data name="Config_SaveButton" xml:space="preserve"><value>保存</value></data>
@@ -170,4 +182,5 @@
   <data name="Config_LoadErrorFormat" xml:space="preserve"><value>captioning_config.json の読み込みエラー: {0}</value></data>
   <data name="Config_NewFileNotice" xml:space="preserve"><value>captioning_config.json が見つからないため、保存時に新規作成されます。</value></data>
   <data name="Config_ComfyUiUrlEmptyError" xml:space="preserve"><value>ComfyUI URL を入力してください。</value></data>
+  <data name="Config_WdV3TimmSharesWd14Notice" xml:space="preserve"><value>wdv3-timm（ローカルプロセス版）利用時もこのモデル名・しきい値を使用します。実行環境（wdv3_timm.exe）の準備は設定ページで行います。</value></data>
 </root>

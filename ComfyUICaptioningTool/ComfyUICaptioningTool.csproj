@@ -51,6 +51,17 @@
     </Content>
   </ItemGroup>
 
+  <!-- wdv3-timm サブモジュール（ローカル wdv3-timm 実行環境のビルド元）のうち、
+       WdV3TimmBuildService の setup.bat → build_exe.bat 実行に必要な最小限のファイルのみを
+       実行ファイルと同じ階層の wdv3-timm フォルダへ展開する（.venv・dist・ドキュメント類・
+       .git 関連ファイルは含めない） -->
+  <ItemGroup>
+    <Content Include="..\wdv3-timm\setup.bat;..\wdv3-timm\build_exe.bat;..\wdv3-timm\requirements.txt;..\wdv3-timm\launcher.py;..\wdv3-timm\wdv3_timm.py">
+      <Link>wdv3-timm\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <Resource Include="Assets\ComfyUICaptioningTool_icon_16.png" />
     <Resource Include="Assets\ComfyUICaptioningTool_icon_32.png" />

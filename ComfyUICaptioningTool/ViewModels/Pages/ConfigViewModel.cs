@@ -60,6 +60,12 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
         [ObservableProperty]
         private string _modelName = "";
 
+        /// <summary>
+        /// モデル名選択コンボボックスに表示する選択肢。<see cref="ComfyUILibs.Services.WdV3TimmModelMap"/> の
+        /// 対応表と一致させる（wdv3-timm バックエンド利用時に model_name から --model 値へ変換できる必要があるため）。
+        /// </summary>
+        public IReadOnlyCollection<string> ModelNameList { get; } = WdV3TimmModelMap.SupportedWd14ModelNames;
+
         /// <summary>一般タグを出力するしきい値（0.0〜1.0）。</summary>
         [ObservableProperty]
         private double _generalThreshold = 0.35;
@@ -155,11 +161,22 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
         private bool CanSave() => IsConfigLoaded;
 
-        /// <summary>フォームの内容を検証し、Config.Data.ConfigPath へ captioning_config.json として書き込む。</summary>
+        /// <summary>
+        /// フォームの内容を検証し、Config.Data.ConfigPath へ captioning_config.json として書き込む。
+        /// wdv3-timm はモデル名・しきい値・実行ファイルパスを独自に持たず、実行ファイルはアプリと同階層の
+        /// wdv3-timm フォルダに固定配置し（<see cref="ComfyUILibs.Services.WdV3TimmPaths"/> 参照、
+        /// SettingsPage の「ビルド」ボタンで用意する）、モデル名・しきい値は wd14_tagger
+        /// （ModelName/GeneralThreshold/CharacterThreshold）を共用するため、本ページで編集する
+        /// captioning_config.json には wd14_tagger セクションのみを持つ。
+        /// 現在選択中のバックエンド（<see cref="Config"/>.Data.TaggerBackend）が ComfyUI の場合は
+        /// ComfyUiUrl も必須として検証する（wdv3-timm の場合は ComfyUiUrl 不要）。
+        /// </summary>
         [RelayCommand(CanExecute = nameof(CanSave))]
         private void Save()
         {
-            if (string.IsNullOrWhiteSpace(ComfyUiUrl))
+            var backend = Config.Data.TaggerBackend;
+
+            if (backend == TaggerBackend.ComfyUI && string.IsNullOrWhiteSpace(ComfyUiUrl))
             {
                 ShowDanger(LocalizationManager.Instance["Config_ComfyUiUrlEmptyError"]);
                 return;
@@ -167,20 +184,25 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
             var config = new WorkflowConfig
             {
-                ComfyuiUrl = ComfyUiUrl,
-                Wd14Tagger = new Wd14TaggerConfig
-                {
-                    ModelName = ModelName,
-                    GeneralThreshold = GeneralThreshold,
-                    CharacterThreshold = CharacterThreshold,
-                },
+                ComfyuiUrl = string.IsNullOrWhiteSpace(ComfyUiUrl) ? null : ComfyUiUrl,
+                Wd14Tagger = string.IsNullOrWhiteSpace(ModelName)
+                    ? null
+                    : new Wd14TaggerConfig
+                    {
+                        ModelName = ModelName,
+                        GeneralThreshold = GeneralThreshold,
+                        CharacterThreshold = CharacterThreshold,
+                    },
                 PrependTags = SplitTags(PrependTagsText),
                 ExcludeTags = SplitTags(ExcludeTagsText),
             };
 
             try
             {
-                ConfigLoader.ValidateWd14TaggerConfig(config);
+                if (backend == TaggerBackend.WdV3Timm)
+                    ConfigLoader.ValidateWdV3TimmConfig(config);
+                else
+                    ConfigLoader.ValidateWd14TaggerConfig(config);
 
                 var path = Config.Data.ConfigPath;
                 var json = JsonSerializer.Serialize(config, WriteOptions);
