@@ -15,7 +15,20 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 節、および ComfyUILibs 側 IWdV3TimmProcessClient.cs の
                                                 XML ドキュメントコメントを参照）。C# プロジェクトからの
                                                 直接参照（ProjectReference）はなく、実行時にランタイム
-                                                パス（実行ファイル配下の想定）として利用する
+                                                パス（ComfyUILibs.Services.WdV3TimmPaths が指す、アプリ
+                                                実行ファイルと同階層の wdv3-timm フォルダ固定。フェーズ32の
+                                                追加修正で config ファイル指定から変更）として利用する。
+                                                .venv・wdv3_timm.exe 自体はリポジトリに含まれないため、
+                                                SettingsPage の「ビルド」ボタン（WdV3TimmBuildService が
+                                                本サブモジュール同梱の setup.bat → build_exe.bat を実行）で
+                                                都度構築する想定。フェーズ33で、ComfyUICaptioningTool.csproj
+                                                の Content ItemGroup（Link メタデータで出力先を wdv3-timm\
+                                                フォルダへ再配置）により、setup.bat/build_exe.bat 実行に
+                                                必要な最小限のファイル（setup.bat・build_exe.bat・
+                                                requirements.txt・launcher.py・wdv3_timm.py の5点。README 等の
+                                                ドキュメント類・.venv・dist/build 中間生成物は含まない）を
+                                                dotnet build/publish のたびに実行ファイルと同階層の
+                                                wdv3-timm\ フォルダへ自動展開するようにした
   ComfyUICaptioningTool/                    <- メイン WPF プロジェクト（GUI のみ）
     App.xaml / App.xaml.cs                  <- DI・ホスト設定（ComfyUIRunWorkflow から流用）
     AssemblyInfo.cs
@@ -36,7 +49,12 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 Results。ComfyUIRunWorkflow と同じ方式）を追加済み。
                                                 既定 prepend/exclude タグは captioning_config.json 側の
                                                 prepend_tags/exclude_tags で保持する方式に一本化したため、
-                                                本クラスには持たない）
+                                                本クラスには持たない。フェーズ32で TaggerBackend
+                                                （既定 TaggerBackend.ComfyUI）を追加し、SettingsPage の
+                                                コンボボックスで ComfyUI 経由／ローカル wdv3-timm 経由の
+                                                タグ付けバックエンドを切り替えられるようにした）
+      TaggerBackend.cs                        <- タグ付けバックエンドの種別を表す列挙型（ComfyUI/WdV3Timm）。
+                                                AppConfig.TaggerBackend で保持する（フェーズ32で新設）
       CaptioningResultLog.cs                <- 実行ログ（1 ファイルごとの処理結果・成功/失敗ステータス）と
                                                 今回使用した設定（WorkflowConfig、prepend/exclude タグはマージ後）
                                                 をマージした結果ログ（positional record）。AppConfig.ResultsFolder
@@ -138,16 +156,68 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 MainPageViewModel/DataViewModel が使う部分だけを抜き出した
                                                 インターフェース（テスト時にネットワーク通信を伴う実装を
                                                 差し替えるための境界）
-      CaptioningServiceAdapter.cs           <- ICaptioningService の既定実装（実 CaptioningService をラップ）
+      CaptioningServiceAdapter.cs           <- ICaptioningService の既定実装（実 CaptioningService をラップ）。
+                                                コンストラクター引数はフェーズ32で ITaggerRunner
+                                                （Wd14TaggerRunner の具象型ではなく抽象）に変更した
+      TaggerRunnerFactory.cs                <- captioning_config.json のパスと TaggerBackend から
+                                                ITaggerRunner の実装（Wd14TaggerRunner または
+                                                WdV3TimmTaggerRunner）を構築する静的ファクトリー
+                                                （フェーズ32で新設）。MainPageViewModel/ReportViewModel/
+                                                GalleryViewModel の TryLoadRunnerAsync から呼ばれる
       TagReportGenerator.cs                 <- ICaptioningService.GenerateReportAsync を呼び出し、
                                                 tags_report.txt を読み込んで TagCountEntry のリストへ
                                                 変換する静的クラス（フェーズ16で ReportViewModel から
                                                 抽出。GalleryViewModel 等の別 ViewModel でも
                                                 タグ一覧取得に再利用できるようにしたもの）
+      IWdV3TimmBuildService.cs              <- wdv3-timm 実行環境（.venv・wdv3_timm.exe）のビルドを
+                                                抽象化するインターフェース（フェーズ32の追加修正で新設、
+                                                DI / テスト用の境界）。bool IsExeReady（固定パスに
+                                                wdv3_timm.exe が存在するか）と
+                                                Task&lt;bool&gt; BuildAsync(IProgress&lt;string&gt;, CancellationToken)
+                                                を持つ
+      WdV3TimmBuildService.cs               <- IWdV3TimmBuildService の既定実装。IsExeReady は
+                                                File.Exists(ComfyUILibs.Services.WdV3TimmPaths.ExeFilePath)。
+                                                BuildAsync は wdv3-timm 同梱の setup.bat → build_exe.bat を
+                                                cmd.exe /c 経由で順に実行し（前者が終了コード 0 の場合のみ
+                                                後者を実行）、RedirectStandardOutput/Error +
+                                                OutputDataReceived/ErrorDataReceived で標準出力・エラー
+                                                出力を 1 行ごとに IProgress&lt;string&gt;.Report へ流す。
+                                                **フェーズ34の修正**: OutputDataReceived/ErrorDataReceived は
+                                                AsyncStreamReader 専用のスレッドプールのスレッドから発火する
+                                                ため、ハンドラー内で直接 Report を呼ぶと
+                                                SettingsViewModel.SynchronousProgress&lt;T&gt; が UI スレッド
+                                                以外から WdV3TimmBuildLogEntries（UI バインド済み
+                                                ObservableCollection）を変更してしまい、CollectionView の
+                                                NotSupportedException（「Dispatcher スレッドとは異なる
+                                                スレッドからの SourceCollection 変更はサポートしない」）を
+                                                引き起こしていた。ハンドラーは
+                                                System.Threading.Channels.Channel&lt;string&gt; への書き込みのみ
+                                                に留め、Report の呼び出しは RunScriptAsync 自身の
+                                                await foreach（呼び出し元の SynchronizationContext を捕捉して
+                                                再開する）から行うよう修正し、常に呼び出し元スレッド（本番では
+                                                UI スレッド）で Report が呼ばれるようにした。両ストリームの
+                                                EOF（e.Data == null）を Interlocked.Decrement でカウントし、
+                                                両方閉じた時点で Channel の Writer を TryComplete する。
+                                                ルートフォルダ／スクリプト未検出時はプロセスを起動せず
+                                                メッセージのみ報告する。コンストラクターは既定
+                                                （WdV3TimmPaths.RootDirectory を使用）と、テスト用に
+                                                対象フォルダを差し替え可能な
+                                                WdV3TimmBuildService(string rootDirectory) の2種を
+                                                public で公開する（本プロジェクトは internal コンストラクター
+                                                + InternalsVisibleTo の境界パターンを採用していないため）
     ViewModels/Pages/
-      MainPageViewModel.cs                  <- ディレクトリ一括タグ付け実行ページの VM。ConfigPath から
-                                                Wd14TaggerRunner を読み込み、ICaptioningService 経由で
-                                                ProcessDirectoryAsync/GenerateReportAsync を実行する。
+      MainPageViewModel.cs                  <- ディレクトリ一括タグ付け実行ページの VM。ConfigPath・
+                                                TaggerBackend から TaggerRunnerFactory 経由で ITaggerRunner
+                                                （Wd14TaggerRunner または WdV3TimmTaggerRunner、フェーズ32で
+                                                Wd14TaggerRunner 固定から変更）を読み込み、ICaptioningService
+                                                経由で ProcessDirectoryAsync/GenerateReportAsync を実行する。
+                                                TryLoadRunnerAsync（旧 TryLoadRunner を async 化）は
+                                                既存 Runner が IAsyncDisposable（WdV3TimmTaggerRunner）の場合
+                                                再構築前に破棄する。RunAsync の finally では
+                                                SaveResultLogAsync 後に TryLoadRunnerAsync(showErrorSnackbar:
+                                                false) を呼び、実行完了のたびに Runner を破棄・再構築する
+                                                （WdV3Timm 利用時に常駐サーバープロセスがページ再訪なしに
+                                                リークするのを防ぐため。ComfyUI 利用時は実質的な影響はない）。
                                                 captioning_config.json をベースに prepend_tags/exclude_tags を
                                                 マージ結果へ差し替えた captioning_config_result.json を
                                                 対象ディレクトリ直下へ出力する（SaveExecutedConfigAsync）。
@@ -168,12 +238,14 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 同名 .txt からタグを読み込んでサムネイルと共に一覧表示する
                                                 （LoadCommand）。画像・タグ一覧本体の表示は ComfyUI と通信
                                                 しないため ICaptioningService ファクトリー境界・
-                                                Wd14TaggerRunner には依存しないが、一括タグ操作の
+                                                ITaggerRunner には依存しないが、一括タグ操作の
                                                 AutoSuggestBox 候補一覧 TagList（フェーズ17で追加）の取得
                                                 （TagReportGenerator 経由で tags_report.txt を生成・解析）
                                                 にのみこれらに依存する（INavigationAware.OnNavigatedToAsync
-                                                で ConfigPath から Wd14TaggerRunner を読み込む。失敗しても
-                                                TagList 更新を静かにスキップするのみでエラー表示はしない）。
+                                                で ConfigPath・TaggerBackend から TaggerRunnerFactory 経由で
+                                                ITaggerRunner を読み込む（フェーズ32、Wd14TaggerRunner 固定
+                                                から変更）。失敗しても TagList 更新を静かにスキップする
+                                                のみでエラー表示はしない）。
                                                 読み込み済み全画像に対する一括タグ追加・削除
                                                 （BulkAddTagCommand/BulkAddTagToStartCommand/
                                                 BulkRemoveTagCommand、フェーズ14で追加、先頭追加は
@@ -186,8 +258,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 クリックで選択する SelectImageCommand（SelectedImage に
                                                 代入するだけ）を追加した。LoadCommand 実行時
                                                 （Images クリア時）に SelectedImage を null へリセットする
-      ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath から
-                                                Wd14TaggerRunner を読み込み、対象ディレクトリを選択して
+      ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath・TaggerBackend から
+                                                TaggerRunnerFactory 経由で ITaggerRunner を読み込み
+                                                （フェーズ32、Wd14TaggerRunner 固定から変更）、対象ディレクトリを選択して
                                                 タグ集計レポート（tags_report.txt）を生成・一覧表示する
                                                 （旧 DataViewModel から分離）。レポート生成・解析本体は
                                                 Services/TagReportGenerator.cs へ抽出済み（フェーズ16）。
@@ -213,11 +286,55 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 もリセットする
       SettingsViewModel.cs                  <- 設定 VM。テーマ・言語切り替え、captioning_config.json の
                                                 パス選択（BrowseConfigPathCommand）、実行結果ログ出力先
-                                                ResultsFolder の選択（BrowseResultsFolderCommand）を実装済み
+                                                ResultsFolder の選択（BrowseResultsFolderCommand）に加え、
+                                                フェーズ32でタグ付けバックエンド選択（SelectedTaggerBackend/
+                                                TaggerBackendList、ThemeList/SelectedTheme と同じパターン。
+                                                変更は即座に Config.Data.TaggerBackend へ反映）を実装。
+                                                フェーズ32の追加修正で wdv3-timm 実行環境のビルド機能を
+                                                追加した。コンストラクターに ISnackbarService（必須、
+                                                ビルド完了時の成功/失敗スナックバー表示用）と
+                                                IWdV3TimmBuildService?（既定 new WdV3TimmBuildService()）を
+                                                追加。IsWdV3TimmExeReady（bool）・WdV3TimmStatusText
+                                                （IsWdV3TimmExeReady に応じて Settings_WdV3TimmReady/
+                                                Settings_WdV3TimmNotReady を返す計算プロパティ）・
+                                                IsBuildingWdV3Timm・WdV3TimmBuildLogEntries
+                                                （ObservableCollection&lt;string&gt;）を新設。
+                                                OnNavigatedToAsync は（テーマ/言語/バックエンド初期化は
+                                                初回訪問時のみだったのに対し）毎回 IsWdV3TimmExeReady を
+                                                再チェックする。BuildWdV3TimmCommand（CanExecute:
+                                                !IsBuildingWdV3Timm）は MainPageViewModel.SynchronousProgress&lt;T&gt;
+                                                と同じ考え方の同期 IProgress&lt;string&gt; 実装（本クラス内に
+                                                private nested class として複製）でビルド出力を
+                                                WdV3TimmBuildLogEntries へ即時反映し、完了後に
+                                                IsWdV3TimmExeReady を再取得してスナックバー表示・
+                                                IsBuildingWdV3Timm を false に戻す
       ConfigViewModel.cs                    <- captioning_config.json 編集ページの VM。ConfigPath が指す
                                                 ファイルを System.Text.Json で直接読み書きする（ComfyUI との
                                                 通信は行わないため ICaptioningService 経由のファクトリー境界は
-                                                不要。ConfigLoader.ValidateWd14TaggerConfig で保存前検証のみ行う）
+                                                不要）。フェーズ32で wdv3_timm セクションの編集項目
+                                                （WdV3TimmExePath・BrowseWdV3TimmExePathCommand）を一時追加
+                                                したが、フェーズ32の追加修正（wdv3_timm.exe の実行ファイルパスを
+                                                アプリ同階層固定にする方針転換）でこれらを完全に削除した。
+                                                wdv3-timm はモデル名・しきい値を独自に持たず wd14_tagger
+                                                （ModelName/GeneralThreshold/CharacterThreshold）を共用する
+                                                （ComfyUILibs.Services.WdV3TimmModelMap で wd14_tagger.model_name
+                                                を変換する設計。当初は WdV3TimmModel 等を独自フィールドとして
+                                                持たせていたが、ComfyUI 版と設定がずれる問題があったため
+                                                フェーズ32内で設計修正した）。wdv3_timm セクション自体が
+                                                廃止されたため、Save() の出力対象は comfyui_url/wd14_tagger
+                                                のみになった（wd14_tagger セクションは ModelName（ComfyUiUrl
+                                                ではない）非空の場合に出力する）。Save() は
+                                                Config.Data.TaggerBackend が指す方の必須検証のみ行う
+                                                （ComfyUI なら ValidateWd14TaggerConfig、WdV3Timm なら
+                                                ValidateWdV3TimmConfig。後者は内部で ValidateWd14TaggerConfig
+                                                も呼ぶため wd14_tagger セクションが実質必須になる。
+                                                exe_path 関連の検証は廃止済み）。ModelName は自由入力の
+                                                ui:TextBox だと WdV3TimmModelMap で変換できない値を入力
+                                                できてしまうため、選択肢を
+                                                ComfyUILibs.Services.WdV3TimmModelMap.SupportedWd14ModelNames
+                                                （5モデル、二重管理を避けるため ComfyUILibs 側の対応表を
+                                                そのまま参照する）とする ModelNameList を追加し、
+                                                ConfigPage.xaml 側を ComboBox 化した
     ViewModels/Windows/
       MainWindowViewModel.cs                <- ナビゲーション定義・ウィンドウ状態保存。メニュー項目は
                                                 BuildMenuItems() で LocalizationManager から都度構築し、
@@ -297,10 +414,65 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 （GalleryPage.xaml の Gallery_SelectImagePrompt と同じ
                                                 DataTrigger パターン）
       ConfigPage.xaml(.cs)                   <- captioning_config.json 編集画面（comfyui_url・WD14 モデル名・
-                                                しきい値・prepend/exclude タグ既定値の編集、保存ボタン）
+                                                しきい値・prepend/exclude タグ既定値の編集、保存ボタン）。
+                                                フェーズ32で「WD14 モデル設定」カードに実行ファイルパス
+                                                選択欄を持つ「wdv3-timm 設定（ローカルプロセス版）」カードを
+                                                追加したが、フェーズ32の追加修正（実行ファイルパスをアプリ
+                                                同階層固定にする方針転換）でこのカード自体を削除した。
+                                                代わりに「WD14 モデル設定」カードの4行目（Grid.Row=3・
+                                                ColumnSpan=2）に、モデル名・しきい値は wdv3-timm 版でも
+                                                共用する旨の案内文（Config_WdV3TimmSharesWd14Notice、
+                                                wording はフェーズ32の追加修正で更新）のみを残した
       SettingsPage.xaml(.cs)                <- 設定画面（テーマ・言語切り替え、captioning_config.json パス選択、
-                                                実行結果ログ出力先 ResultsFolder のフォルダ選択）。
-                                                ラベルは LocalizationManager バインディング
+                                                実行結果ログ出力先 ResultsFolder のフォルダ選択、フェーズ32で
+                                                タグ付けバックエンド選択カード（ThemeList/SelectedTheme と
+                                                同じ ComboBox パターン、アイコン ArrowSwap24）を追加）。
+                                                ラベルは LocalizationManager バインディング。フェーズ32の
+                                                追加修正で「wdv3-timm 実行環境（ローカルプロセス版）」カード
+                                                （Settings_WdV3TimmSectionLabel、アイコン DeviceEq24）を
+                                                「ComfyUI 接続」カードの前に追加した。準備状態表示
+                                                （ViewModel.WdV3TimmStatusText）・ビルド中は
+                                                ui:ProgressRing を表示する「ビルド」ボタン
+                                                （ViewModel.BuildWdV3TimmCommand）・説明文
+                                                （Settings_WdV3TimmBuildDescription）・実行ログ
+                                                （ViewModel.WdV3TimmBuildLogEntries、DataPage.xaml の
+                                                1 ファイルごとの処理結果ログと同じ見た目）で構成する。
+                                                フェーズ35で、実行ログ表示を ui:ListView（内部テンプレートが
+                                                独自の ScrollViewer を持つ）から、明示的な
+                                                ScrollViewer（x:Name="WdV3TimmLogScrollViewer"）+
+                                                ItemsControl の組み合わせへ変更した。ui:ListView が
+                                                入れ子の ScrollViewer としてマウスホイールを常に自身で
+                                                消費してしまい、ページ全体を包む外側の ScrollViewer まで
+                                                イベントがバブルせずページ全体のスクロールが機能しなく
+                                                なる不具合があったため（GalleryPage.xaml の
+                                                TagsScrollViewer と同じ問題）、対応する
+                                                WdV3TimmLogScrollViewer_PreviewMouseWheel
+                                                （SettingsPage.xaml.cs、GalleryPage.xaml.cs の
+                                                TagsScrollViewer_PreviewMouseWheel と同一ロジック。内側が
+                                                スクロール端に達している場合のみイベントを親要素へ手動
+                                                転送する）を追加して解決した。フェーズ37で、ページ最上位に
+                                                独自に持っていた &lt;ScrollViewer&gt;（他ページと同じ
+                                                &lt;ScrollViewer&gt;&lt;StackPanel&gt; 構成）を完全に削除し、
+                                                直下の &lt;StackPanel&gt; を Page の直接のコンテンツにした
+                                                （Page ルート要素に ScrollViewer.CanContentScroll="False"
+                                                添付プロパティを明示指定）。Wpf.Ui.Controls.NavigationView が
+                                                ホスト中の Page 自体を包む組み込みの ScrollViewer を持ち
+                                                （NavigationViewContentPresenter が
+                                                ScrollViewer.CanContentScrollProperty の既定値を Page 型に
+                                                対して True へ上書きし、それを自身の組み込み ScrollViewer に
+                                                反映する。lepoco/wpfui#1041 として報告されている未解決の
+                                                既知の挙動）、SettingsPage 自身が独自の ScrollViewer を
+                                                持つと NavigationView 組み込みの ScrollViewer（外側、実際に
+                                                スクロールバーが表示される方）の内側にもう1つ ScrollViewer
+                                                が入れ子になり、内側が常にマウスホイールを消費してしまい
+                                                外側まで届かなくなっていた（dotnet/wpf#8353 と同種の
+                                                既知の WPF の挙動。「スクロールバーのドラッグは効くが
+                                                マウスホイールだけ効かない」という報告と一致）ため。
+                                                他ページ（MainPage/DataPage/GalleryPage/ReportPage/
+                                                ConfigPage）も同じ「最上位に独自の ScrollViewer を持つ」
+                                                構成のため理論上同じ問題を抱えている可能性があるが、
+                                                報告があったのは SettingsPage のみのため他ページは
+                                                未対応のまま
     Views/Windows/
       MainWindow.xaml(.cs)                  <- ナビゲーションホスト
     Usings.cs
@@ -310,6 +482,10 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       FakeCaptioningService.cs              <- ICaptioningService のテスト用スタブ（進捗・結果・例外発生を
                                                 あらかじめ設定可能。ProcessDirectoryAsync/GenerateReportAsync
                                                 それぞれ個別に例外を発生させられる）
+      FakeWdV3TimmBuildService.cs           <- IWdV3TimmBuildService のテスト用スタブ（フェーズ32の追加修正で
+                                                新設。IsExeReady/BuildResult/OutputLinesToReport を設定可能。
+                                                BuildAsyncCallCount・BuildAsyncCalledWithCancelledToken で
+                                                呼び出し履歴を記録する）
     Helpers/
       LocalizationManagerTests.cs           <- LocalizationManager のカルチャ切替・フォールバック挙動のテスト
       TagInCollectionConverterTests.cs      <- TagInCollectionConverter のテスト（フェーズ22で新設。
@@ -319,7 +495,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 values null/要素数不正・同一インスタンス/異なるインスタンス・
                                                 両方 null/片方のみ null・ConvertBack 未実装を検証）
     Models/
-      AppConfigTests.cs                     <- AppConfig/WindowSettingData のデフォルト値・PropertyChanged のテスト
+      AppConfigTests.cs                     <- AppConfig/WindowSettingData のデフォルト値・PropertyChanged のテスト。
+                                                フェーズ32で TaggerBackend の既定値（ComfyUI）・PropertyChanged
+                                                のテストを追加
       GalleryImageEntryTests.cs             <- GalleryImageEntry のテスト（フェーズ14で新設。AddTag の
                                                 trim/重複排除（大文字小文字無視）/既存タグへの追記と
                                                 対応する .txt 書き込み内容、RemoveTag の存在有無別の挙動
@@ -356,6 +534,36 @@ ComfyUICaptioningTool/                      <- ソリューションルート
       TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
                                                 ICaptioningService 呼び出し引数の検証・レポート行の解析
                                                 （複数件・コロンを含むタグ名）・例外伝播を検証）
+      TaggerRunnerFactoryTests.cs            <- TaggerRunnerFactory のテスト（フェーズ32で新設。
+                                                TaggerBackend.ComfyUI/WdV3Timm それぞれで正しい実装型
+                                                （Wd14TaggerRunner/WdV3TimmTaggerRunner）が返ること、
+                                                該当セクション欠落時に ComfyUIException を送出することを検証。
+                                                フェーズ32の追加修正で wdv3_timm セクションが廃止されたため、
+                                                WdV3Timm バックエンドのテストは wd14_tagger セクションのみの
+                                                config ファイルで検証するよう更新した）
+      WdV3TimmBuildServiceTests.cs          <- WdV3TimmBuildService のテスト（フェーズ32の追加修正で新設。
+                                                隔離した一時フォルダに軽量なダミー .bat スクリプトを配置し、
+                                                実際の cmd.exe プロセス起動・標準出力ストリーミング・
+                                                終了コード判定・setup.bat→build_exe.bat の逐次実行
+                                                〔前者が終了コード0以外の場合は後者を実行しない〕・
+                                                ルートフォルダ/スクリプト未検出時の挙動・IsExeReady を検証。
+                                                フェイクではなく実サービスクラスをそのまま対象にできるのは
+                                                WdV3TimmBuildService(string rootDirectory) コンストラクター
+                                                があるため）。フェーズ34で
+                                                BuildAsync_ProgressReportedOnCallingStaThread_
+                                                DoesNotThrowCrossThreadCollectionException を追加。
+                                                RecordingProgress&lt;T&gt;（呼び出し元スレッドを問わず単に
+                                                記録するだけ）ではクロススレッド問題を検出できないため、
+                                                TestSupport.StaTestRunner 上で
+                                                CollectionViewSource.GetDefaultView により
+                                                ObservableCollection&lt;string&gt; に対する CollectionView
+                                                （SettingsPage.xaml の ListBox バインディングが実行時に
+                                                生成するのと同種のオブジェクト）を生成し、
+                                                SynchronousProgress&lt;T&gt; と同じ同期委譲パターンの
+                                                IProgress&lt;T&gt; 実装からそのコレクションへ直接 Add する
+                                                ことで、修正前のコードでは実際に
+                                                System.NotSupportedException が再現することを確認した
+                                                回帰テスト
     TestSupport/
       StaThreadGate.cs                      <- STA スレッドで WPF オブジェクトを生成するテスト同士を直列化する共有 lock
       StaTestRunner.cs                      <- 非同期 ViewModel メソッドを STA スレッド上で実行するヘルパー。
@@ -368,7 +576,16 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 ResultsFolder への captioning_result_*.json 出力（成功/失敗
                                                 双方のステータス・ResultsFolder 未設定時のスキップ））。
                                                 SymbolIcon 生成を伴うテストは STA スレッドが必要なため
-                                                RunOnSta（TestSupport.StaTestRunner に委譲）でラップ
+                                                RunOnSta（TestSupport.StaTestRunner に委譲）でラップ。
+                                                フェーズ32で、TaggerBackend.WdV3Timm 選択時に
+                                                wd14_tagger セクションの読み込み成否で IsConfigLoaded が
+                                                切り替わること・RunCommand が captioningServiceFactory へ
+                                                WdV3TimmTaggerRunner 型のインスタンスを渡すこと・
+                                                実行完了後に Runner が破棄・再構築されページ再訪なしに
+                                                連続実行できることを検証するテストを追加（フェーズ32の
+                                                追加修正で wdv3_timm セクション自体が廃止されたため、
+                                                WriteWdV3TimmConfigFile ヘルパーは wd14_tagger セクションのみ
+                                                書き出すよう更新した）
       DataViewModelTests.cs                 <- DataViewModel のテスト（ResultsFolder 未設定/未存在/結果なし時の
                                                 状態メッセージ・captioning_result_*.json の新しい順読み込みと
                                                 成功/失敗の表示文字列・不正な JSON ファイルのスキップ・
@@ -415,10 +632,33 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 SelectedTag/TagUsageImages がリセットされることを検証する
                                                 テストを追加（非同期処理の完了は ReportViewModel.
                                                 TagUsageLoadTask を await して待つ）
-      SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）
+      SettingsViewModelTests.cs             <- SettingsViewModel のテスト（テーマ・言語切り替え等）。
+                                                フェーズ32で TaggerBackendList・SelectedTaggerBackend
+                                                （Config への反映・PropertyChanged・OnNavigatedToAsync
+                                                での読み込み）のテストを追加。フェーズ32の追加修正で
+                                                コンストラクターに ISnackbarService（必須）・
+                                                IWdV3TimmBuildService? が追加されたことに伴い、
+                                                CreateVm ヘルパー（FakeSnackbarService・
+                                                FakeWdV3TimmBuildService を注入）と RunOnSta ヘルパー
+                                                （StaTestRunner に委譲）を新設し、既存の直接
+                                                new SettingsViewModel(...) 呼び出し箇所をすべて
+                                                CreateVm() 経由に置き換えた。IsWdV3TimmExeReady・
+                                                WdV3TimmStatusText・BuildWdV3TimmCommand（CanExecute・
+                                                実行時のビルドサービス呼び出し・ログ追記・実行前の
+                                                ログクリア・IsBuildingWdV3Timm のトグル・成功時の
+                                                IsWdV3TimmExeReady 再取得と成功スナックバー・失敗時の
+                                                危険スナックバー）・OnNavigatedToAsync が毎回
+                                                IsWdV3TimmExeReady を再チェックすることを検証する
+                                                テストを追加
       ConfigViewModelTests.cs               <- ConfigViewModel のテスト（ConfigPath 読み込み成否・
                                                 ファイル未存在時の新規作成扱い・SaveCommand の CanExecute/実行・
-                                                保存前バリデーション・タグ既定値の union なしの単純反映）
+                                                保存前バリデーション・タグ既定値の union なしの単純反映）。
+                                                フェーズ32で wdv3-timm フィールドの読み込み・既定値、
+                                                TaggerBackend ごとの Save 挙動のテストを一時追加したが、
+                                                フェーズ32の追加修正で ExePath 関連のテストをすべて削除し、
+                                                TaggerBackend.WdV3Timm 選択時の Save 挙動を「wd14_tagger を
+                                                共用する」観点で検証し直した（ModelName 欠落/未対応モデル名/
+                                                しきい値範囲外時のエラー表示・ComfyUiUrl なしで保存できること）
     ViewModels/Windows/
       MainWindowViewModelTests.cs           <- MainWindowViewModel のテスト（メニュー項目構築・ウィンドウクローズ時保存等）
 ```
