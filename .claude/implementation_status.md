@@ -522,6 +522,14 @@
 - **既知の関連事項（本フェーズの対応範囲外）**: `MainPage.xaml`/`DataPage.xaml`/`GalleryPage.xaml`/`ReportPage.xaml`/`ConfigPage.xaml` も同じ「最上位に独自の `<ScrollViewer>` を持つ」構成のため、理論上は同じ `NavigationView` との二重入れ子問題を抱えている可能性がある（コンテンツ量が少なくスクロールバー自体が表示されない状況ではこれまで顕在化していなかっただけの可能性がある）。今回は `SettingsPage` のみが報告されたためそちらのみ対応した。他ページでも同様の報告があれば、同じ対応（最上位 `<ScrollViewer>` の削除 + `Page` への `ScrollViewer.CanContentScroll="False"` 指定）を適用する想定
 - 本フェーズの変更もユーザー指示「実装完了後はコミットしないでください」を継続して適用し、未コミットのまま作業ツリーに残している
 
+### フェーズ38: wdv3-timm タグのアンダースコア→半角スペース正規化（`ComfyUILibs` 側の修正、実装完了）
+
+「wdv3-timmを使用してキャプショニングすると `short_hair`/`blue_eyes` のように単語間がアンダースコアになってしまう」というユーザー報告を受けて修正した。原因は `wdv3-timm`（Python 側、`--serve` モード）がタグ名のアンダースコアを保持したまま返す仕様（プロトコル契約）であるのに対し、ComfyUI 経由の `Wd14TaggerRunner` は ComfyUI 側の WD Timm Tagger カスタムノードが既にアンダースコアを半角スペースへ変換した状態で返すため、両バックエンドでタグの見た目が揃っていなかったこと。
+
+- `ComfyUILibs`（`ComfyUICaptioningTool/ComfyUILibs/` 側の実体、`fix/wdv3-timm-tag-underscore-to-space` ブランチ）の `Services/WdV3TimmTaggerRunner.cs` に `NormalizeTags`（private static）を追加し、応答から取得したタグ文字列を正規化してから返すよう変更した。各タグ名の長さが3文字を超える場合のみアンダースコアを半角スペースへ置換し、`^_^`/`;_;` のような顔文字系タグ（3文字以下）は対象外として保持する（WD14 Tagger 系ツールで一般的な慣習）。`wdv3_timm.py`（Python スクリプト、別リポジトリで実行ファイルの再ビルドが必要）側は変更していない（既にビルド済みの `wdv3_timm.exe` を再ビルドせずに反映できる、プロトコル契約を変えずに済む、という理由による設計判断）。`Wd14TaggerRunner`（ComfyUI 経由）も変更していない
+- `ComfyUILibsTests/Services/WdV3TimmTaggerRunnerTests.cs` に2件追加（アンダースコアを含むタグのスペース変換・顔文字系タグの保持）。全229件、全件パス確認済み。本プロジェクト側の `dotnet build ComfyUICaptioningTool.sln` の成功も確認済み
+- 本プロジェクト（GUI）側のコード変更はなし。`ComfyUILibs` 側の変更は `fix/wdv3-timm-tag-underscore-to-space` ブランチとして [PR #21](https://github.com/satoru634/ComfyUILibs/pull/21) にてマージ済み。本プロジェクトの `ComfyUILibs` submodule ポインタも `6c908b0` → `2a84a8c` に更新した。詳細は `ComfyUILibs/.claude/implementation_status.md` のフェーズ9を参照
+
 ### 将来的な拡張
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図）の整備
