@@ -484,11 +484,13 @@ namespace ComfyUICaptioningTool.ViewModels.Pages
 
         /// <summary>
         /// captioning_config.json の既定タグ（Wd14TaggerRunner.PrependTags/ExcludeTags）と MainPage 入力タグを
-        /// union する（既定値を先頭、大文字小文字無視で重複排除）。
-        /// 同じタグが両方に指定された場合に、タグフィルタ適用後の出力へ二重に挿入されるのを防ぐ。
+        /// union する（MainPage 入力値を先頭、既定値をその後に連結し、大文字小文字無視で重複排除）。
+        /// MainPage 側にトリガーワード等を設定した場合に、prepend タグの並び（＝タグフィルタ適用後の
+        /// 出力の先頭）で優先されるようにするための順序。同じタグが両方に指定された場合に、
+        /// タグフィルタ適用後の出力へ二重に挿入されるのを防ぐ。
         /// </summary>
         private static List<string> MergeTags(IReadOnlyList<string> defaults, string extraText)
-            => MergeTagLists(defaults, SplitTags(extraText));
+            => MergeTagLists(SplitTags(extraText), defaults);
 
         /// <summary>2 つのタグリストを順番通りに連結し、大文字小文字無視で重複排除する（先に現れた方を残す）。</summary>
         private static List<string> MergeTagLists(IReadOnlyList<string> first, IReadOnlyList<string> second)
