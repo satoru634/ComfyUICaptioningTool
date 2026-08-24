@@ -530,6 +530,21 @@
 - `ComfyUILibsTests/Services/WdV3TimmTaggerRunnerTests.cs` に2件追加（アンダースコアを含むタグのスペース変換・顔文字系タグの保持）。全229件、全件パス確認済み。本プロジェクト側の `dotnet build ComfyUICaptioningTool.sln` の成功も確認済み
 - 本プロジェクト（GUI）側のコード変更はなし。`ComfyUILibs` 側の変更は `fix/wdv3-timm-tag-underscore-to-space` ブランチとして [PR #21](https://github.com/satoru634/ComfyUILibs/pull/21) にてマージ済み。本プロジェクトの `ComfyUILibs` submodule ポインタも `6c908b0` → `2a84a8c` に更新した。詳細は `ComfyUILibs/.claude/implementation_status.md` のフェーズ9を参照
 
+### フェーズ39: MainPage/ConfigPage タグフィルタの適用順序の変更（実装完了）
+
+「MainPage と ConfigPage にそれぞれタグフィルタがあり、現在の適用順序（prepend タグの並び＝タグフィルタ適用後の出力の先頭側の並び）は ConfigPage → MainPage だが、MainPage にトリガーワードを設定したいので MainPage → ConfigPage の順に変更してほしい」というユーザー要望を受けて修正した。`ComfyUILibs.Services.CaptioningService.ApplyTagFilters` は `prependTags` リストの並び順をそのまま出力の先頭に反映する（`_prependTags.Concat(filtered)`）ため、`MainPageViewModel.MergeTags` が構築する union リストの並びが実際のタグ出力順を決める。
+
+- `ViewModels/Pages/MainPageViewModel.cs` の `MergeTags(IReadOnlyList<string> defaults, string extraText)` を変更。`MergeTagLists(defaults, SplitTags(extraText))`（ConfigPage 既定値が先頭）から `MergeTagLists(SplitTags(extraText), defaults)`（MainPage 入力値が先頭）に変更した。呼び出し元（`RunAsync` の `prependTags`/`excludeTags` 算出、引数は変更なし）はそのまま。大文字小文字無視での重複排除は維持しており、同じタグが両方にある場合は MainPage 側の表記（先に現れた方）が残るようになった（従来は ConfigPage 側の表記が残っていた）
+- exclude タグの並びは `ApplyTagFilters` 内で `HashSet` に変換されるため機能的な違いはないが、prepend タグと同じ関数（`MergeTags`）を経由するため、対称性のため同様に MainPage 側を先頭にする変更が適用される
+- `ComfyUICaptioningToolTests`: `ViewModels/Pages/MainPageViewModelTests.cs` の既存テストを新しい順序に合わせて更新した
+  - `RunCommand_Execute_MergesConfigTagsBeforeInputTags` → `RunCommand_Execute_MergesInputTagsBeforeConfigTags` にリネームし、期待値を `{"my_chara","1girl"}`→`{"1girl","my_chara"}`（prepend）・`{"rating:general","solo"}`→`{"solo","rating:general"}`（exclude）に変更
+  - `RunCommand_Execute_MergesConfigAndInputTags_DeduplicatesCaseInsensitive`（大文字小文字無視の重複排除時にどちらの表記が残るかを検証するテスト）の期待値を、ConfigPage 側の表記（`"my_chara"`）が残ることを検証する内容から、MainPage 側の表記（`"MY_CHARA"`）が残ることを検証する内容に変更
+  - `RunCommand_Execute_Success_WritesConfigResultJsonToTargetDirectory`（`captioning_config_result.json` の出力内容を検証するテスト）の期待値も同様に順序を入れ替え
+  - `ImportTagsFromFile`（フェーズ20、別の captioning_config.json から prepend/exclude タグをインポートする機能）は本フェーズの対象外。こちらは `MergeTagLists(SplitTags(現在の入力欄), インポート元タグ)`（現在の入力欄が先頭）のまま変更していない（インポートは MainPage 入力欄自体への追記であり、ConfigPage 既定値との union とは別の処理のため）
+  - 全338件中336件パス確認済み（`ComfyUICaptioningToolTests.exe` 直接実行で確認。失敗した2件は既知のクリップボードアクセス不可という環境依存事象で、本フェーズの変更とは無関係）
+- 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビューで代替した
+- CLAUDE.md の開発ルール（「指示があるまでコミットしないこと」）に従い、本フェーズの変更も未コミットのまま作業ツリーに残している（フェーズ32以降の未コミット状態のまま今回の変更を積み増した形）
+
 ### 将来的な拡張
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図）の整備

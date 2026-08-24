@@ -494,7 +494,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         }
 
         [Fact]
-        public async Task RunCommand_Execute_MergesConfigTagsBeforeInputTags()
+        public async Task RunCommand_Execute_MergesInputTagsBeforeConfigTags()
         {
             var fake = new FakeCaptioningService();
             IReadOnlyList<string>? capturedPrepend = null;
@@ -516,8 +516,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
 
-            Assert.Equal(new[] { "my_chara", "1girl" }, capturedPrepend);
-            Assert.Equal(new[] { "rating:general", "solo" }, capturedExclude);
+            Assert.Equal(new[] { "1girl", "my_chara" }, capturedPrepend);
+            Assert.Equal(new[] { "solo", "rating:general" }, capturedExclude);
         }
 
         [Fact]
@@ -540,7 +540,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             RunOnSta(async () => await vm.RunCommand.ExecuteAsync(null));
 
-            Assert.Equal(new[] { "my_chara", "1girl" }, capturedPrepend);
+            Assert.Equal(new[] { "MY_CHARA", "1girl" }, capturedPrepend);
         }
 
         // ── 実行結果設定 JSON（captioning_config_result.json）出力 ──────────────
@@ -569,8 +569,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
 
             Assert.Equal("http://127.0.0.1:8188", written.ComfyuiUrl);
             Assert.Equal("wd-eva02-large-tagger-v3", written.Wd14Tagger!.ModelName);
-            Assert.Equal(new[] { "my_chara", "1girl" }, written.PrependTags);
-            Assert.Equal(new[] { "rating:general", "solo" }, written.ExcludeTags);
+            Assert.Equal(new[] { "1girl", "my_chara" }, written.PrependTags);
+            Assert.Equal(new[] { "solo", "rating:general" }, written.ExcludeTags);
         }
 
         [Fact]
