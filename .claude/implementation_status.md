@@ -545,6 +545,38 @@
 - 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビューで代替した
 - CLAUDE.md の開発ルール（「指示があるまでコミットしないこと」）に従い、本フェーズの変更も未コミットのまま作業ツリーに残している（フェーズ32以降の未コミット状態のまま今回の変更を積み増した形）
 
+### フェーズ40: GalleryPage への gallery_edit_log.jsonl 復元機能の追加（`feature/gallery-restore-edit-log` ブランチ、実装完了）
+
+ユーザーが `GalleryPage.xaml` の一括タグ操作カードに、コマンド未配線のボタン（アイコン `ArrowRepeatAll24`）を追加済みだったのを受けて、「gallery_edit_log.jsonl をファイル選択ダイアログで読み込み、記録されている操作（add_end/add_start/remove/reorder_*）を復元する」機能を実装した。着手前に (1) 復元対象の画像範囲、(2) 復元方法（既存タグ状態をクリアするか）、(3) 復元操作自体をログ・captioning_config_result.json へ反映するか、(4) 実行前の確認ダイアログの要否、の4点を確認し、いずれも推奨側（読み込み済み `Images` のうち file_name が一致するエントリのみ対象／既存のタグ状態はクリアせずログを記録順に再生／通常のタグ編集と同様に反映してよい／確認ダイアログを出す）を採用した。
+
+- `Models/GalleryImageEntry.cs` に `public void ApplyEditLogEntry(string operation, IReadOnlyList<string> tags)` を追加した。add_end/add_start/remove は既存の `AddTag`/`RemoveTag` をそのまま呼び出す（重複・不在時は各メソッドの既存仕様により自然に無視される）ため、通常のタグ編集と同様に .txt・captioning_config_result.json・gallery_edit_log.jsonl への反映も追加のコードなしにそのまま行われる。reorder_to_start/reorder_to_end/reorder_up/reorder_down は新設 private メソッド `ApplyReorder(tags, moveCommand)` が、`SelectedTags` を一時的にログの対象タグへ差し替えてから対応する `MoveSelectedTags*Command`（フェーズ22/26で追加済み）を `CanExecute` を確認した上で実行し、完了後は選択状態をクリアする（復元前の選択状態を維持する要件はないため）。未知の operation は無視する
+- `ViewModels/Pages/GalleryViewModel.cs`:
+  - コンストラクターに `Func<int, Task<bool>>? confirmRestoreEditLogAsync = null`（テスト用の差し替え口、既定は `Wpf.Ui.Controls.MessageBox` による確認ダイアログを表示する `ShowRestoreEditLogConfirmDialogAsync`）を追加した
+  - `RestoreEditLogCommand`（`[RelayCommand]`、実体は `RestoreEditLogAsync`）: `MainPageViewModel.ImportTagsFromConfig`/`ImportTagsFromFile` と同じ「ダイアログを開く薄いラッパー + テスト可能な公開メソッド」のパターンを踏襲し、`Microsoft.Win32.OpenFileDialog`（`*.jsonl` フィルタ付き）でログファイルを選ばせてから `RestoreEditLogFromFileAsync(path)` を呼ぶ
+  - `public async Task RestoreEditLogFromFileAsync(string path)`: ログファイルを 1 行ずつ `GalleryEditLogEntry` としてパース（不正な行・JSON 構文エラーの行は `JsonException` を捕捉してスキップ、ファイル自体の読み込み失敗時は `Gallery_RestoreEditLogReadErrorFormat` を表示して終了）し、`Images` を `FileName`（大文字小文字無視）でディクショナリ化して一致するエントリのみ抽出する。一致件数が 0 件なら `Gallery_RestoreEditLogNoMatchingEntries` を表示して終了（確認ダイアログは呼ばない）。1 件以上あれば `confirmRestoreEditLogAsync(件数)` で確認し、キャンセルなら何もせず終了。承認されたら記録順（ファイル内の出現順）に各エントリの `ApplyEditLogEntry` を呼び出し、完了後に `RefreshTagListAsync`（TagList 再構築）と `Gallery_RestoreEditLogCompletedFormat`（件数入り）の表示を行う
+- `Views/Pages/GalleryPage.xaml`: 既存の未配線ボタンに `Command="{Binding ViewModel.RestoreEditLogCommand}"` と `ToolTip`（`Gallery_RestoreEditLogButtonTooltip`）を配線した
+- `Resources/Strings.resx`/`Strings.en.resx` に `Gallery_RestoreEditLogButtonTooltip`/`Gallery_RestoreEditLogDialogTitle`/`Gallery_RestoreEditLogConfirmTitle`/`Gallery_RestoreEditLogConfirmMessageFormat`/`Gallery_RestoreEditLogConfirmYes`/`Gallery_RestoreEditLogConfirmCancel`/`Gallery_RestoreEditLogNoMatchingEntries`/`Gallery_RestoreEditLogReadErrorFormat`/`Gallery_RestoreEditLogCompletedFormat` を追加した
+- `ComfyUICaptioningToolTests`:
+  - `Models/GalleryImageEntryTests.cs` に `ApplyEditLogEntry` のテストを11件追加（add_end/add_start/remove の反映・大文字小文字無視の重複排除・不在タグの無視、reorder_to_start/to_end/up/down それぞれの並び替え結果、reorder 完了後に `SelectedTags` がクリアされること、未知の operation では変化しないこと、add_end 実行時に .txt への反映と gallery_edit_log.jsonl への新規追記の両方が通常操作と同様に行われることを検証）
+  - `ViewModels/Pages/GalleryViewModelTests.cs` に `RestoreEditLogFromFileAsync` のテストを10件追加（一致エントリへの確認・適用、キャンセル時は適用しないこと、確認ダイアログへ渡される件数が一致件数のみであること、ファイル名不一致エントリのスキップ、一致 0 件時は確認ダイアログを呼ばずメッセージのみ表示すること、不正な行のスキップ、ファイル読み込み失敗時のエラーメッセージ、複数操作が記録順に適用されること、完了メッセージの表示）
+  - 全359件中357件パス確認済み（`ComfyUICaptioningToolTests.exe -parallel none` で確認。失敗した2件は `CopyTagsToClipboardCommand` 関連で、フェーズ27以降記録済みのこのマシン特有のクリップボードアクセス不可という既知の環境依存事象であり、本フェーズの変更とは無関係）
+- 確認ダイアログの実装には `Wpf.Ui.Controls.MessageBox`（`ShowDialogAsync()` → `Task<MessageBoxResult>`、`PrimaryButtonText`/`CloseButtonText`/`Content`/`Title` プロパティを持つ）を採用した。このプロジェクトで確認ダイアログを表示するのは本フェーズが初めてのため、`ISnackbarService` と同様に DI 登録された共通サービスとしては用意せず、`GalleryViewModel` 内で直接インスタンス化する形にした（他ページで同様の確認ダイアログが必要になった場合は、共通サービス化を再検討する）
+- 実アプリでの目視確認は、過去のフェーズから繰り返し発生している環境依存の制約（座標指定でのクリック操作・スクリーンショットが無関係な別ウィンドウを誤操作/誤取得する）により今回も断念し、ユニットテストとコードレビュー（`ApplyEditLogEntry` が既存の `AddTag`/`RemoveTag`/`MoveSelectedTags*Command` をそのまま再利用する実装であること）で代替した
+- CLAUDE.md の開発ルール（「指示があるまでコミットしないこと」）に従い、本フェーズの変更も未コミットのまま作業ツリーに残している
+
+#### フェーズ40 追加修正: 確認ダイアログの表示位置調整・復元完了通知の Snackbar 化（実装完了）
+
+「確認ダイアログの表示位置を親ウィンドウの中心にしてほしい」「復元完了後は StatusMessage ではなく Snackbar で通知してほしい」というユーザー指摘を受けて修正した。
+
+- `ViewModels/Pages/GalleryViewModel.cs`:
+  - `ShowRestoreEditLogConfirmDialogAsync`（確認ダイアログの既定実装）に `Owner = Application.Current?.MainWindow`・`WindowStartupLocation = WindowStartupLocation.CenterOwner` を追加し、親ウィンドウの中心に表示されるようにした
+  - `RestoreEditLogFromFileAsync` の復元完了時の通知を `StatusMessage` 代入から `ISnackbarService.Show`（`ControlAppearance.Success`・`SymbolRegular.CheckmarkCircle24`、`MainPageViewModel.ImportTagsFromFile` の成功通知と同じ表示パターン）に変更した。一致 0 件時・ファイル読み込み失敗時のメッセージは引き続き `StatusMessage` に表示する（本修正の対象は「復元完了後」の通知のみ）
+  - コンストラクターに `ISnackbarService snackbarService`（必須引数、`MainPageViewModel`/`SettingsViewModel` と同じ並び）を追加した。GalleryViewModel はフェーズ13以来「ComfyUI と通信しないため軽量な設計とし、スナックバーは使わず StatusMessage/IsLoading のインライン表示のみで完結させる」方針だったが、本修正でスナックバー通知を導入したためこの方針は本ページに限り転換した
+- `ComfyUICaptioningToolTests/ViewModels/Pages/GalleryViewModelTests.cs`: `FakeSnackbarService` を注入する `CreateVm` ヘルパーを新設し、既存のコンストラクター直接呼び出し（約30箇所）をすべて `CreateVm(...)` 経由に置き換えた（`SettingsViewModelTests.CreateVm` と同じパターン）。スナックバー表示（`SymbolIcon` 生成）を伴う `RestoreEditLogFromFileAsync` の完了系テストは `MainPageViewModelTests.RunOnSta`/`TestSupport.StaTestRunner` に委譲する `RunOnSta` ヘルパーを新設して STA スレッド上で実行するよう変更した。`RestoreEditLogFromFileAsync_Success_ShowsCompletedMessage`（`StatusMessage` を検証していた）は `RestoreEditLogFromFileAsync_Success_ShowsCompletedSnackbar`（`_fakeSnackbar.Calls` に `ControlAppearance.Success` と完了メッセージが記録されることを検証）に置き換えた
+- 全359件中357件パス確認済み（`ComfyUICaptioningToolTests.exe -parallel none` で確認。失敗2件は既知のクリップボードアクセス不可の環境依存事象で無関係）
+- 実アプリでの目視確認は同様の環境依存の制約により断念し、ユニットテストとコードレビューで代替した
+- 未コミットのまま作業ツリーに残している
+
 ### 将来的な拡張
 
 - `doc/` ディレクトリ（使い方ドキュメント・クラス図）の整備

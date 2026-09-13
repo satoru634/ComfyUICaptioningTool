@@ -12,17 +12,33 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
     public class GalleryViewModelTests : IDisposable
     {
         private readonly string _tempDir;
+        private readonly FakeSnackbarService _fakeSnackbar;
 
         public GalleryViewModelTests()
         {
             _tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(_tempDir);
+            _fakeSnackbar = new FakeSnackbarService();
         }
 
         public void Dispose() => Directory.Delete(_tempDir, recursive: true);
 
         private Setting<AppConfig> CreateSetting()
             => new(Path.Combine(_tempDir, "setting.json"), onLoad: false);
+
+        private GalleryViewModel CreateVm(
+            Setting<AppConfig>? setting = null,
+            Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>? captioningServiceFactory = null,
+            Func<int, Task<bool>>? confirmRestoreEditLogAsync = null)
+            => new(setting ?? CreateSetting(), _fakeSnackbar, captioningServiceFactory, confirmRestoreEditLogAsync);
+
+        /// <summary>
+        /// WPF コントロール生成に必要な STA スレッドで非同期処理を実行するヘルパー。復元完了時のスナックバー
+        /// 表示は SymbolIcon（WPF FrameworkElement）を生成するため、RestoreEditLogFromFileAsync のテストは
+        /// STA スレッド上で行う必要がある（MainPageViewModelTests.RunOnSta と同じパターン）。
+        /// </summary>
+        private static void RunOnSta(Func<Task> asyncAction)
+            => ComfyUICaptioningToolTests.TestSupport.StaTestRunner.Run(asyncAction);
 
         /// <summary>
         /// Wd14TaggerRunner は AppDomain.CurrentDomain.BaseDirectory/templates を参照するため、
@@ -84,7 +100,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         {
             var setting = CreateSetting();
             setting.Data.ConfigPath = WriteValidConfigFile();
-            var vm = new GalleryViewModel(
+            var vm = CreateVm(
                 setting,
                 (Func<ITaggerRunner, IReadOnlyList<string>, IReadOnlyList<string>, ICaptioningService>)((_, _, _) => fake));
             await vm.OnNavigatedToAsync();
@@ -98,7 +114,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         {
             var setting = CreateSetting();
 
-            var vm = new GalleryViewModel(setting);
+            var vm = CreateVm(setting);
 
             Assert.Same(setting, vm.Config);
         }
@@ -106,7 +122,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         [Fact]
         public void Constructor_InitialState_IsEmpty()
         {
-            var vm = new GalleryViewModel(CreateSetting());
+            var vm = CreateVm();
 
             Assert.Empty(vm.Images);
             Assert.Equal("", vm.StatusMessage);
@@ -119,7 +135,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         [Fact]
         public void LoadCommand_CanExecute_False_WhenDirectoryNotSet()
         {
-            var vm = new GalleryViewModel(CreateSetting());
+            var vm = CreateVm();
 
             Assert.False(vm.LoadCommand.CanExecute(null));
         }
@@ -127,7 +143,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         [Fact]
         public void LoadCommand_CanExecute_True_WhenDirectorySet()
         {
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
 
             Assert.True(vm.LoadCommand.CanExecute(null));
         }
@@ -138,7 +155,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         public async Task LoadCommand_Execute_DirectoryNotFound_ShowsStatusMessage()
         {
             var directory = Path.Combine(_tempDir, "NoSuchFolder");
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = directory };
+            var vm = CreateVm();
+            vm.TargetDirectory = directory;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -151,7 +169,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         [Fact]
         public async Task LoadCommand_Execute_NoImages_ShowsNoImagesMessage()
         {
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -164,7 +183,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1, 2, 3 });
             File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "tag_a, tag_b ,  , tag_a");
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -178,7 +198,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         public async Task LoadCommand_Execute_ImageWithoutTagsFile_HasNoTags()
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "b.png"), new byte[] { 1, 2, 3 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -192,7 +213,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         {
             File.WriteAllText(Path.Combine(_tempDir, "note.txt"), "not an image");
             File.WriteAllBytes(Path.Combine(_tempDir, "c.gif"), new byte[] { 1, 2, 3 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -206,7 +228,9 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             Directory.CreateDirectory(subDir);
             File.WriteAllBytes(Path.Combine(_tempDir, "top.jpg"), new byte[] { 1 });
             File.WriteAllBytes(Path.Combine(subDir, "nested.jpg"), new byte[] { 1 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir, Recursive = false };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
+            vm.Recursive = false;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -221,7 +245,9 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             Directory.CreateDirectory(subDir);
             File.WriteAllBytes(Path.Combine(_tempDir, "top.jpg"), new byte[] { 1 });
             File.WriteAllBytes(Path.Combine(subDir, "nested.jpg"), new byte[] { 1 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir, Recursive = true };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
+            vm.Recursive = true;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -233,7 +259,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "b.jpg"), new byte[] { 1 });
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -244,7 +271,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         public async Task LoadCommand_Execute_InvalidImageBytes_ThumbnailIsNullButEntryIsIncluded()
         {
             File.WriteAllText(Path.Combine(_tempDir, "broken.png"), "this is not a valid png");
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -258,7 +286,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         public async Task LoadCommand_Execute_Reload_ResetsSelectedImageToNull()
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
             await vm.LoadCommand.ExecuteAsync(null);
             vm.SelectedImage = vm.Images.Single();
 
@@ -272,7 +301,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
             File.WriteAllBytes(Path.Combine(_tempDir, "b.jpg"), new byte[] { 1 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
             await vm.LoadCommand.ExecuteAsync(null);
             var entryB = vm.Images.Single(i => i.FileName == "b.jpg");
 
@@ -286,7 +316,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         [Fact]
         public void BulkAddTagCommand_CanExecute_False_WhenImagesEmpty()
         {
-            var vm = new GalleryViewModel(CreateSetting()) { BulkTagInput = "tag" };
+            var vm = CreateVm();
+            vm.BulkTagInput = "tag";
 
             Assert.False(vm.BulkAddTagCommand.CanExecute(null));
             Assert.False(vm.BulkAddTagToStartCommand.CanExecute(null));
@@ -297,7 +328,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         public async Task BulkAddTagCommand_CanExecute_False_WhenBulkTagInputEmpty()
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
             await vm.LoadCommand.ExecuteAsync(null);
 
             Assert.False(vm.BulkAddTagCommand.CanExecute(null));
@@ -308,7 +340,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         public async Task BulkAddTagCommand_CanExecute_True_WhenImagesLoadedAndInputSet()
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
             await vm.LoadCommand.ExecuteAsync(null);
             vm.BulkTagInput = "new_tag";
 
@@ -322,7 +355,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
             File.WriteAllBytes(Path.Combine(_tempDir, "b.jpg"), new byte[] { 1 });
             File.WriteAllText(Path.Combine(_tempDir, "b.txt"), "existing");
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
             await vm.LoadCommand.ExecuteAsync(null);
             vm.BulkTagInput = "new_tag";
 
@@ -337,7 +371,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
             File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "existing");
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
             await vm.LoadCommand.ExecuteAsync(null);
             vm.BulkTagInput = "new_tag";
 
@@ -355,7 +390,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             File.WriteAllText(Path.Combine(_tempDir, "a.txt"), "Tag_A, tag_b");
             File.WriteAllBytes(Path.Combine(_tempDir, "b.jpg"), new byte[] { 1 });
             File.WriteAllText(Path.Combine(_tempDir, "b.txt"), "tag_b");
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
             await vm.LoadCommand.ExecuteAsync(null);
             vm.BulkTagInput = "TAG_A";
 
@@ -373,7 +409,7 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         [Fact]
         public void Constructor_InitialState_TagListIsEmpty()
         {
-            var vm = new GalleryViewModel(CreateSetting());
+            var vm = CreateVm();
 
             Assert.Empty(vm.TagList);
         }
@@ -382,7 +418,8 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
         public async Task LoadCommand_Execute_ConfigPathNotSet_TagListRemainsEmpty()
         {
             File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
-            var vm = new GalleryViewModel(CreateSetting()) { TargetDirectory = _tempDir };
+            var vm = CreateVm();
+            vm.TargetDirectory = _tempDir;
 
             await vm.LoadCommand.ExecuteAsync(null);
 
@@ -473,6 +510,174 @@ namespace ComfyUICaptioningToolTests.ViewModels.Pages
             await entry.AddNewTagCommand.ExecuteAsync(null);
 
             Assert.Equal(new[] { "card_tag" }, vm.TagList);
+        }
+
+        // ── RestoreEditLogFromFileAsync（gallery_edit_log.jsonl からの復元） ─────
+
+        private string WriteEditLog(params (string FileName, string Operation, string[] Tags)[] entries)
+        {
+            var path = Path.Combine(_tempDir, "gallery_edit_log_import.jsonl");
+            var lines = entries.Select(e =>
+                System.Text.Json.JsonSerializer.Serialize(new GalleryEditLogEntry(DateTimeOffset.Now, e.FileName, e.Operation, e.Tags)));
+            File.WriteAllLines(path, lines);
+            return path;
+        }
+
+        [Fact]
+        public async Task RestoreEditLogFromFileAsync_MatchingFileName_AsksConfirmationAndAppliesOperation()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = CreateVm(confirmRestoreEditLogAsync: _ => Task.FromResult(true));
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            var logPath = WriteEditLog(("a.jpg", "add_end", new[] { "new_tag" }));
+
+            RunOnSta(async () => await vm.RestoreEditLogFromFileAsync(logPath));
+
+            var entry = Assert.Single(vm.Images);
+            Assert.Equal(new[] { "new_tag" }, entry.Tags);
+        }
+
+        [Fact]
+        public async Task RestoreEditLogFromFileAsync_UserCancelsConfirmation_DoesNotApply()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = CreateVm(confirmRestoreEditLogAsync: _ => Task.FromResult(false));
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            var logPath = WriteEditLog(("a.jpg", "add_end", new[] { "new_tag" }));
+
+            await vm.RestoreEditLogFromFileAsync(logPath);
+
+            var entry = Assert.Single(vm.Images);
+            Assert.Empty(entry.Tags);
+        }
+
+        [Fact]
+        public async Task RestoreEditLogFromFileAsync_PassesMatchingCountToConfirmation()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            File.WriteAllBytes(Path.Combine(_tempDir, "b.jpg"), new byte[] { 1 });
+            var passedCount = -1;
+            var vm = CreateVm(confirmRestoreEditLogAsync: count =>
+            {
+                passedCount = count;
+                return Task.FromResult(true);
+            });
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            var logPath = WriteEditLog(
+                ("a.jpg", "add_end", new[] { "tag1" }),
+                ("b.jpg", "add_end", new[] { "tag2" }),
+                ("unmatched.jpg", "add_end", new[] { "tag3" }));
+
+            RunOnSta(async () => await vm.RestoreEditLogFromFileAsync(logPath));
+
+            Assert.Equal(2, passedCount);
+        }
+
+        [Fact]
+        public async Task RestoreEditLogFromFileAsync_UnmatchedFileNameEntries_AreSkipped()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = CreateVm(confirmRestoreEditLogAsync: _ => Task.FromResult(true));
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            var logPath = WriteEditLog(("other.jpg", "add_end", new[] { "tag1" }));
+
+            await vm.RestoreEditLogFromFileAsync(logPath);
+
+            var entry = Assert.Single(vm.Images);
+            Assert.Empty(entry.Tags);
+            Assert.Equal(LocalizationManager.Instance["Gallery_RestoreEditLogNoMatchingEntries"], vm.StatusMessage);
+        }
+
+        [Fact]
+        public async Task RestoreEditLogFromFileAsync_NoMatchingEntries_DoesNotAskConfirmation()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var confirmCalled = false;
+            var vm = CreateVm(confirmRestoreEditLogAsync: _ =>
+            {
+                confirmCalled = true;
+                return Task.FromResult(true);
+            });
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            var logPath = WriteEditLog(("other.jpg", "add_end", new[] { "tag1" }));
+
+            await vm.RestoreEditLogFromFileAsync(logPath);
+
+            Assert.False(confirmCalled);
+        }
+
+        [Fact]
+        public async Task RestoreEditLogFromFileAsync_InvalidLines_AreSkipped()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = CreateVm(confirmRestoreEditLogAsync: _ => Task.FromResult(true));
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            var logPath = Path.Combine(_tempDir, "broken_log.jsonl");
+            File.WriteAllLines(logPath, new[]
+            {
+                "not a valid json line",
+                System.Text.Json.JsonSerializer.Serialize(new GalleryEditLogEntry(DateTimeOffset.Now, "a.jpg", "add_end", new[] { "new_tag" })),
+            });
+
+            RunOnSta(async () => await vm.RestoreEditLogFromFileAsync(logPath));
+
+            var entry = Assert.Single(vm.Images);
+            Assert.Equal(new[] { "new_tag" }, entry.Tags);
+        }
+
+        [Fact]
+        public async Task RestoreEditLogFromFileAsync_FileNotFound_ShowsReadErrorMessage()
+        {
+            var vm = CreateVm(confirmRestoreEditLogAsync: _ => Task.FromResult(true));
+
+            await vm.RestoreEditLogFromFileAsync(Path.Combine(_tempDir, "nonexistent.jsonl"));
+
+            Assert.StartsWith(
+                string.Format(LocalizationManager.Instance["Gallery_RestoreEditLogReadErrorFormat"], ""),
+                vm.StatusMessage);
+        }
+
+        [Fact]
+        public async Task RestoreEditLogFromFileAsync_MultipleOperations_AppliedInOrder()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = CreateVm(confirmRestoreEditLogAsync: _ => Task.FromResult(true));
+            vm.TargetDirectory = _tempDir;
+            await vm.LoadCommand.ExecuteAsync(null);
+            var logPath = WriteEditLog(
+                ("a.jpg", "add_end", new[] { "tag1" }),
+                ("a.jpg", "add_start", new[] { "tag2" }),
+                ("a.jpg", "remove", new[] { "tag1" }));
+
+            RunOnSta(async () => await vm.RestoreEditLogFromFileAsync(logPath));
+
+            var entry = Assert.Single(vm.Images);
+            Assert.Equal(new[] { "tag2" }, entry.Tags);
+        }
+
+        [Fact]
+        public void RestoreEditLogFromFileAsync_Success_ShowsCompletedSnackbar()
+        {
+            File.WriteAllBytes(Path.Combine(_tempDir, "a.jpg"), new byte[] { 1 });
+            var vm = CreateVm(confirmRestoreEditLogAsync: _ => Task.FromResult(true));
+            vm.TargetDirectory = _tempDir;
+            RunOnSta(async () =>
+            {
+                await vm.LoadCommand.ExecuteAsync(null);
+                var logPath = WriteEditLog(("a.jpg", "add_end", new[] { "new_tag" }));
+
+                await vm.RestoreEditLogFromFileAsync(logPath);
+            });
+
+            Assert.Contains(_fakeSnackbar.Calls, c =>
+                c.Appearance == Wpf.Ui.Controls.ControlAppearance.Success &&
+                c.Message == string.Format(LocalizationManager.Instance["Gallery_RestoreEditLogCompletedFormat"], 1));
         }
     }
 }
