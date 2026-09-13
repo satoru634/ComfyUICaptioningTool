@@ -126,7 +126,17 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 MoveSelectedTags*Command、いずれも CanExecute=HasSelectedTags）
                                                 は SelectedTags.CollectionChanged 経由で既に
                                                 NotifyCanExecuteChanged される実装（フェーズ22/26）のため、
-                                                この変更のみで自動的に活性化する
+                                                この変更のみで自動的に活性化する。フェーズ40で、
+                                                gallery_edit_log.jsonl からの復元用に
+                                                public ApplyEditLogEntry(operation, tags) を追加した。
+                                                add_end/add_start/remove は既存の AddTag/RemoveTag を
+                                                そのまま呼ぶ（.txt・captioning_config_result.json・
+                                                gallery_edit_log.jsonl への反映も通常操作と同様にそのまま
+                                                行われる）。reorder_* は private ApplyReorder が
+                                                SelectedTags を一時的にログの対象タグへ差し替えてから
+                                                対応する MoveSelectedTags*Command を CanExecute 確認の上で
+                                                実行し、完了後に選択状態をクリアする。未知の operation は
+                                                無視する
       LanguageOption.cs                     <- 言語選択コンボボックスの1項目（Key/Label レコード）
     Helpers/
       EnumToBooleanConverter.cs             <- テーマ切り替え用列挙型コンバーター（テンプレート由来、流用可）
@@ -257,7 +267,30 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 保持する SelectedImage（GalleryImageEntry?）・タイル
                                                 クリックで選択する SelectImageCommand（SelectedImage に
                                                 代入するだけ）を追加した。LoadCommand 実行時
-                                                （Images クリア時）に SelectedImage を null へリセットする
+                                                （Images クリア時）に SelectedImage を null へリセットする。
+                                                フェーズ40で、gallery_edit_log.jsonl をファイル選択
+                                                ダイアログで読み込み、記録済み操作を復元する
+                                                RestoreEditLogCommand（薄いラッパー、実体は
+                                                RestoreEditLogAsync）と、ダイアログ操作を伴わずテスト
+                                                できる公開メソッド RestoreEditLogFromFileAsync(path)
+                                                （MainPageViewModel.ImportTagsFromFile と同じ分離パターン）
+                                                を追加した。読み込み済み Images のうち file_name が一致する
+                                                エントリのみ抽出し、コンストラクター引数
+                                                Func&lt;int, Task&lt;bool&gt;&gt;? confirmRestoreEditLogAsync
+                                                （テスト用差し替え口、既定は Wpf.Ui.Controls.MessageBox に
+                                                よる確認ダイアログ。Owner をメインウィンドウ・
+                                                WindowStartupLocation を CenterOwner に設定し、親ウィンドウの
+                                                中心に表示する）で対象件数を提示して確認した上で、
+                                                記録順に GalleryImageEntry.ApplyEditLogEntry を呼び出す。
+                                                復元完了時は ISnackbarService.Show（ControlAppearance.Success、
+                                                MainPageViewModel.ImportTagsFromFile の成功通知と同じ表示
+                                                パターン）で通知する（フェーズ40の追加修正。それまでの
+                                                「対象件数 0 件」「ファイル読み込み失敗」は引き続き
+                                                StatusMessage に表示する）。コンストラクターに必須引数
+                                                ISnackbarService snackbarService が追加されたため、本ページは
+                                                従来の「ComfyUI と通信しないためスナックバーは使わず
+                                                StatusMessage/IsLoading のみで完結させる」方針
+                                                （フェーズ13）から、復元完了通知に限り転換した
       ReportViewModel.cs                    <- タグ集計レポート表示ページの VM。ConfigPath・TaggerBackend から
                                                 TaggerRunnerFactory 経由で ITaggerRunner を読み込み
                                                 （フェーズ32、Wd14TaggerRunner 固定から変更）、対象ディレクトリを選択して
@@ -353,7 +386,9 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 変更し、OriginalItemsSource を ViewModel.TagList へバインド
                                                 してタグ候補を表示する。先頭に追加/末尾に追加/削除の
                                                 3 ボタンをアイコン+ToolTip 表示で並べる。先頭追加ボタンは
-                                                フェーズ19で追加））。
+                                                フェーズ19で追加。フェーズ40で、gallery_edit_log.jsonl
+                                                からの復元ボタン（ViewModel.RestoreEditLogCommand、
+                                                アイコン ArrowRepeatAll24）を Separator 区切りで追加した）。
                                                 フェーズ23で、画像・タグ一覧表示領域を左右2ペインの
                                                 Grid に変更した。左ペインは ItemsControl
                                                 （ItemsPanel=WrapPanel）による画像タイル一覧で、各タイルは
@@ -529,7 +564,15 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 （SelectedTags への反映・入力欄のクリア・.txt を書き換えない
                                                 こと・既に選択済みの場合は変化しないこと・TagList 更新
                                                 コールバックが呼ばれないこと・RemoveSelectedTagsCommand の
-                                                CanExecute が有効になること）を検証するテストを追加）
+                                                CanExecute が有効になること）を検証するテストを追加。
+                                                フェーズ40で、ApplyEditLogEntry（gallery_edit_log.jsonl
+                                                からの復元）のテストを追加。add_end/add_start/remove の
+                                                反映・大文字小文字無視の重複排除・不在タグの無視、
+                                                reorder_to_start/to_end/up/down それぞれの並び替え結果、
+                                                reorder 完了後に SelectedTags がクリアされること、未知の
+                                                operation では変化しないこと、add_end 実行時に .txt・
+                                                gallery_edit_log.jsonl への反映が通常操作と同様に行われる
+                                                ことを検証）
     Services/
       TagReportGeneratorTests.cs            <- TagReportGenerator のテスト（フェーズ16で新設。
                                                 ICaptioningService 呼び出し引数の検証・レポート行の解析
@@ -611,7 +654,26 @@ ComfyUICaptioningTool/                      <- ソリューションルート
                                                 フェーズ23で、SelectedImage の初期値が null であること・
                                                 LoadCommand の再実行で SelectedImage が null にリセットされる
                                                 こと・SelectImageCommand 実行で SelectedImage が更新される
-                                                ことを検証するテストを追加）
+                                                ことを検証するテストを追加。フェーズ40で、
+                                                RestoreEditLogFromFileAsync（gallery_edit_log.jsonl からの
+                                                復元）のテストを追加。一致エントリへの確認・適用、
+                                                キャンセル時は適用しないこと、確認ダイアログへ渡される
+                                                件数が一致件数のみであること、ファイル名不一致エントリの
+                                                スキップ、一致 0 件時は確認ダイアログを呼ばずメッセージ
+                                                のみ表示すること、不正な行のスキップ、ファイル読み込み
+                                                失敗時のエラーメッセージ、複数操作が記録順に適用される
+                                                こと、完了時に FakeSnackbarService へ成功通知が記録される
+                                                こと（コンストラクター引数 confirmRestoreEditLogAsync に
+                                                テスト用の Func を渡す）を検証。フェーズ40の追加修正で、
+                                                GalleryViewModel コンストラクターに ISnackbarService が
+                                                必須引数として追加されたことに伴い、SettingsViewModelTests
+                                                と同じ CreateVm ヘルパー（FakeSnackbarService を注入）を
+                                                新設し、既存のコンストラクター直接呼び出しをすべて
+                                                CreateVm(...) 経由に置き換えた。スナックバー表示
+                                                （SymbolIcon 生成）を伴う RestoreEditLogFromFileAsync の
+                                                完了系テストは MainPageViewModelTests.RunOnSta と同じ
+                                                パターンの RunOnSta（TestSupport.StaTestRunner に委譲）で
+                                                STA スレッド上で実行する
       ReportViewModelTests.cs               <- ReportViewModel のテスト（ConfigPath 読み込み成否・
                                                 GenerateReportCommand の CanExecute/実行・レポート行の解析
                                                 （コロンを含むタグ名を含む）・エラーハンドリング。

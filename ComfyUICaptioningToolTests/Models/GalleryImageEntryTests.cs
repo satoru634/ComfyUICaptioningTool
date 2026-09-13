@@ -921,6 +921,132 @@ namespace ComfyUICaptioningToolTests.Models
             Assert.False(File.Exists(EditLogPath));
         }
 
+        // ── ApplyEditLogEntry（gallery_edit_log.jsonl からの復元） ───────────────
+
+        [Fact]
+        public void ApplyEditLogEntry_AddEnd_AddsTagAtEnd()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "existing" }, null);
+
+            entry.ApplyEditLogEntry("add_end", new[] { "new_tag" });
+
+            Assert.Equal(new[] { "existing", "new_tag" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_AddStart_InsertsTagAtStart()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "existing" }, null);
+
+            entry.ApplyEditLogEntry("add_start", new[] { "new_tag" });
+
+            Assert.Equal(new[] { "new_tag", "existing" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_AddEnd_DuplicateIgnoringCase_DoesNotAddAgain()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "Tag_A" }, null);
+
+            entry.ApplyEditLogEntry("add_end", new[] { "tag_a" });
+
+            Assert.Equal(new[] { "Tag_A" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_Remove_RemovesTag()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+
+            entry.ApplyEditLogEntry("remove", new[] { "tag1" });
+
+            Assert.Equal(new[] { "tag2" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_Remove_NotExisting_DoesNothing()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            entry.ApplyEditLogEntry("remove", new[] { "nonexistent" });
+
+            Assert.Equal(new[] { "tag1" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_ReorderToStart_MovesTagsToStart()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2", "tag3" }, null);
+
+            entry.ApplyEditLogEntry("reorder_to_start", new[] { "tag3" });
+
+            Assert.Equal(new[] { "tag3", "tag1", "tag2" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_ReorderToEnd_MovesTagsToEnd()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2", "tag3" }, null);
+
+            entry.ApplyEditLogEntry("reorder_to_end", new[] { "tag1" });
+
+            Assert.Equal(new[] { "tag2", "tag3", "tag1" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_ReorderUp_MovesTagUp()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2", "tag3" }, null);
+
+            entry.ApplyEditLogEntry("reorder_up", new[] { "tag2" });
+
+            Assert.Equal(new[] { "tag2", "tag1", "tag3" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_ReorderDown_MovesTagDown()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2", "tag3" }, null);
+
+            entry.ApplyEditLogEntry("reorder_down", new[] { "tag1" });
+
+            Assert.Equal(new[] { "tag2", "tag1", "tag3" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_Reorder_ClearsSelectedTagsAfterward()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1", "tag2" }, null);
+
+            entry.ApplyEditLogEntry("reorder_to_start", new[] { "tag2" });
+
+            Assert.Empty(entry.SelectedTags);
+            Assert.False(entry.HasSelectedTags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_UnknownOperation_DoesNothing()
+        {
+            var entry = new GalleryImageEntry("a.jpg", CreateImagePath(), new[] { "tag1" }, null);
+
+            entry.ApplyEditLogEntry("unknown_operation", new[] { "tag1" });
+
+            Assert.Equal(new[] { "tag1" }, entry.Tags);
+        }
+
+        [Fact]
+        public void ApplyEditLogEntry_AddEnd_ReflectedInTxtAndAppendsNewEditLogEntry()
+        {
+            var path = CreateImagePath();
+            var entry = new GalleryImageEntry("a.jpg", path, Array.Empty<string>(), null);
+
+            entry.ApplyEditLogEntry("add_end", new[] { "new_tag" });
+
+            Assert.Equal("new_tag", File.ReadAllText(Path.ChangeExtension(path, ".txt")));
+            var logEntry = Assert.Single(ReadEditLog());
+            Assert.Equal("add_end", logEntry.Operation);
+        }
+
         // ── CopyTagsToClipboardCommand ───────────────────────────────────────────
 
         /// <summary>

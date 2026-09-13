@@ -158,6 +158,15 @@
   <data name="Gallery_MoveTagsUpTooltip" xml:space="preserve"><value>Move selected tags up</value></data>
   <data name="Gallery_MoveTagsDownTooltip" xml:space="preserve"><value>Move selected tags down</value></data>
   <data name="Gallery_MoveTagsToEndTooltip" xml:space="preserve"><value>Move selected tags to end</value></data>
+  <data name="Gallery_RestoreEditLogButtonTooltip" xml:space="preserve"><value>Restore from edit log</value></data>
+  <data name="Gallery_RestoreEditLogDialogTitle" xml:space="preserve"><value>Select gallery_edit_log.jsonl</value></data>
+  <data name="Gallery_RestoreEditLogConfirmTitle" xml:space="preserve"><value>Restore edit log</value></data>
+  <data name="Gallery_RestoreEditLogConfirmMessageFormat" xml:space="preserve"><value>This will restore {0} operations matching the loaded images. Continue?</value></data>
+  <data name="Gallery_RestoreEditLogConfirmYes" xml:space="preserve"><value>Restore</value></data>
+  <data name="Gallery_RestoreEditLogConfirmCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Gallery_RestoreEditLogNoMatchingEntries" xml:space="preserve"><value>No operations in the log matched the loaded images.</value></data>
+  <data name="Gallery_RestoreEditLogReadErrorFormat" xml:space="preserve"><value>Failed to read the edit log: {0}</value></data>
+  <data name="Gallery_RestoreEditLogCompletedFormat" xml:space="preserve"><value>Restored {0} operations.</value></data>
 
   <!-- Report (tag frequency report page) -->
   <data name="Report_Title" xml:space="preserve"><value>Tag Frequency Report</value></data>

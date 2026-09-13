@@ -207,6 +207,8 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <ui:AutoSuggestBox
@@ -242,7 +244,7 @@
                     <ui:Button
                         Grid.Column="3"
                         Height="36"
-                        Margin="12,0,0,0"
+                        Margin="12,0,12,0"
                         Appearance="Secondary"
                         Command="{Binding ViewModel.BulkRemoveTagCommand}"
                         Icon="{ui:SymbolIcon Delete24}"
@@ -259,6 +261,15 @@
                             </MultiBinding>
                         </ui:Button.IsEnabled>
                     </ui:Button>
+                    <Separator Grid.Column="4" />
+                    <ui:Button
+                        Grid.Column="5"
+                        Height="36"
+                        Margin="12,0,0,0"
+                        Appearance="Secondary"
+                        Command="{Binding ViewModel.RestoreEditLogCommand}"
+                        Icon="{ui:SymbolIcon ArrowRepeatAll24}"
+                        ToolTip="{Binding Source={x:Static helpers:LocalizationManager.Instance}, Path=[Gallery_RestoreEditLogButtonTooltip]}" />
                 </Grid>
             </Grid>
         </Border>

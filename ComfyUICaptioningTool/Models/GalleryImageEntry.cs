@@ -358,6 +358,65 @@ namespace ComfyUICaptioningTool.Models
         }
 
         /// <summary>
+        /// gallery_edit_log.jsonl から読み込んだ 1 件の操作をこの画像に適用する（GalleryViewModel の
+        /// 復元機能から呼ばれる）。add_start/add_end/remove は <see cref="AddTag"/>/<see cref="RemoveTag"/> を
+        /// そのまま呼び出す（既存タグとの重複・不在時は各メソッドの既存仕様により自然に無視される）ため、
+        /// 通常のタグ編集と同様に .txt・captioning_config_result.json・gallery_edit_log.jsonl への反映も行われる。
+        /// reorder_* は一時的に <see cref="SelectedTags"/> を対象タグへ差し替えてから対応する並び替えコマンドを
+        /// 実行し、完了後に選択状態をクリアする。未知の operation は無視する。
+        /// </summary>
+        public void ApplyEditLogEntry(string operation, IReadOnlyList<string> tags)
+        {
+            switch (operation)
+            {
+                case "add_end":
+                    foreach (var tag in tags)
+                        AddTag(tag);
+                    break;
+                case "add_start":
+                    foreach (var tag in tags)
+                        AddTag(tag, prepend: true);
+                    break;
+                case "remove":
+                    foreach (var tag in tags)
+                        RemoveTag(tag);
+                    break;
+                case "reorder_to_start":
+                    ApplyReorder(tags, MoveSelectedTagsToStartCommand);
+                    break;
+                case "reorder_to_end":
+                    ApplyReorder(tags, MoveSelectedTagsToEndCommand);
+                    break;
+                case "reorder_up":
+                    ApplyReorder(tags, MoveSelectedTagsUpCommand);
+                    break;
+                case "reorder_down":
+                    ApplyReorder(tags, MoveSelectedTagsDownCommand);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 並び替え系操作の復元。<see cref="SelectedTags"/> をログの対象タグへ一時的に差し替えてから
+        /// <paramref name="moveCommand"/>（MoveSelectedTags*Command のいずれか）を実行し、完了後は
+        /// 選択状態をクリアする（復元前の選択状態を維持する要件はないため）。
+        /// </summary>
+        private void ApplyReorder(IReadOnlyList<string> tags, IRelayCommand moveCommand)
+        {
+            SelectedTags.Clear();
+            foreach (var tag in tags)
+            {
+                if (!SelectedTags.Contains(tag))
+                    SelectedTags.Add(tag);
+            }
+
+            if (moveCommand.CanExecute(null))
+                moveCommand.Execute(null);
+
+            SelectedTags.Clear();
+        }
+
+        /// <summary>
         /// 現在の <see cref="Tags"/> をカンマ区切りでクリップボードへコピーする。タグが 0 件の場合は何もしない。
         /// クリップボードアクセスに失敗した場合（他アプリによる一時的なロック等）は握りつぶす。
         /// </summary>
